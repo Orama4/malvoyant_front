@@ -54,7 +54,7 @@ fun HeaderBar(
                         .align(Alignment.Center)
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)
+                    verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
                     Text(
                         text = "WELCOME TO ",
@@ -64,11 +64,16 @@ fun HeaderBar(
                         textAlign = TextAlign.Center,
                         fontFamily = PlusJakartaSans,
                         modifier = Modifier.clickable { onSpeakHelp() }
+                            .offset(y = (50).dp) // Move closer to the Text
+
+
                     )
+                    Spacer(modifier = Modifier.height(10.dp))
                     Image(
                         painter = painterResource(id = R.drawable.irchad_logo), // Replace with your actual logo resource
                         contentDescription = "Irchad Logo",
                         modifier = Modifier.size(200.dp)
+
                     )
 
 
