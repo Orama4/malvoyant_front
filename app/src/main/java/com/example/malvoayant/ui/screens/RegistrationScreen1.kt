@@ -30,6 +30,8 @@ import android.R.attr.value
 
 @Composable
 fun RegistrationScreen1(context: Context) {
+    val textStates = remember { mutableStateListOf("", "", "") }
+
     var textState by remember { mutableStateOf("") }
 
 // Cette ligne réinitialise la valeur à chaque fois que l’écran apparaît
@@ -59,12 +61,17 @@ fun RegistrationScreen1(context: Context) {
             .background(Color.White)
             .pointerInput(Unit) {
                 detectHorizontalDragGestures { _, dragAmount ->
-                    if (dragAmount < -50 && step < labels.size - 1) {
-                        textState = ""
-                        step++ // Swipe left
+                    when {
+                        dragAmount < -50 && step < labels.size - 1 -> { // Swipe left
+                            step++
+                        }
+                        dragAmount > 50 && step > 0 -> { // Swipe right
+                            step--
+                        }
                     }
                 }
             }
+
     ) {
         Column(
             modifier = Modifier.fillMaxSize().background(AppColors.darkBlue),
@@ -93,12 +100,11 @@ fun RegistrationScreen1(context: Context) {
                     placeHolder = placeholders[step],
                     icon = icons[step],
                     isPassword = step == 1,
-                    value = textState,
-                    onValueChange = { textState = it },
+                    value = textStates[step], // Utiliser la liste
+                    onValueChange = { textStates[step] = it }, // Stocker la valeur actuelle
                     onDone = {
                         if (step < labels.size - 1) {
-                            textState = ""
-                            step++ // Move to next step on Enter
+                            step++ // Passer à l'étape suivante
                         }
                     }
                 )
