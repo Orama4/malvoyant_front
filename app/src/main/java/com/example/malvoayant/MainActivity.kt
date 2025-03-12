@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.malvoayant.ui.screens.HomeScreen
+import com.example.malvoayant.ui.screens.LoginScreen
 import com.example.malvoayant.ui.screens.RegistrationScreen1
 import com.example.malvoayant.ui.theme.MalvoayantTheme
 
@@ -21,7 +22,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            RegistrationScreen1(context = this)  // Pass only the context
+            LoginScreen(context = this)  // Pass only the context
         }
     }
 }
