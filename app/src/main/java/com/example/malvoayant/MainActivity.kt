@@ -12,6 +12,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.malvoayant.navigation.NavigationController
+import com.example.malvoayant.ui.screens.PhoneNumbersScreenPreview
+import com.example.malvoayant.ui.screens.RepairScreenPreview
+
 import com.example.malvoayant.ui.theme.MalvoayantTheme
 import com.yourpackagename.screens.HomeScreen
 
@@ -19,7 +23,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            HomeScreen(context = this)  // Pass only the context
-        }
+            NavigationController()        }
     }
 }
