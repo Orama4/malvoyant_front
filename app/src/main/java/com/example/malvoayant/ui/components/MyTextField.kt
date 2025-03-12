@@ -8,14 +8,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +24,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -43,26 +40,27 @@ fun MyTextField(
     content: String,
     placeHolder: String,
     icon: Painter,
-    isPassword: Boolean = false,
-    onClick: () -> Unit
+    value: String,
+    onValueChange: (String) -> Unit,
+    onDone: () -> Unit,
+    isPassword: Boolean = false
 ) {
-    var value by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             modifier = Modifier.padding(start = 20.dp, bottom = 8.dp),
             text = text,
             fontSize = 24.sp,
             fontFamily = PlusJakartaSans,
-            color=AppColors.writingBlue,
-            fontWeight = FontWeight.Bold,)
-
+            color = AppColors.writingBlue,
+            fontWeight = FontWeight.Bold
+        )
 
         OutlinedTextField(
             value = value,
-            onValueChange = { value = it },
+            onValueChange = onValueChange,
 
-            // Static label above the text field
             placeholder = {
                 Text(
                     text = placeHolder,
@@ -71,7 +69,6 @@ fun MyTextField(
                         fontFamily = PlusJakartaSans,
                         fontWeight = FontWeight.SemiBold,
                         color = AppColors.writingBlue.copy(alpha = 0.6f)
-
                     )
                 )
             },
@@ -87,11 +84,12 @@ fun MyTextField(
 
             visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
             keyboardOptions = when (content) {
-                "email" -> KeyboardOptions.Default.copy(keyboardType = KeyboardType.Email)
-                "password" -> KeyboardOptions.Default.copy(keyboardType = KeyboardType.Password)
-                "tel" -> KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone)
+                "Email" -> KeyboardOptions.Default.copy(keyboardType = KeyboardType.Email)
+                "Password" -> KeyboardOptions.Default.copy(keyboardType = KeyboardType.Password)
+                "Phone Number" -> KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone)
                 else -> KeyboardOptions.Default
             },
+            keyboardActions = KeyboardActions(onDone = { onDone() }),
 
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color.White,
@@ -105,10 +103,9 @@ fun MyTextField(
 
             modifier = Modifier
                 .padding(horizontal = 20.dp)
-                .clip(RoundedCornerShape(20.dp)) // Rounded corners
-                .clickable { onClick() }
+                .clip(RoundedCornerShape(20.dp))
                 .fillMaxWidth()
-                .height(120.dp) // Reduced height for better alignment
+                .height(120.dp)
                 .border(
                     width = 4.dp,
                     color = AppColors.primary,
@@ -116,7 +113,6 @@ fun MyTextField(
                 ),
 
             textStyle = TextStyle(
-                lineHeight = 22.sp,
                 fontSize = 24.sp,
                 fontFamily = PlusJakartaSans,
                 fontWeight = FontWeight.SemiBold,
@@ -124,5 +120,5 @@ fun MyTextField(
             ),
             singleLine = true
         )
-
-    }}
+    }
+}

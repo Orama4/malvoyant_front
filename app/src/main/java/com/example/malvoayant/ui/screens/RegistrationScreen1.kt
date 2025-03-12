@@ -1,99 +1,107 @@
 package com.example.malvoayant.ui.screens
 
+import android.R.attr
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Divider
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.malvoayant.R
-import com.example.malvoayant.ui.components.HeaderBar
-import com.example.malvoayant.ui.components.MyTextField
-import com.example.malvoayant.ui.components.NavigationButton
-import com.example.malvoayant.ui.components.PageIndicator
+import com.example.malvoayant.ui.components.*
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
+import android.R.attr.value
+
+
 
 @Composable
 fun RegistrationScreen1(context: Context) {
+    var textState by remember { mutableStateOf("") }
+
+// Cette ligne réinitialise la valeur à chaque fois que l’écran apparaît
+    LaunchedEffect(Unit) {
+        textState = ""
+    }
+    var step by remember { mutableStateOf(0) }
     val speechHelper = remember { SpeechHelper(context) }
 
-    LaunchedEffect(context) {
-        speechHelper.initializeSpeech {
-            speechHelper.speak("This page is the registration page, you can here write or spell your email address, tap one time in order to activate talk back , else tap 2 times to select the target elmeent, you can activate voice function byt taping on the top right corner.")
-        }
+    val labels = listOf("Email", "Password", "Phone Number")
+    val placeholders = listOf("Enter your email", "Enter your password", "Enter your phone number")
+    val icons = listOf(
+        painterResource(id = R.drawable.ic_email),
+        painterResource(id = R.drawable.ic_password),
+        painterResource(id = R.drawable.ic_phone)
+    )
+
+
+
+    LaunchedEffect(step) {
+        speechHelper.speak("Enter your ${labels[step]}")
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .clickable {
-                speechHelper.speak(
-                    "If you encounter difficulties, press anywhere to activate TalkBack. " +
-                            "Press the top left corner to hear the page description."
-                )
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures { _, dragAmount ->
+                    if (dragAmount < -50 && step < labels.size - 1) {
+                        textState = ""
+                        step++ // Swipe left
+                    }
+                }
             }
     ) {
         Column(
-            modifier = Modifier.fillMaxSize()
-                .background(AppColors.darkBlue)
-            ,
+            modifier = Modifier.fillMaxSize().background(AppColors.darkBlue),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header
             HeaderBar(
                 pageType = "register",
                 onSpeakHelp = {
-                    speechHelper.speak("This page is the registration page, you can here write or spell your email address, tap one time in order to activate talk back , else tap 2 times to select the target elmeent, you can activate voice function byt taping on the top right corner.")
+                    speechHelper.speak("This is the registration page. Enter your ${labels[step]}")
                 }
             )
+
             Column(
                 modifier = Modifier.fillMaxSize()
-                    .clip(RoundedCornerShape(20.dp)) // Apply rounded corners to the whole Column
-
-                    .background(Color.White), // Background color with rounded corners
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White),
                 horizontalAlignment = Alignment.CenterHorizontally
-            )
-            { Spacer(modifier = Modifier.height(20.dp))
+            ) {
+                Spacer(modifier = Modifier.height(20.dp))
 
-                // Email text field
+                // Dynamic Input Field
                 MyTextField(
-                    text = "Email",
-                    content="email",
-                    placeHolder="Enter your email",
-                    icon = painterResource(id = R.drawable.ic_email),
-                    onClick = {
-                        speechHelper.speak("Email text field, tap to enter your email ")
-                        // Add navigation logic here
+                    text = labels[step],
+                    content = labels[step],
+                    placeHolder = placeholders[step],
+                    icon = icons[step],
+                    isPassword = step == 1,
+                    value = textState,
+                    onValueChange = { textState = it },
+                    onDone = {
+                        if (step < labels.size - 1) {
+                            textState = ""
+                            step++ // Move to next step on Enter
+                        }
                     }
                 )
-
                 Spacer(modifier = Modifier.height(24.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(0.5f),
@@ -125,8 +133,8 @@ fun RegistrationScreen1(context: Context) {
                 }
 
 
-                Spacer(modifier = Modifier.height(24.dp))
 
+                Spacer(modifier = Modifier.height(24.dp))
                 // Login Button
                 NavigationButton(
                     text = "CLICK TO SPELL",
@@ -136,16 +144,14 @@ fun RegistrationScreen1(context: Context) {
                         // Add navigation logic here
                     }
                 )
-
+                // Page Indicator
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 30.dp), // Add some space from the bottom
-                    contentAlignment = Alignment.BottomCenter // Stick it to the bottom
+                    modifier = Modifier.fillMaxSize().padding(bottom = 30.dp),
+                    contentAlignment = Alignment.BottomCenter
                 ) {
-                    PageIndicator(totalDots = 5, selectedIndex = 0)
-                }}
-
+                    PageIndicator(totalDots = labels.size, selectedIndex = step)
+                }
+            }
         }
     }
 
@@ -154,11 +160,4 @@ fun RegistrationScreen1(context: Context) {
             speechHelper.shutdown()
         }
     }
-}
-
-
-@Preview(showBackground = true, name = "Home Screen Preview")
-@Composable
-fun HomeScreenPreview() {
-    HomeScreen(context = LocalContext.current)
 }
