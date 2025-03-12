@@ -1,13 +1,24 @@
-package  com.example.malvoayant.ui.screens
+package com.example.malvoayant.ui.screens
 
 import android.content.Context
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,19 +31,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.malvoayant.R
-import com.example.malvoayant.ui.components.NavigationButton
 import com.example.malvoayant.ui.components.HeaderBar
+import com.example.malvoayant.ui.components.MyTextField
+import com.example.malvoayant.ui.components.NavigationButton
+import com.example.malvoayant.ui.components.PageIndicator
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
 
 @Composable
-fun HomeScreen(context: Context) {
+fun RegistrationScreen1(context: Context) {
     val speechHelper = remember { SpeechHelper(context) }
 
     LaunchedEffect(context) {
         speechHelper.initializeSpeech {
-            speechHelper.speak("Welcome to Irchad application. This page will help you navigate to the register or connection page. Press the minus button to go to the register page and the plus button to go to the connection page.")
+            speechHelper.speak("This page is the registration page, you can here write or spell your email address, tap one time in order to activate talk back , else tap 2 times to select the target elmeent, you can activate voice function byt taping on the top right corner.")
         }
     }
 
@@ -50,46 +63,33 @@ fun HomeScreen(context: Context) {
         Column(
             modifier = Modifier.fillMaxSize()
                 .background(AppColors.darkBlue)
-                ,
+            ,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header
             HeaderBar(
-                pageType = "home",
+                pageType = "register",
                 onSpeakHelp = {
-                    speechHelper.speak("Welcome to Irchad application. This page will help you navigate to the register or connection page.")
+                    speechHelper.speak("This page is the registration page, you can here write or spell your email address, tap one time in order to activate talk back , else tap 2 times to select the target elmeent, you can activate voice function byt taping on the top right corner.")
                 }
             )
             Column(
                 modifier = Modifier.fillMaxSize()
                     .clip(RoundedCornerShape(20.dp)) // Apply rounded corners to the whole Column
+
                     .background(Color.White), // Background color with rounded corners
                 horizontalAlignment = Alignment.CenterHorizontally
             )
             { Spacer(modifier = Modifier.height(20.dp))
 
-                Text(
-                    text = "Please choose to sign up or log in to your existing account",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
-                    fontFamily = PlusJakartaSans,
-                    color = AppColors.writingBlue,
-                    modifier = Modifier
-                        .padding(horizontal = 18.dp)
-                        .clickable {
-                            speechHelper.speak("Please choose to sign up or log in to your existing account")
-                        }
-                )
-
-                Spacer(modifier = Modifier.height(30.dp))
-
-                // Register Button
-                NavigationButton(
-                    text = "REGISTER",
-                    icon = painterResource(id = R.drawable.ic_register),
+                // Email text field
+                MyTextField(
+                    text = "Email",
+                    content="email",
+                    placeHolder="Enter your email",
+                    icon = painterResource(id = R.drawable.ic_email),
                     onClick = {
-                        speechHelper.speak("Register button, navigating to registration page.")
+                        speechHelper.speak("Email text field, tap to enter your email ")
                         // Add navigation logic here
                     }
                 )
@@ -129,13 +129,22 @@ fun HomeScreen(context: Context) {
 
                 // Login Button
                 NavigationButton(
-                    text = "LOGIN",
-                    icon = painterResource(id = R.drawable.ic_login),
+                    text = "CLICK TO SPELL",
+                    icon = painterResource(id = R.drawable.ic_mic),
                     onClick = {
-                        speechHelper.speak("Login button, navigating to login page.")
+                        speechHelper.speak("Micro button, click two times to activate voice function.")
                         // Add navigation logic here
                     }
-                ) }
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 30.dp), // Add some space from the bottom
+                    contentAlignment = Alignment.BottomCenter // Stick it to the bottom
+                ) {
+                    PageIndicator(totalDots = 5, selectedIndex = 0)
+                }}
 
         }
     }
@@ -147,3 +156,9 @@ fun HomeScreen(context: Context) {
     }
 }
 
+
+@Preview(showBackground = true, name = "Home Screen Preview")
+@Composable
+fun HomeScreenPreview() {
+    HomeScreen(context = LocalContext.current)
+}

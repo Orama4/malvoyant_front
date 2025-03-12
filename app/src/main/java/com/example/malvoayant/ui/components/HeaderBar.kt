@@ -111,29 +111,36 @@ fun HeaderBar(
 
             "register" -> {
                 // Logo in left corner with Register text for register page
+                Column (
+                    modifier=Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ){
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.Top
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.irchad_logo), // Replace with your actual logo resource
                         contentDescription = "Irchad Logo",
-                        modifier = Modifier.size(60.dp)
+                        modifier = Modifier.size(80.dp)
                     )
 
-                    Spacer(modifier = Modifier.width(16.dp))
 
+
+
+                }
+                    Spacer(modifier = Modifier.height(50.dp))
                     Text(
-                        text = "REGISTER",
+                        text = "REGISTRATION",
                         color = Color.White,
-                        fontSize = 22.sp,
+                        fontSize = 26.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = PlusJakartaSans,
                         modifier = Modifier.clickable { onSpeakHelp() }
-                    )
-                }
+                    )}
+
             }
         }
 
