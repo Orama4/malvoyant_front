@@ -11,7 +11,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.malvoayant.navigation.Destination
 import com.example.malvoayant.ui.screens.HomeScreen
 import com.example.malvoayant.ui.screens.LoginScreen
 import com.example.malvoayant.ui.screens.RegistrationScreen1
@@ -22,7 +28,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            LoginScreen(context = this)  // Pass only the context
+            val navController = rememberNavController()
+            NavigationScreen(navController)
         }
     }
 }
+
+@Composable
+fun NavigationScreen(navController: NavHostController) {
+    val context = LocalContext.current
+    NavHost(navController = navController, startDestination = Destination.Home.route) {
+        composable(Destination.Home.route) { HomeScreen(context,navController) }
+        composable(Destination.Registration.route) { RegistrationScreen1(context) }
+        composable(Destination.Login.route) { LoginScreen(context) }
+    }
+}
+

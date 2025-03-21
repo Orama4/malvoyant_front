@@ -19,7 +19,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.example.malvoayant.R
+import com.example.malvoayant.navigation.Destination
 import com.example.malvoayant.ui.components.NavigationButton
 import com.example.malvoayant.ui.components.HeaderBar
 import com.example.malvoayant.ui.theme.AppColors
@@ -27,7 +29,9 @@ import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
 
 @Composable
-fun HomeScreen(context: Context) {
+fun HomeScreen(context: Context,navController: NavHostController) {
+    var lastClickTime = 0L
+    val doubleClickTimeWindow = 300L
     val speechHelper = remember { SpeechHelper(context) }
 
     LaunchedEffect(context) {
@@ -89,9 +93,20 @@ fun HomeScreen(context: Context) {
                     text = "REGISTER",
                     icon = painterResource(id = R.drawable.ic_register),
                     onClick = {
-                        speechHelper.speak("Register button, navigating to registration page.")
-                        // Add navigation logic here
+                        val currentTime = System.currentTimeMillis()
+                        if (currentTime - lastClickTime < doubleClickTimeWindow) {
+                            // Double click detected
+                             navController.navigate(Destination.Registration.route)
+                            // Add your double-click specific logic here
+                        } else {
+                            // Single click
+                            speechHelper.speak("Register button, navigating to registration page.")
+                            // Add navigation logic here
+                        }
+                        lastClickTime = currentTime
                     }
+
+
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -132,8 +147,17 @@ fun HomeScreen(context: Context) {
                     text = "LOGIN",
                     icon = painterResource(id = R.drawable.ic_login),
                     onClick = {
-                        speechHelper.speak("Login button, navigating to login page.")
-                        // Add navigation logic here
+                        val currentTime = System.currentTimeMillis()
+                        if (currentTime - lastClickTime < doubleClickTimeWindow) {
+                            // Double click detected
+                            navController.navigate(Destination.Login.route)
+                            // Add your double-click specific logic here
+                        } else {
+                            // Single click
+                            speechHelper.speak("login button, navigating to login page.")
+                            // Add navigation logic here
+                        }
+                        lastClickTime = currentTime
                     }
                 ) }
 

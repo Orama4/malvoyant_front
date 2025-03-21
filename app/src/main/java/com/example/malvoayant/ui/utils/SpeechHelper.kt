@@ -19,9 +19,12 @@ class SpeechHelper(private val context: Context) {
             if (status == TextToSpeech.SUCCESS) {
                 textToSpeech?.language = Locale.ENGLISH
                 onInitialized()
+            } else {
+                println("TextToSpeech initialization failed with status: $status")
             }
         }
     }
+
 
     /**
      * Speak the provided text
