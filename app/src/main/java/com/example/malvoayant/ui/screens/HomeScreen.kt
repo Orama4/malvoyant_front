@@ -1,7 +1,12 @@
 package  com.example.malvoayant.ui.screens
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -24,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import com.example.malvoayant.R
 import com.example.malvoayant.navigation.Destination
@@ -32,9 +38,24 @@ import com.example.malvoayant.ui.components.HeaderBar
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
+import com.example.malvoayant.ui.utils.startListening
 
 @Composable
 fun HomeScreen(context: Context,navController: NavHostController) {
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            startListening(context) // Start listening only if permission is granted
+        } else {
+            Toast.makeText(context, "Microphone permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
+    val onspeakHelp = {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                startListening(context) // Start listening
+            } else {
+                launcher.launch(Manifest.permission.RECORD_AUDIO) // Request permission
+            }
+    }
     // For click handling
     var lastClickTime = remember { mutableStateOf(0L) }
     val doubleClickTimeWindow = 300L
@@ -84,9 +105,7 @@ fun HomeScreen(context: Context,navController: NavHostController) {
             // Header
             HeaderBar(
                 pageType = "home",
-                onSpeakHelp = {
-                    speechHelper.speak("Welcome to Irchad application. This page will help you navigate to the register or connection page.")
-                }
+                onSpeakHelp = onspeakHelp
             )
             Column(
                 modifier = Modifier.fillMaxSize()
