@@ -44,14 +44,20 @@ import com.example.malvoayant.ui.utils.startListening
 fun HomeScreen(context: Context,navController: NavHostController) {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
-            startListening(context) // Start listening only if permission is granted
+            startListening(
+                context,
+                onResult = TODO()
+            ) // Start listening only if permission is granted
         } else {
             Toast.makeText(context, "Microphone permission denied", Toast.LENGTH_SHORT).show()
         }
     }
     val onspeakHelp = {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                startListening(context) // Start listening
+                startListening(
+                    context,
+                    onResult = TODO()
+                ) // Start listening
             } else {
                 launcher.launch(Manifest.permission.RECORD_AUDIO) // Request permission
             }
@@ -74,7 +80,7 @@ fun HomeScreen(context: Context,navController: NavHostController) {
     // Initialize TTS when component is first composed
     LaunchedEffect(Unit) {
         Log.d("HomeScreen", "Starting TTS initialization")
-        speechHelper.initializeSpeech("Welcome to Ershad application. This page will help you navigate to the register or connection page.")
+        speechHelper.initializeSpeech("Welcome to Eershad application. This page will help you navigate to the register or connection page.")
     }
 
     // Clean up when leaving the screen
@@ -97,7 +103,8 @@ fun HomeScreen(context: Context,navController: NavHostController) {
             }
     ) {
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
                 .background(AppColors.darkBlue)
                 ,
             horizontalAlignment = Alignment.CenterHorizontally
@@ -105,10 +112,11 @@ fun HomeScreen(context: Context,navController: NavHostController) {
             // Header
             HeaderBar(
                 pageType = "home",
-                onSpeakHelp = onspeakHelp
+                onSpeakHelp = { speechHelper.initializeSpeech("Welcome to Eershad application. This page will help you navigate to the register or connection page.") }
             )
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
                     .clip(RoundedCornerShape(20.dp)) // Apply rounded corners to the whole Column
                     .background(Color.White), // Background color with rounded corners
                 horizontalAlignment = Alignment.CenterHorizontally

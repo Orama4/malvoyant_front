@@ -1,5 +1,6 @@
 package com.example.malvoayant.ui.screens
 
+import android.Manifest
 import android.R.attr
 import android.content.Context
 import androidx.compose.foundation.background
@@ -25,16 +26,64 @@ import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
 import android.R.attr.value
+import android.content.pm.PackageManager
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import com.example.malvoayant.navigation.Destination
+import com.example.malvoayant.ui.utils.fixSpokenEmail
+import com.example.malvoayant.ui.utils.startListening
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 @Composable
 fun LoginScreen(context: Context) {
     val textStates = remember { mutableStateListOf("", "") }
-
-
-
     var step by remember { mutableStateOf(0) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            startListening(context) { recognizedText ->
+                textStates[step] = recognizedText // Update the text field with speech input
+            }
+        } else {
+            Toast.makeText(context, "Microphone permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
+    val onspeakHelp = {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            startListening(context) { recognizedText ->
+                val processedEmail = fixSpokenEmail(recognizedText)
+                textStates[step] = processedEmail
+
+            }
+        } else {
+            launcher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+
+    // For click handling
+    var lastClickTime = remember { mutableStateOf(0L) }
+    val doubleClickTimeWindow = 300L
+
+    // Create a coroutine scope tied to this composable
+    val scope = rememberCoroutineScope()
+
+    // Reference to the job for pending speech
+    val pendingSpeechJob = remember { mutableStateOf<Job?>(null) }
+    // Create speech helper using application context for lifecycle safety
+
+
+    // State to track initialization
+    var ttsInitialized by remember { mutableStateOf(false) }
+
+
+
+
     val speechHelper = remember { SpeechHelper(context) }
 
     val labels = listOf("Email", "Password")
@@ -145,9 +194,29 @@ fun LoginScreen(context: Context) {
                 NavigationButton(
                     text = "CLICK TO SPELL",
                     icon = painterResource(id = R.drawable.ic_mic),
-                    onClick = {
-                        speechHelper.speak("Micro button, click two times to activate voice function.")
-                        // Add navigation logic here
+
+                            onClick = {
+                        val currentTime = System.currentTimeMillis()
+
+                        if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
+                            // Double click detected
+                            // Cancel any pending speech from single click
+                            pendingSpeechJob.value?.cancel()
+
+                            // Perform double-click action immediately
+                            onspeakHelp()
+                        } else {
+                            // Single click - delay the speech
+                            pendingSpeechJob.value = scope.launch {
+                                // Wait to see if this becomes a double click
+                                delay(doubleClickTimeWindow)
+
+                                // If we reach here, no double-click happened
+                                speechHelper.speak("Micro button, click two times to activate voice function.")
+                            }
+                        }
+
+                        lastClickTime.value = currentTime
                     }
                 )
                 // Page Indicator
