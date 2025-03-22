@@ -25,7 +25,7 @@ import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
 import android.R.attr.value
-
+import android.util.Log
 
 
 @Composable
@@ -47,6 +47,10 @@ fun LoginScreen(context: Context) {
 
 
 
+    LaunchedEffect(Unit) {
+        Log.d("LoginScreen", "Starting TTS initialization")
+        speechHelper.initializeSpeech("This is the login page. Enter your ${labels[step]}")
+    }
     LaunchedEffect(step) {
         speechHelper.speak("Enter your ${labels[step]}")
     }

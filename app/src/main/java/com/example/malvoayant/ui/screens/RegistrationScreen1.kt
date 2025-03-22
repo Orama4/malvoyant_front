@@ -25,7 +25,7 @@ import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
 import android.R.attr.value
-
+import android.util.Log
 
 
 @Composable
@@ -49,7 +49,10 @@ fun RegistrationScreen1(context: Context) {
         painterResource(id = R.drawable.ic_phone)
     )
 
-
+    LaunchedEffect(Unit) {
+        Log.d("RegistrationScreen", "Starting TTS initialization")
+        speechHelper.initializeSpeech("This is the registration page. Enter your ${labels[step]}")
+    }
 
     LaunchedEffect(step) {
         speechHelper.speak("Enter your ${labels[step]}")

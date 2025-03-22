@@ -1,6 +1,11 @@
 package  com.example.malvoayant.ui.screens
 
 import android.content.Context
+import android.util.Log
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,13 +35,32 @@ import com.example.malvoayant.ui.utils.SpeechHelper
 
 @Composable
 fun HomeScreen(context: Context,navController: NavHostController) {
-    var lastClickTime = 0L
+    // For click handling
+    var lastClickTime = remember { mutableStateOf(0L) }
     val doubleClickTimeWindow = 300L
-    val speechHelper = remember { SpeechHelper(context) }
 
-    LaunchedEffect(context) {
-        speechHelper.initializeSpeech {
-            speechHelper.speak("Welcome to Irchad application. This page will help you navigate to the register or connection page. Press the minus button to go to the register page and the plus button to go to the connection page.")
+    // Create a coroutine scope tied to this composable
+    val scope = rememberCoroutineScope()
+
+    // Reference to the job for pending speech
+    val pendingSpeechJob = remember { mutableStateOf<Job?>(null) }
+    // Create speech helper using application context for lifecycle safety
+    val speechHelper = remember { SpeechHelper(context.applicationContext) }
+
+    // State to track initialization
+    var ttsInitialized by remember { mutableStateOf(false) }
+
+    // Initialize TTS when component is first composed
+    LaunchedEffect(Unit) {
+        Log.d("HomeScreen", "Starting TTS initialization")
+        speechHelper.initializeSpeech("Welcome to Ershad application. This page will help you navigate to the register or connection page.")
+    }
+
+    // Clean up when leaving the screen
+    DisposableEffect(Unit) {
+        onDispose {
+            Log.d("HomeScreen", "Disposing com.example.malvoayant.ui.utils.SpeechHelper")
+            speechHelper.shutdown()
         }
     }
 
@@ -94,16 +118,26 @@ fun HomeScreen(context: Context,navController: NavHostController) {
                     icon = painterResource(id = R.drawable.ic_register),
                     onClick = {
                         val currentTime = System.currentTimeMillis()
-                        if (currentTime - lastClickTime < doubleClickTimeWindow) {
+
+                        if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
                             // Double click detected
-                             navController.navigate(Destination.Registration.route)
-                            // Add your double-click specific logic here
+                            // Cancel any pending speech from single click
+                            pendingSpeechJob.value?.cancel()
+
+                            // Perform double-click action immediately
+                            navController.navigate(Destination.Registration.route)
                         } else {
-                            // Single click
-                            speechHelper.speak("Register button, navigating to registration page.")
-                            // Add navigation logic here
+                            // Single click - delay the speech
+                            pendingSpeechJob.value = scope.launch {
+                                // Wait to see if this becomes a double click
+                                delay(doubleClickTimeWindow)
+
+                                // If we reach here, no double-click happened
+                                speechHelper.speak("Register button, navigating to registration page.")
+                            }
                         }
-                        lastClickTime = currentTime
+
+                        lastClickTime.value = currentTime
                     }
 
 
@@ -148,16 +182,26 @@ fun HomeScreen(context: Context,navController: NavHostController) {
                     icon = painterResource(id = R.drawable.ic_login),
                     onClick = {
                         val currentTime = System.currentTimeMillis()
-                        if (currentTime - lastClickTime < doubleClickTimeWindow) {
+
+                        if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
                             // Double click detected
+                            // Cancel any pending speech from single click
+                            pendingSpeechJob.value?.cancel()
+
+                            // Perform double-click action immediately
                             navController.navigate(Destination.Login.route)
-                            // Add your double-click specific logic here
                         } else {
-                            // Single click
-                            speechHelper.speak("login button, navigating to login page.")
-                            // Add navigation logic here
+                            // Single click - delay the speech
+                            pendingSpeechJob.value = scope.launch {
+                                // Wait to see if this becomes a double click
+                                delay(doubleClickTimeWindow)
+
+                                // If we reach here, no double-click happened
+                                speechHelper.speak("Login button, navigating to login page.")
+                            }
                         }
-                        lastClickTime = currentTime
+
+                        lastClickTime.value = currentTime
                     }
                 ) }
 
