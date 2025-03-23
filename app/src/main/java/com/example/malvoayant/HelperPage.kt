@@ -103,13 +103,13 @@ fun HelperScreen(
                 onClick = { navController.navigateUp()},
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .size(35.dp)
+                    .size(50.dp)
 
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.back_icon), // Replace with your actual drawable name
                     contentDescription = "Back",
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(35.dp)
                 )
             }
             // Voice assistance button
@@ -126,13 +126,14 @@ fun HelperScreen(
                 },
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .size(32.dp)
+                    .background(Color.White)
+                    .size(40.dp)
 
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.mic),
                     contentDescription = "Voice Guide",
-                    modifier = Modifier.size(40.dp)
+
 
                 )
             }

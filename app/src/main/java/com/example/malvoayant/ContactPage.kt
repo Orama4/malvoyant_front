@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.example.malvoayant.R
 import com.example.malvoayant.ui.utils.SpeechHelper
 import kotlinx.coroutines.delay
@@ -36,7 +37,7 @@ data class Contact(
 @Composable
 fun PhoneNumbersScreen(
     context: Context,
-    onNavigateBack: () -> Unit
+    navController: NavHostController
 ) {
     // Dummy contact data
     val contacts = remember {
@@ -76,25 +77,24 @@ fun PhoneNumbersScreen(
             },
     ) {
         // Top navigation bar
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(8.dp),
+
         ) {
             // Back button
             IconButton(
-                onClick = { onNavigateBack() },
+                onClick = { navController.navigateUp() },
                 modifier = Modifier
-
-                    .size(35.dp)
+                    .align(Alignment.CenterStart)
+                    .size(50.dp)
 
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.back_icon), // Replace with your actual drawable name
                     contentDescription = "Back",
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(35.dp)
                 )
             }
 
@@ -109,13 +109,14 @@ fun PhoneNumbersScreen(
                     )
                 },
                 modifier = Modifier
-
-                    .size(32.dp)
+                    .align(Alignment.CenterEnd)
+                    .background(Color.White)
+                    .size(40.dp)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.mic),
                     contentDescription = "Voice Guide",
-                    modifier = Modifier.size(40.dp)
+
                     )
             }
         }
@@ -231,11 +232,3 @@ fun ContactItem(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PhoneNumbersScreenPreview() {
-    PhoneNumbersScreen(
-        context = LocalContext.current,
-        onNavigateBack = {}
-    )
-}

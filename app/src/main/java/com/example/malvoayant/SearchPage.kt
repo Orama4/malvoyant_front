@@ -86,15 +86,16 @@ fun SearchScreen(
         ) {
             // Back button in top left
             IconButton(
-                onClick = { },
+                onClick = { navController.navigateUp()},
                 modifier = Modifier
                     .align(Alignment.CenterStart)
+                    .size(50.dp)
 
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.back_icon), // Replace with your actual drawable name
                     contentDescription = "Back" ,
-                            modifier = Modifier.size(64.dp)
+                            modifier = Modifier.size(35.dp)
                 )
             }
 
@@ -115,6 +116,9 @@ fun SearchScreen(
 
                 )
             }
+
+
+
         }
 
         // Search field
@@ -196,7 +200,7 @@ fun SearchScreen(
                     .aspectRatio(1f)
                     .padding(4.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFFF7700))
+                    .background(AppColors.primary)
                     .clickable {
                         helperClickCount.value++
 
@@ -213,7 +217,6 @@ fun SearchScreen(
                                 }, 3000)
                             }
                         } else if (helperClickCount.value >= 2) {
-                            speechHelper.speak("Navigating to helper page.")
                             helperClickCount.value = 0
                             helperClickTimer?.cancel()
                             navController.navigate(Screen.Helper.route)
@@ -237,7 +240,7 @@ fun SearchScreen(
                     .aspectRatio(1f)
                     .padding(4.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFFF7700))
+                    .background(AppColors.primary)
                     .clickable {
                         sosClickCount.value++
 
@@ -254,7 +257,6 @@ fun SearchScreen(
                                 }, 3000)
                             }
                         } else if (sosClickCount.value >= 2) {
-                            speechHelper.speak("Navigating to SOS page.")
                             sosClickCount.value = 0
                             sosClickTimer?.cancel()
                             navController.navigate(Screen.PhoneNumbers.route)
@@ -278,7 +280,7 @@ fun SearchScreen(
                     .aspectRatio(1f)
                     .padding(4.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFFF7700))
+                    .background(AppColors.primary)
                     .clickable {
                         repairClickCount.value++
 
@@ -295,10 +297,9 @@ fun SearchScreen(
                                 }, 3000)
                             }
                         } else if (repairClickCount.value >= 2) {
-                            speechHelper.speak("Navigating to repair page.")
                             repairClickCount.value = 0
                             repairClickTimer?.cancel()
-
+                            navController.navigate("repair/CONNECTED?date=12.03.2025&time=17:00")
 
                         }
                     },

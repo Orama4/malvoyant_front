@@ -10,15 +10,17 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.malvoayant.ui.screens.*
-import com.yourpackagename.screens.HomeScreen
 
 // Define the navigation routes
 sealed class Screen(val route: String) {
-    object Home : Screen("home")
     object Helper : Screen("helper")
     object PhoneNumbers : Screen("phone_numbers")
     object Repair : Screen("repair")
     object Search : Screen("search")
+    object Home : Screen("home")
+    object Registration : Screen("registration")
+    object Login : Screen("login")
+
 }
 
 @Composable
@@ -31,6 +33,9 @@ fun NavigationController() {
         startDestination = Screen.Search.route
     ) {
 
+        composable(Screen.Home.route) { HomeScreen(context,navController) }
+        composable(Screen.Registration.route) { RegistrationScreen1(context) }
+        composable(Screen.Login.route) { LoginScreen(context,navController) }
 
         // Helper Screen
         composable(Screen.Helper.route) {
@@ -44,48 +49,35 @@ fun NavigationController() {
         composable(Screen.PhoneNumbers.route) {
             PhoneNumbersScreen(
                 context = context,
-                onNavigateBack = { navController.navigateUp() }
+                navController = navController
             )
         }
 
         // Repair Screen
         composable(
-            route = "${Screen.Repair.route}/{deviceStatus}?hasMeeting={hasMeeting}&date={date}&time={time}",
+            route = "${Screen.Repair.route}/{deviceStatus}?date={date}&time={time}",
             arguments = listOf(
                 navArgument("deviceStatus") { type = NavType.StringType },
-                navArgument("hasMeeting") {
-                    type = NavType.BoolType
-                    defaultValue = false
-                },
-                navArgument("date") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("time") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
+                navArgument("date") { type = NavType.StringType; nullable = true },
+                navArgument("time") { type = NavType.StringType; nullable = true }
             )
         ) { backStackEntry ->
             val statusString = backStackEntry.arguments?.getString("deviceStatus") ?: "DISCONNECTED"
             val deviceStatus = DeviceStatus.valueOf(statusString)
-            val hasMeeting = backStackEntry.arguments?.getBoolean("hasMeeting") ?: false
             val date = backStackEntry.arguments?.getString("date")
             val time = backStackEntry.arguments?.getString("time")
 
-            val meetings = if (hasMeeting && date != null && time != null) {
-                listOf(Meeting(date, time))
+            val meeting = if (date != null && time != null) {
+                Meeting(date, time)
             } else {
-                emptyList()
+                null
             }
 
             StatusMeetingScreen(
                 context = context,
-                onNavigateBack = { navController.navigateUp() },
+                navController = navController,
                 deviceStatus = deviceStatus,
-                meetings = meetings
+                meeting = meeting
             )
         }
 

@@ -1,6 +1,16 @@
-package com.yourpackagename.screens
+package  com.example.malvoayant.ui.screens
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,23 +29,66 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.navigation.NavHostController
 import com.example.malvoayant.R
+import com.example.malvoayant.navigation.Screen
 import com.example.malvoayant.ui.components.NavigationButton
 import com.example.malvoayant.ui.components.HeaderBar
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
+import com.example.malvoayant.ui.utils.startListening
 
 @Composable
-fun HomeScreen(context: Context) {
+fun HomeScreen(context: Context,navController: NavHostController) {
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            startListening(
+                context,
+                onResult = TODO()
+            ) // Start listening only if permission is granted
+        } else {
+            Toast.makeText(context, "Microphone permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
+    val onspeakHelp = {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                startListening(
+                    context,
+                    onResult = TODO()
+                ) // Start listening
+            } else {
+                launcher.launch(Manifest.permission.RECORD_AUDIO) // Request permission
+            }
+    }
+    // For click handling
+    var lastClickTime = remember { mutableStateOf(0L) }
+    val doubleClickTimeWindow = 300L
+
+    // Create a coroutine scope tied to this composable
+    val scope = rememberCoroutineScope()
+
+    // Reference to the job for pending speech
+    val pendingSpeechJob = remember { mutableStateOf<Job?>(null) }
+
+    // Initialize speech helper
     val speechHelper = remember { SpeechHelper(context) }
 
-    LaunchedEffect(context) {
+    // Initialize speech when the screen is launched
+    LaunchedEffect(Unit) {
         speechHelper.initializeSpeech {
-            speechHelper.speak("Welcome to Irchad application. This page will help you navigate to the register or connection page. Press the minus button to go to the register page and the plus button to go to the connection page.")
+            speechHelper.speak("Welcome to Eershad application. This page will help you navigate to the register or connection page.")
+
         }
     }
 
+    // Clean up when the screen is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            speechHelper.shutdown()
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -48,7 +101,8 @@ fun HomeScreen(context: Context) {
             }
     ) {
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
                 .background(AppColors.darkBlue)
                 ,
             horizontalAlignment = Alignment.CenterHorizontally
@@ -56,12 +110,11 @@ fun HomeScreen(context: Context) {
             // Header
             HeaderBar(
                 pageType = "home",
-                onSpeakHelp = {
-                    speechHelper.speak("Welcome to Irchad application. This page will help you navigate to the register or connection page.")
-                }
+                onSpeakHelp = { speechHelper.speak("Welcome to Eershad application. This page will help you navigate to the register or connection page.") }
             )
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
                     .clip(RoundedCornerShape(20.dp)) // Apply rounded corners to the whole Column
                     .background(Color.White), // Background color with rounded corners
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -89,9 +142,30 @@ fun HomeScreen(context: Context) {
                     text = "REGISTER",
                     icon = painterResource(id = R.drawable.ic_register),
                     onClick = {
-                        speechHelper.speak("Register button, navigating to registration page.")
-                        // Add navigation logic here
+                        val currentTime = System.currentTimeMillis()
+
+                        if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
+                            // Double click detected
+                            // Cancel any pending speech from single click
+                            pendingSpeechJob.value?.cancel()
+
+                            // Perform double-click action immediately
+                            navController.navigate(Screen.Registration.route)
+                        } else {
+                            // Single click - delay the speech
+                            pendingSpeechJob.value = scope.launch {
+                                // Wait to see if this becomes a double click
+                                delay(doubleClickTimeWindow)
+
+                                // If we reach here, no double-click happened
+                                speechHelper.speak("Register button, navigating to registration page.")
+                            }
+                        }
+
+                        lastClickTime.value = currentTime
                     }
+
+
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -132,8 +206,28 @@ fun HomeScreen(context: Context) {
                     text = "LOGIN",
                     icon = painterResource(id = R.drawable.ic_login),
                     onClick = {
-                        speechHelper.speak("Login button, navigating to login page.")
-                        // Add navigation logic here
+                        val currentTime = System.currentTimeMillis()
+
+                        if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
+                            // Double click detected
+                            // Cancel any pending speech from single click
+                            pendingSpeechJob.value?.cancel()
+
+                            // Perform double-click action immediately
+                            navController.navigate(Screen.Login.route)
+
+                        } else {
+                            // Single click - delay the speech
+                            pendingSpeechJob.value = scope.launch {
+                                // Wait to see if this becomes a double click
+                                delay(doubleClickTimeWindow)
+
+                                // If we reach here, no double-click happened
+                                speechHelper.speak("Login button, navigating to login page.")
+                            }
+                        }
+
+                        lastClickTime.value = currentTime
                     }
                 ) }
 
@@ -147,9 +241,3 @@ fun HomeScreen(context: Context) {
     }
 }
 
-
-@Preview(showBackground = true, name = "Home Screen Preview")
-@Composable
-fun HomeScreenPreview() {
-    HomeScreen(context = LocalContext.current)
-}
