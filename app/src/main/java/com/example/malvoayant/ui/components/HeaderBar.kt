@@ -101,8 +101,6 @@ fun HeaderBar(
                         )
 
 
-
-
                     }
                     Spacer(modifier = Modifier.height(50.dp))
                     Text(

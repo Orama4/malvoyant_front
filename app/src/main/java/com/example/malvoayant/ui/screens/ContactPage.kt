@@ -17,14 +17,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.malvoayant.R
+import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
 import kotlinx.coroutines.delay
 
@@ -226,7 +225,9 @@ fun ContactItem(
                 text = "${contact.name}: ${contact.phoneNumber}",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
+                fontFamily = PlusJakartaSans,
                 color = Color(0xFF1A1A2E)
+
             )
         }
     }

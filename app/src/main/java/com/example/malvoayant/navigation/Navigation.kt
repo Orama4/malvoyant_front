@@ -30,7 +30,7 @@ fun NavigationController() {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Search.route
+        startDestination = Screen.Home.route
     ) {
 
         composable(Screen.Home.route) { HomeScreen(context,navController) }

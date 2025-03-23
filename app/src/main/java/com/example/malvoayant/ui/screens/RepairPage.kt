@@ -9,15 +9,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.malvoayant.R
+import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
 
 enum class DeviceStatus {
@@ -135,7 +134,7 @@ fun StatusCard(deviceStatus: DeviceStatus, speechHelper: SpeechHelper) {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = statusMessage, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = statusColor)
+            Text(text = statusMessage, fontSize = 24.sp, fontWeight = FontWeight.Bold,fontFamily = PlusJakartaSans, color = statusColor)
             Spacer(modifier = Modifier.height(8.dp))
             Icon(
                 painter = painterResource(
@@ -175,6 +174,7 @@ fun MeetingInfoCard(deviceStatus: DeviceStatus, meeting: Meeting?, speechHelper:
             text = message,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
+            fontFamily = PlusJakartaSans,
             color = Color(0xFF1A1A2E),
             textAlign = TextAlign.Center
         )
