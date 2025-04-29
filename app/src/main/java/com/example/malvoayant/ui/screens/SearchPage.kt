@@ -28,6 +28,7 @@ import com.example.voicerecorder.VoiceRecorderButton
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.checkerframework.checker.nullness.qual.Raw
 
 @Composable
 fun SearchScreen(
@@ -216,7 +217,7 @@ fun SearchScreen(
                                 delay(doubleClickTimeWindow)
 
                                 // If we reach here, no double-click happened
-                                speechHelper.speak("Repair button, click to naviguate to repair page .")
+                                speechHelper.speak("helper button, click to naviguate to helper page .")
                             }
                         }
 
@@ -308,6 +309,94 @@ fun SearchScreen(
             ) {
                 Text(
                     text = "REPAIR",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontFamily = PlusJakartaSans,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        //Raw that have two buttons, one for Activating OD1 and the other for Activating OD2
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f)
+                    .padding(4.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(AppColors.primary)
+                    .clickable {
+                        val currentTime = System.currentTimeMillis()
+
+                        if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
+                            // Double click detected
+                            // Cancel any pending speech from single click
+                            pendingSpeechJob.value?.cancel()
+
+                            // Perform double-click action immediately
+                            navController.navigate(Screen.OD1.route)
+                        } else {
+                            // Single click - delay the speech
+                            pendingSpeechJob.value = scope.launch {
+                                // Wait to see if this becomes a double click
+                                delay(doubleClickTimeWindow)
+
+                                // If we reach here, no double-click happened
+                                speechHelper.speak("Activate OD1 by clicking the button")
+                            }
+                        }
+                        lastClickTime.value = currentTime
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Activate OD1",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontFamily = PlusJakartaSans,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f)
+                    .padding(4.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(AppColors.primary)
+                    .clickable {
+                        val currentTime = System.currentTimeMillis()
+
+                        if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
+                            // Double click detected
+                            // Cancel any pending speech from single click
+                            pendingSpeechJob.value?.cancel()
+
+                            // Perform double-click action immediately
+                            navController.navigate(Screen.ImageAnalysis.route)
+                        } else {
+                            // Single click - delay the speech
+                            pendingSpeechJob.value = scope.launch {
+                                // Wait to see if this becomes a double click
+                                delay(doubleClickTimeWindow)
+
+                                // If we reach here, no double-click happened
+                                speechHelper.speak("Activate OD2 by clicking the button")
+                            }
+                        }
+
+                        lastClickTime.value = currentTime
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Activate OD2",
                     color = Color.White,
                     fontSize = 18.sp,
                     fontFamily = PlusJakartaSans,

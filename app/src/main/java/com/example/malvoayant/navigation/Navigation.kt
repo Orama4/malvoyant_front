@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+
 import com.example.malvoayant.ui.screens.*
 
 // Define the navigation routes
@@ -20,6 +21,9 @@ sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Registration : Screen("registration")
     object Login : Screen("login")
+    object OD1 : Screen("od1")
+    object ImageAnalysis : Screen("image_analysis")
+
 
 }
 
@@ -44,6 +48,11 @@ fun NavigationController() {
                 navController = navController
             )
         }
+        composable(Screen.OD1.route) {
+
+            OD1Screen()
+        }
+
 
         // Phone Numbers Screen
         composable(Screen.PhoneNumbers.route) {
@@ -51,6 +60,10 @@ fun NavigationController() {
                 context = context,
                 navController = navController
             )
+        }
+        // Image Analysis Screen
+        composable(Screen.ImageAnalysis.route) {
+            CameraScreen()
         }
 
         // Repair Screen
