@@ -73,7 +73,7 @@ fun OD1Screen() {
     }
 
     LaunchedEffect(Unit) {
-        //startCamera(context, previewView, lifecycleOwner, detector, cameraExecutor)
+        startCamera(context, previewView, lifecycleOwner, detector, cameraExecutor)
 
     }
 }

@@ -43,8 +43,11 @@ android {
     }
 
     dependencies {
+
+        implementation ("com.google.mlkit:text-recognition:16.0.") // Latin-based languages
         implementation("org.java-websocket:Java-WebSocket:1.5.3")
         implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+        implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4") // For await()
 
         implementation("org.tensorflow:tensorflow-lite:2.14.0")
         implementation("org.tensorflow:tensorflow-lite-support:0.4.3")

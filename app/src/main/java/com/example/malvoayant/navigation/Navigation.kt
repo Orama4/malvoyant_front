@@ -23,6 +23,7 @@ sealed class Screen(val route: String) {
     object Login : Screen("login")
     object OD1 : Screen("od1")
     object ImageAnalysis : Screen("image_analysis")
+    object OD2 : Screen("od2")
 
 
 }
@@ -108,5 +109,11 @@ fun NavigationController() {
 //                }
             )
         }
+        composable(Screen.OD2.route) {
+            OD2Screen(navController)
+        }
+        /*composable("result") {
+            ResultScreen(navController, photoList)
+        }*/
     }
 }

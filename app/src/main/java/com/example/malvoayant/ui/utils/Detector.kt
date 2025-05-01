@@ -33,7 +33,6 @@ class Detector(
     private val detectorListener: DetectorListener,
     private val speechHelper: SpeechHelper
 ) {
-
     private var interpreter: Interpreter? = null
     private var labels = mutableListOf<String>()
 
@@ -91,6 +90,7 @@ class Detector(
     }
 
     fun detect(frame: Bitmap) {
+        Log.d("hello","bbbbb")
         interpreter ?: return
         if (tensorWidth == 0) return
         if (tensorHeight == 0) return
@@ -117,9 +117,10 @@ class Detector(
             detectorListener.onEmptyDetect()
             return
         }
-
+        Log.d("Abla", "Final boxes size: ${rawBoxes.size}")
 // Ajoute la ligne suivante pour appliquer le filtre :
         val finalBoxes = filterDetections(rawBoxes, frame.height)
+
 
         if (finalBoxes.isEmpty()) {
             detectorListener.onEmptyDetect()
@@ -244,6 +245,7 @@ class Detector(
         val filtered = mutableListOf<BoundingBox>()
 
         for (box in boxes) {
+            Log.d("detector", "Box: ${box.clsName}")
             val confidence = box.cnf
             if (confidence < Face.CONFIDENCE_THRESHOLD) continue
 
