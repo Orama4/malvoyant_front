@@ -24,7 +24,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.malvoayant.ui.components.DetectionOverlay
 import com.example.malvoayant.ui.utils.BoundingBox
 import com.example.malvoayant.ui.utils.Constants
-import com.example.malvoayant.ui.utils.Detector
+import com.example.malvoayant.ui.utils.Detectorsimple
 import com.example.malvoayant.ui.utils.SpeechHelper
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -39,7 +39,7 @@ fun OD1Screen() {
     speechHelper.initializeSpeech {}
 
     val detector = remember {
-        Detector(context, Constants.MODEL_PATH, Constants.LABELS_PATH, object : Detector.DetectorListener {
+        Detectorsimple(context, Constants.MODEL_PATH, Constants.LABELS_PATH, object : Detectorsimple.DetectorListener {
             override fun onEmptyDetect() {
                 boundingBoxes.value = emptyList()
             }
@@ -82,7 +82,7 @@ fun startCamera(
     context: Context,
     previewView: PreviewView,
     lifecycleOwner: LifecycleOwner,
-    detector: Detector,
+    detector: Detectorsimple,
     cameraExecutor: ExecutorService,
     isFrontCamera: Boolean = false
 ) {

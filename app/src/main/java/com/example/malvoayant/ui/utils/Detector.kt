@@ -25,7 +25,7 @@ private const val CACHE_TIMEOUT_SECONDS = 5
 private const val MIN_OBJECT_AREA = 0.005f
 private const val DISTANCE_THRESHOLD_POI = 0.3f
 private const val DISTANCE_MARGIN = 0.2f
-private const val SCORE_THRESHOLD = 0.25f
+private const val SCORE_THRESHOLD = 0.1f
 
 class Detector(
     private val context: Context,
@@ -155,7 +155,6 @@ class Detector(
 
             // Apply filtering
             val finalBoxes = filterDetections(rawBoxes, safeBitmap.height)
-
             // Clean up
             resizedBitmap.recycle()
             safeBitmap.recycle()

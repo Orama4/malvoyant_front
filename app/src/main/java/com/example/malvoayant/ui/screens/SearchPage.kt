@@ -362,6 +362,45 @@ fun SearchScreen(
                     fontWeight = FontWeight.Bold
                 )
             }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f)
+                    .padding(4.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(AppColors.primary)
+                    .clickable {
+                        val currentTime = System.currentTimeMillis()
+
+                        if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
+                            // Double click detected
+                            // Cancel any pending speech from single click
+                            pendingSpeechJob.value?.cancel()
+
+                            // Perform double-click action immediately
+                            navController.navigate(Screen.OD1phone.route)
+                        } else {
+                            // Single click - delay the speech
+                            pendingSpeechJob.value = scope.launch {
+                                // Wait to see if this becomes a double click
+                                delay(doubleClickTimeWindow)
+
+                                // If we reach here, no double-click happened
+                                speechHelper.speak("Activate OD1 by clicking the button")
+                            }
+                        }
+                        lastClickTime.value = currentTime
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Activate OD1 with phone",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontFamily = PlusJakartaSans,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
             Box(
                 modifier = Modifier
@@ -379,7 +418,7 @@ fun SearchScreen(
                             pendingSpeechJob.value?.cancel()
 
                             // Perform double-click action immediately
-                            navController.navigate(Screen.ImageAnalysis.route)
+                            navController.navigate(Screen.OD2.route)
                         } else {
                             // Single click - delay the speech
                             pendingSpeechJob.value = scope.launch {
