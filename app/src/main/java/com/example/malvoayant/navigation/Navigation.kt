@@ -1,8 +1,10 @@
 package com.example.malvoayant.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -27,10 +29,13 @@ sealed class Screen(val route: String) {
 fun NavigationController() {
     val navController = rememberNavController()
     val context = LocalContext.current
-
+    val viewModel: FloorPlanViewModel = viewModel()
+    LaunchedEffect(Unit) {
+        viewModel.loadGeoJSONFromAssets(context)
+    }
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route
+        startDestination = Screen.Search.route
     ) {
 
         composable(Screen.Home.route) { HomeScreen(context,navController) }
@@ -49,7 +54,7 @@ fun NavigationController() {
         composable(Screen.PhoneNumbers.route) {
             PhoneNumbersScreen(
                 context = context,
-                navController = navController
+                navController = navController,
             )
         }
 
@@ -85,14 +90,10 @@ fun NavigationController() {
         composable(Screen.Search.route) {
             SearchScreen(
                 context = context,
-                navController = navController
-//                onNavigateBack = { navController.navigateUp() },
-//                onNavigateToHelper = { navController.navigate(Screen.Helper.route) },
-//                onNavigateToSOS = { navController.navigate(Screen.PhoneNumbers.route) },
-//                onNavigateToRepair = {
-//                    // Navigate to repair with default values
-//                    navController.navigate("${Screen.Repair.route}/DISCONNECTED")
-//                }
+                navController = navController,
+                viewModel=viewModel
+
+
             )
         }
     }

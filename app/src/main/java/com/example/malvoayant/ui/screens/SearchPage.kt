@@ -32,7 +32,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun SearchScreen(
     context: Context,
-    navController: NavHostController
+    navController: NavHostController,
+    viewModel: FloorPlanViewModel
 ) {
     val searchText = remember { mutableStateOf("") }
     val helperClickCount = remember { mutableStateOf(0) }
@@ -67,17 +68,22 @@ fun SearchScreen(
             repairClickTimer?.cancel()
         }
     }
+     // Filter POIs based on search text
+    val filteredPois = remember(searchText.value, viewModel.floorPlanState.pois) {
+        viewModel.floorPlanState.pois.filter { poi ->
+            poi.name.contains(searchText.value, ignoreCase = true)
+        }
+    }
 
+    // Update the view model with filtered POIs
+    LaunchedEffect(filteredPois) {
+        viewModel.setPois(filteredPois)
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .clickable {
-                speechHelper.speak(
-                    "If you encounter difficulties, press anywhere to activate TalkBack. " +
-                            "Press the top left corner to hear the page description."
-                )
-            }
+
     ) {
         Box(
             modifier = Modifier
@@ -179,9 +185,14 @@ fun SearchScreen(
                 .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            VoiceRecorderButton(
-                onVoiceInput = { recognizedText ->
-                    searchText.value = recognizedText
+            FloorPlanCanvasView(
+                floorPlanState = viewModel.floorPlanState,
+                modifier = Modifier.fillMaxSize(),
+                onScaleChange = { newScale ->
+                    viewModel.setScale(newScale)
+                },
+                onOffsetChange = { newOffset ->
+                    viewModel.setOffset(newOffset)
                 }
             )
         }

@@ -41,6 +41,9 @@ android {
 
 dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.5")
+    implementation ("io.socket:socket.io-client:2.0.1")
+    implementation ("com.squareup.okhttp3:okhttp:4.9.3")
+
     implementation(libs.androidx.core.ktx)
     implementation("androidx.compose.material:material-icons-extended:1.5.1")
     implementation(libs.androidx.lifecycle.runtime.ktx)
