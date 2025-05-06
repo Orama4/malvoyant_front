@@ -35,25 +35,15 @@ class WebSocketClient(private val url: String) {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 Log.d(TAG, "WebSocket connection established")
                 isConnected = true
-                val jsonObject = JSONObject()
-                jsonObject.put("type", "start_position_updates")
-
-                webSocket.send(jsonObject.toString())
-
                 // Reset path on new connection
                 pathPoints.clear()
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
                 try {
-
-
-
                     val json = JSONObject(text)
-                    val position = json.getJSONObject("position")
-
-                    val x = position.getDouble("x").toFloat()
-                    val y = position.getDouble("y").toFloat()
+                    val x = json.getDouble("x").toFloat()
+                    val y = json.getDouble("y").toFloat()
 
                     // Add new point to path
                     CoroutineScope(Dispatchers.Main).launch {
@@ -98,11 +88,4 @@ class WebSocketClient(private val url: String) {
         reconnectJob?.cancel()
         isConnected = false
     }
-
-
-
-
-
-
-
 }

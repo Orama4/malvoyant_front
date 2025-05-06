@@ -102,7 +102,8 @@ data class FloorPlanState(
     val placedObjects: List<DoorWindow> = listOf(),
     val scale: Float = 1f,
     val offset: Offset = Offset(),
-    val canvasSize: CanvasSize = CanvasSize()
+    val canvasSize: CanvasSize = CanvasSize(),
+    val minPoint: Point = Point(0f, 0f) // Add minPoint here
 )
 
 

@@ -2,6 +2,7 @@ package com.example.malvoayant.ui.screens
 
 
 import android.provider.CalendarContract.Colors
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -31,6 +32,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
+
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -38,17 +43,47 @@ import kotlin.math.sin
 fun FloorPlanCanvasView(
     floorPlanState: FloorPlanState,
     modifier: Modifier = Modifier,
-
+    serverUrl: String = "ws://192.168.105.132:3000/",
     onScaleChange: (Float) -> Unit = {},
     onOffsetChange: (com.example.malvoayant.ui.screens.Offset) -> Unit = {}
 ) {
+    val webSocketClient = remember { WebSocketClient(serverUrl) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+
     // Tracking user interactions for pan and zoom
     var scale by remember { mutableStateOf(floorPlanState.scale) }
     var offset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset(
         floorPlanState.offset.x,
         floorPlanState.offset.y
     )) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> {
+                    webSocketClient.connect()
+                    Log.d("connceted ","connected in the page of floor plan ")
 
+                }
+                Lifecycle.Event.ON_STOP -> {
+                    webSocketClient.disconnect()
+                }
+                else -> {}
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        // Cleanup when the composable is disposed
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            webSocketClient.disconnect()
+        }
+    }
+
+    // Connect on first composition
+    LaunchedEffect(Unit) {
+        webSocketClient.connect()
+    }
     // Update values when floorPlanState changes
     LaunchedEffect(floorPlanState.scale, floorPlanState.offset) {
         scale = floorPlanState.scale
@@ -60,7 +95,7 @@ fun FloorPlanCanvasView(
     val doorColor = Color(0xFFAA7722)
     val windowColor = Color(0xFF6699CC)
     val poiColor = Color(0xFFCC3344)
-
+    val pathColor = Color(0xFF4CAF50)
     // Room colors mapping
     val roomColors = remember {
         mapOf(
@@ -123,6 +158,7 @@ fun FloorPlanCanvasView(
 
                     // Draw POIs
                         drawPOIs(floorPlanState.pois, poiColor)
+                    drawPath(floorPlanState.minPoint, webSocketClient.pathPoints)
                 }
             }
         }
@@ -158,6 +194,45 @@ fun FloorPlanCanvasView(
 //                Text("-")
 //            }
 //        }
+    }
+}
+
+private fun DrawScope.drawPath(minPoint: Point, points: List<Offset>) {
+    val path = Path()
+
+    if (points.isNotEmpty()) {
+        // Start path at the minPoint
+        path.moveTo(minPoint.x, minPoint.y)
+
+        // Connect all points, adjusting each by minPoint
+        points.forEach { point ->
+            path.lineTo(point.x + minPoint.x, point.y + minPoint.y)
+        }
+
+        // Draw the path
+        drawPath(
+            path = path,
+            color = Color(0xFF4CAF50), // Green color for the path
+            style = Stroke(width = 5f)
+        )
+
+        // Draw points (optional)
+        points.forEach { point ->
+            drawCircle(
+                color = Color(0xFF2196F3), // Blue color
+                radius = 8f,
+                center = Offset(point.x + minPoint.x, point.y + minPoint.y)
+            )
+        }
+
+        // Draw current position (most recent point)
+        if (points.isNotEmpty()) {
+            drawCircle(
+                color = Color.Red,
+                radius = 12f,
+                center = Offset(points.last().x + minPoint.x, points.last().y + minPoint.y)
+            )
+        }
     }
 }
 

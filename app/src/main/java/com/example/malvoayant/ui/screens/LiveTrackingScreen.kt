@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun LiveTrackingScreen(
-    serverUrl: String = "ws://192.168.205.44:8000/ws/position" // Default localhost for Android emulator
+    serverUrl: String = "ws://192.168.105.132:3000/" // Default localhost for Android emulator
 ) {
     Column(
         modifier = Modifier

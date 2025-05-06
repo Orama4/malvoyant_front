@@ -3,6 +3,7 @@ package com.example.malvoayant.ui.screens
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +54,39 @@ class FloorPlanViewModel : ViewModel() {
                 // Handle error
             }
         }
+    }
+
+
+    private fun calculateMinPoint(walls: List<Wall>, pois: List<POI>, doors: List<DoorWindow>, windows: List<DoorWindow>): Point {
+        var minX = Float.MAX_VALUE
+        var minY = Float.MAX_VALUE
+
+        fun updateMinPoint(point: Point) {
+            if (point.x < minX) minX = point.x
+            if (point.y < minY) minY = point.y
+        }
+
+        walls.forEach { wall ->
+            Log.d("cood du wall ","cood du wall ${wall.start},${wall.end}")
+            updateMinPoint(wall.start)
+            updateMinPoint(wall.end)
+            Log.d(" UPDATE MIN"," UPDATE MIN $minX,$minY")
+
+        }
+
+        pois.forEach { poi ->
+            updateMinPoint(Point(poi.x, poi.y))
+        }
+
+        doors.forEach { door ->
+            updateMinPoint(Point(door.x, door.y))
+        }
+
+        windows.forEach { window ->
+            updateMinPoint(Point(window.x, window.y))
+        }
+
+        return Point(minX, minY)
     }
     fun setWalls(walls: List<Wall>) {
         floorPlanState = floorPlanState.copy(walls = walls)
@@ -320,13 +354,20 @@ class FloorPlanViewModel : ViewModel() {
                 setRooms(Room(polygons = newRoomPolygons, vertex = newRoomVertices))
                 setPlacedObjects(newPlacedObjects)
 
+
+                val minPoint = calculateMinPoint(newWalls, newPOIs, newDoors, newWindows)
+                setMinPoint(minPoint)
+
             } catch (e: Exception) {
                 e.printStackTrace()
                 // Handle error
             }
         }
     }
-
+    fun setMinPoint(point: Point) {
+        floorPlanState = floorPlanState.copy(minPoint = point)
+        Log.d("am settong the min point ","am setting the mn point ${point.x},${point.y}")
+    }
     fun importFromGeoJSONUri(context: Context, uri: Uri) {
         viewModelScope.launch {
             try {
