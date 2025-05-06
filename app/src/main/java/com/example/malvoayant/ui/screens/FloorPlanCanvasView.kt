@@ -31,6 +31,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.malvoayant.entities.DoorWindow
+import com.example.malvoayant.entities.FloorPlanState
+import com.example.malvoayant.entities.POI
+import com.example.malvoayant.entities.Room
+import com.example.malvoayant.entities.Wall
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -40,7 +45,7 @@ fun FloorPlanCanvasView(
     modifier: Modifier = Modifier,
 
     onScaleChange: (Float) -> Unit = {},
-    onOffsetChange: (com.example.malvoayant.ui.screens.Offset) -> Unit = {}
+    onOffsetChange: (com.example.malvoayant.entities.Offset) -> Unit = {}
 ) {
     // Tracking user interactions for pan and zoom
     var scale by remember { mutableStateOf(floorPlanState.scale) }
@@ -98,7 +103,7 @@ fun FloorPlanCanvasView(
 
                         // Update offset (pan)
                         offset += pan
-                        onOffsetChange(com.example.malvoayant.ui.screens.Offset(offset.x, offset.y))
+                        onOffsetChange(com.example.malvoayant.entities.Offset(offset.x, offset.y))
                     }
                 }
         ) {

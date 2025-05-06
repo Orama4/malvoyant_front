@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,9 +22,12 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.malvoayant.R
 import com.example.malvoayant.navigation.Screen
+import com.example.malvoayant.ui.components.ModernButton
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
+import com.example.malvoayant.viewmodels.AuthViewModel
+import com.example.malvoayant.viewmodels.FloorPlanViewModel
 import com.example.voicerecorder.VoiceRecorderButton
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -33,7 +37,8 @@ import kotlinx.coroutines.launch
 fun SearchScreen(
     context: Context,
     navController: NavHostController,
-    viewModel: FloorPlanViewModel
+    viewModel: FloorPlanViewModel,
+    authViewModel: AuthViewModel
 ) {
     val searchText = remember { mutableStateOf("") }
     val helperClickCount = remember { mutableStateOf(0) }
@@ -90,18 +95,6 @@ fun SearchScreen(
                 .fillMaxWidth()
                 .padding(8.dp)
         ) {
-            IconButton(
-                onClick = { navController.navigateUp() },
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .size(50.dp)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.back_icon),
-                    contentDescription = "Back",
-                    modifier = Modifier.size(35.dp)
-                )
-            }
 
             IconButton(
                 onClick = {
@@ -117,6 +110,7 @@ fun SearchScreen(
                     contentDescription = "Description"
                 )
             }
+
         }
 
         Box(
@@ -326,5 +320,20 @@ fun SearchScreen(
                 )
             }
         }
+
+        ModernButton(
+            text = "Logout",
+            onClick = {
+                authViewModel.logout()
+                if (authViewModel.error.value == null) {
+                    navController.navigate(Screen.Login.route)
+                }
+            },
+            icon = Icons.AutoMirrored.Filled.Logout
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+
     }
 }

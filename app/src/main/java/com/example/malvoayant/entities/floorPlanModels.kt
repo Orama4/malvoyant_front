@@ -1,7 +1,7 @@
-package com.example.malvoayant.ui.screens
+package com.example.malvoayant.entities
+
 
 import java.util.UUID
-
 
 // Modèles de données pour le FloorPlan
 data class Point(

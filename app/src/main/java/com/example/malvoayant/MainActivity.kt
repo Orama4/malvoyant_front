@@ -13,14 +13,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.malvoayant.api.RetrofitClient
 import com.example.malvoayant.navigation.NavigationController
+import com.example.malvoayant.repositories.AuthRepository
 
 import com.example.malvoayant.ui.theme.MalvoayantTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val apiService = RetrofitClient.authApiService
+        val authRepository = AuthRepository(apiService)
         setContent {
-            NavigationController()        }
+            NavigationController(authRepository)        }
     }
 }

@@ -1,5 +1,4 @@
-package com.example.malvoayant.ui.screens
-
+package com.example.malvoayant.viewmodels
 
 import android.content.Context
 import android.net.Uri
@@ -27,6 +26,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.malvoayant.entities.CanvasSize
+import com.example.malvoayant.entities.DoorWindow
+import com.example.malvoayant.entities.FloorPlanState
+import com.example.malvoayant.entities.Offset
+import com.example.malvoayant.entities.POI
+import com.example.malvoayant.entities.Point
+import com.example.malvoayant.entities.Room
+import com.example.malvoayant.entities.RoomPolygon
+import com.example.malvoayant.entities.RoomVertex
+import com.example.malvoayant.entities.Wall
+import com.example.malvoayant.entities.WallReference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -296,18 +306,22 @@ class FloorPlanViewModel : ViewModel() {
 
                     if (metadata.has("offset")) {
                         val offsetObj = metadata.getJSONObject("offset")
-                        setOffset(Offset(
+                        setOffset(
+                            Offset(
                             x = offsetObj.optDouble("x", 0.0).toFloat(),
                             y = offsetObj.optDouble("y", 0.0).toFloat()
-                        ))
+                        )
+                        )
                     }
 
                     if (metadata.has("canvasSize")) {
                         val sizeObj = metadata.getJSONObject("canvasSize")
-                        setCanvasSize(CanvasSize(
+                        setCanvasSize(
+                            CanvasSize(
                             width = sizeObj.optDouble("width", 800.0).toFloat(),
                             height = sizeObj.optDouble("height", 600.0).toFloat()
-                        ))
+                        )
+                        )
                     }
                 }
 

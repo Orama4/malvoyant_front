@@ -1,5 +1,4 @@
-package com.example.malvoayant.ui.screens
-
+package com.example.malvoayant.websocket
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
@@ -98,11 +97,5 @@ class WebSocketClient(private val url: String) {
         reconnectJob?.cancel()
         isConnected = false
     }
-
-
-
-
-
-
 
 }

@@ -32,19 +32,34 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.navigation.NavController
+import com.example.malvoayant.api.RegisterRequest
+import com.example.malvoayant.navigation.Screen
 import com.example.malvoayant.ui.utils.fixSpokenEmail
 import com.example.malvoayant.ui.utils.startListening
+import com.example.malvoayant.viewmodels.AuthViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
 @Composable
-fun RegistrationScreen1(context: Context) {
+fun RegistrationScreen1(context: Context, viewModel: AuthViewModel, navController: NavController) {
     var step by remember { mutableStateOf(0) }
     val textStates = remember { mutableStateListOf("", "", "") }
 
     var textState by remember { mutableStateOf("") }
+
+    var emailState by remember { mutableStateOf("") }
+    var passwordState by remember { mutableStateOf("") }
+    var phoneState by remember { mutableStateOf("") }
+    var firstNameState by remember { mutableStateOf("") }
+    var lastNameState by remember { mutableStateOf("") }
+    var addressState by remember { mutableStateOf("") }
+
+
+
+
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
@@ -58,14 +73,20 @@ fun RegistrationScreen1(context: Context) {
     val onspeakHelp = {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             startListening(context) { recognizedText ->
-                val processedEmail = fixSpokenEmail(recognizedText)
-                textStates[step] = processedEmail
-
+                when (step) {
+                    0 -> emailState = fixSpokenEmail(recognizedText)
+                    1 -> passwordState = recognizedText
+                    2 -> phoneState = recognizedText
+                    3 -> firstNameState = recognizedText
+                    4 -> lastNameState = recognizedText
+                    5 -> addressState = recognizedText
+                }
             }
         } else {
             launcher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
+
 
 
     // For click handling
@@ -94,8 +115,8 @@ fun RegistrationScreen1(context: Context) {
 
     val speechHelper = remember { SpeechHelper(context) }
 
-    val labels = listOf("Email", "Password", "Phone Number")
-    val placeholders = listOf("Enter your email", "Enter your password", "Enter your phone number")
+    val labels = listOf("Email", "Password", "Phone Number", "First Name", "Last Name", "Address", "Submit")
+    val placeholders = listOf("Enter your email", "Enter your password", "Enter your phone number", "Enter your first name", "Enter your last name", "Enter your address", "")
     val icons = listOf(
         painterResource(id = R.drawable.ic_email),
         painterResource(id = R.drawable.ic_password),
@@ -110,12 +131,28 @@ fun RegistrationScreen1(context: Context) {
     }
 
     LaunchedEffect(step) {
-        speechHelper.speak("Enter your ${labels[step]}")
+        if (step == 6) {
+            speechHelper.speak("Click on the button in the middle of the screen to register.")
+        } else {
+            speechHelper.speak("Enter your ${labels[step]}")
+        }
     }
+
+    val loading by viewModel.loading.collectAsState()
+    val error by viewModel.error.collectAsState()
+    val registerSuccess by viewModel.registerSuccess.collectAsState()
+
+    LaunchedEffect(registerSuccess) {
+        if (registerSuccess) {
+            navController.navigate(Screen.Login.route)
+        }
+    }
+
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.White)
             .background(Color.White)
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
@@ -160,21 +197,96 @@ fun RegistrationScreen1(context: Context) {
                 Spacer(modifier = Modifier.height(20.dp))
 
                 // Dynamic Input Field
-                MyTextField(
-                    text = labels[step],
-                    content = labels[step],
-                    placeHolder = placeholders[step],
-                    icon = icons[step],
-                    isPassword = step == 1,
-                    value = textStates[step], // Utiliser la liste
-                    onValueChange = { textStates[step] = it }, // Stocker la valeur actuelle
-                    onDone = {
-                        if (step < labels.size - 1) {
-                            step++ // Passer à l'étape suivante
+                when (step) {
+                    0 -> MyTextField(
+                        text = "Email",
+                        content = "Email",
+                        placeHolder = "Enter your email",
+                        icon = painterResource(id = R.drawable.ic_email),
+                        value = emailState,
+                        onValueChange = { emailState = it },
+                        onDone = { step++ }
+                    )
+                    1 -> MyTextField(
+                        text = "Password",
+                        content = "Password",
+                        placeHolder = "Enter your password",
+                        icon = painterResource(id = R.drawable.ic_password),
+                        isPassword = true,
+                        value = passwordState,
+                        onValueChange = { passwordState = it },
+                        onDone = { step++ }
+                    )
+                    2 -> MyTextField(
+                        text = "Phone Number",
+                        content = "Phone Number",
+                        placeHolder = "Enter your phone number",
+                        icon = painterResource(id = R.drawable.ic_phone),
+                        value = phoneState,
+                        onValueChange = { phoneState = it },
+                        onDone = { step++ }
+                    )
+                    3 -> MyTextField(
+                        text = "First Name",
+                        content = "First Name",
+                        placeHolder = "Enter your first name",
+                        icon = painterResource(id = R.drawable.ic_register),
+                        value = firstNameState,
+                        onValueChange = { firstNameState = it },
+                        onDone = { step++ }
+                    )
+                    4 -> MyTextField(
+                        text = "Last Name",
+                        content = "Last Name",
+                        placeHolder = "Enter your last name",
+                        icon = painterResource(id = R.drawable.ic_register),
+                        value = lastNameState,
+                        onValueChange = { lastNameState = it },
+                        onDone = { step++ }
+                    )
+                    5 -> MyTextField(
+                        text = "Address",
+                        content = "Address",
+                        placeHolder = "Enter your address",
+                        icon = painterResource(id = R.drawable.ic_location),
+                        value = addressState,
+                        onValueChange = { addressState = it },
+                        onDone = { step++ }
+                    )
+                }
+
+                if (step == 6) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (loading) {
+                            CircularProgressIndicator(color = AppColors.darkBlue)
+                        } else {
+                            NavigationButton(
+                                text = "REGISTER",
+                                icon = painterResource(id = R.drawable.ic_register),
+                                onClick = {
+                                    val request = RegisterRequest(
+                                        email = emailState,
+                                        password = passwordState,
+                                        firstname = firstNameState,
+                                        lastname = lastNameState,
+                                        phonenumber = phoneState,
+                                        address = addressState
+                                    )
+                                    viewModel.register(request)
+                                }
+                            )
                         }
                     }
-                )
+                }
+
+
+
                 Spacer(modifier = Modifier.height(24.dp))
+                if (step < 6) {
                 Row(
                     modifier = Modifier.fillMaxWidth(0.5f),
                     verticalAlignment = Alignment.CenterVertically,
@@ -203,38 +315,35 @@ fun RegistrationScreen1(context: Context) {
                             .height(1.dp)
                     )
                 }
+                }
 
 
 
                 Spacer(modifier = Modifier.height(24.dp))
                 // Login Button
-                NavigationButton(
-                    text = "CLICK TO SPELL",
-                    icon = painterResource(id = R.drawable.ic_mic),
-                    onClick = {
-                        val currentTime = System.currentTimeMillis()
+                if (step < 6) {
+                    NavigationButton(
+                        text = "CLICK TO SPELL",
+                        icon = painterResource(id = R.drawable.ic_mic),
+                        onClick = {
+                            val currentTime = System.currentTimeMillis()
 
-                        if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
-                            // Double click detected
-                            // Cancel any pending speech from single click
-                            pendingSpeechJob.value?.cancel()
-
-                            // Perform double-click action immediately
-                            onspeakHelp()
-                        } else {
-                            // Single click - delay the speech
-                            pendingSpeechJob.value = scope.launch {
-                                // Wait to see if this becomes a double click
-                                delay(doubleClickTimeWindow)
-
-                                // If we reach here, no double-click happened
-                                speechHelper.speak("Micro button, click two times to activate voice function.")
+                            if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
+                                pendingSpeechJob.value?.cancel()
+                                onspeakHelp()
+                            } else {
+                                pendingSpeechJob.value = scope.launch {
+                                    delay(doubleClickTimeWindow)
+                                    speechHelper.speak("Micro button, click two times to activate voice function.")
+                                }
                             }
-                        }
 
-                        lastClickTime.value = currentTime
-                    }
-                )
+                            lastClickTime.value = currentTime
+                        }
+                    )
+                }
+
+
                 // Page Indicator
                 Box(
                     modifier = Modifier.fillMaxSize().padding(bottom = 30.dp),
