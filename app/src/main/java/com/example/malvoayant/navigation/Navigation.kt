@@ -26,12 +26,14 @@ sealed class Screen(val route: String) {
 }
 
 @Composable
-fun NavigationController() {
+fun NavigationController(    stepCounterViewModel: StepCounterViewModel = viewModel()
+) {
     val navController = rememberNavController()
     val context = LocalContext.current
-    val viewModel: FloorPlanViewModel = viewModel()
+
+    val floorPlanViewModel: FloorPlanViewModel = viewModel()
     LaunchedEffect(Unit) {
-        viewModel.loadGeoJSONFromAssets(context)
+        floorPlanViewModel.loadGeoJSONFromAssets(context)
     }
     NavHost(
         navController = navController,
@@ -91,8 +93,8 @@ fun NavigationController() {
             SearchScreen(
                 context = context,
                 navController = navController,
-                viewModel=viewModel
-
+                floorPlanViewModel = floorPlanViewModel,
+                stepCounterViewModel = stepCounterViewModel
 
             )
         }

@@ -1,4 +1,5 @@
 package com.example.malvoayant.ui.screens
+
 import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -24,7 +25,6 @@ import com.example.malvoayant.navigation.Screen
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
-import com.example.voicerecorder.VoiceRecorderButton
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -33,27 +33,21 @@ import kotlinx.coroutines.launch
 fun SearchScreen(
     context: Context,
     navController: NavHostController,
-    viewModel: FloorPlanViewModel
+    floorPlanViewModel: FloorPlanViewModel,
+    stepCounterViewModel: StepCounterViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val searchText = remember { mutableStateOf("") }
     val helperClickCount = remember { mutableStateOf(0) }
     val sosClickCount = remember { mutableStateOf(0) }
     val repairClickCount = remember { mutableStateOf(0) }
 
-    var helperClickTimer by remember { mutableStateOf<java.util.Timer?>(null) }
-    var sosClickTimer by remember { mutableStateOf<java.util.Timer?>(null) }
-    var repairClickTimer by remember { mutableStateOf<java.util.Timer?>(null) }
-
     var lastClickTime = remember { mutableStateOf(0L) }
     val doubleClickTimeWindow = 300L
 
-    // Create a coroutine scope tied to this composable
     val scope = rememberCoroutineScope()
-
-    // Reference to the job for pending speech
     val pendingSpeechJob = remember { mutableStateOf<Job?>(null) }
-
     val speechHelper = remember { SpeechHelper(context) }
+
     LaunchedEffect(Unit) {
         speechHelper.initializeSpeech {
             speechHelper.speak("Search page. You can search for points of interest. Use the buttons at the bottom for help, SOS, or repair services.")
@@ -63,27 +57,23 @@ fun SearchScreen(
     DisposableEffect(Unit) {
         onDispose {
             speechHelper.shutdown()
-            helperClickTimer?.cancel()
-            sosClickTimer?.cancel()
-            repairClickTimer?.cancel()
         }
     }
-     // Filter POIs based on search text
-    val filteredPois = remember(searchText.value, viewModel.floorPlanState.pois) {
-        viewModel.floorPlanState.pois.filter { poi ->
+
+    val filteredPois = remember(searchText.value, floorPlanViewModel.floorPlanState.pois) {
+        floorPlanViewModel.floorPlanState.pois.filter { poi ->
             poi.name.contains(searchText.value, ignoreCase = true)
         }
     }
 
-    // Update the view model with filtered POIs
     LaunchedEffect(filteredPois) {
-        viewModel.setPois(filteredPois)
+        floorPlanViewModel.setPois(filteredPois)
     }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-
     ) {
         Box(
             modifier = Modifier
@@ -146,7 +136,6 @@ fun SearchScreen(
 
                 TextField(
                     value = searchText.value,
-
                     onValueChange = { searchText.value = it },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -186,14 +175,9 @@ fun SearchScreen(
             contentAlignment = Alignment.Center
         ) {
             FloorPlanCanvasView(
-                floorPlanState = viewModel.floorPlanState,
+                floorPlanState = floorPlanViewModel.floorPlanState,
                 modifier = Modifier.fillMaxSize(),
-                onScaleChange = { newScale ->
-                    viewModel.setScale(newScale)
-                },
-                onOffsetChange = { newOffset ->
-                    viewModel.setOffset(newOffset)
-                }
+                viewModel = stepCounterViewModel
             )
         }
 
@@ -214,20 +198,12 @@ fun SearchScreen(
                         val currentTime = System.currentTimeMillis()
 
                         if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
-                            // Double click detected
-                            // Cancel any pending speech from single click
                             pendingSpeechJob.value?.cancel()
-
-                            // Perform double-click action immediately
                             navController.navigate(Screen.Helper.route)
                         } else {
-                            // Single click - delay the speech
                             pendingSpeechJob.value = scope.launch {
-                                // Wait to see if this becomes a double click
                                 delay(doubleClickTimeWindow)
-
-                                // If we reach here, no double-click happened
-                                speechHelper.speak("Repair button, click to naviguate to repair page .")
+                                speechHelper.speak("Helper button, click to navigate to helper page.")
                             }
                         }
 
@@ -255,19 +231,11 @@ fun SearchScreen(
                         val currentTime = System.currentTimeMillis()
 
                         if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
-                            // Double click detected
-                            // Cancel any pending speech from single click
                             pendingSpeechJob.value?.cancel()
-
-                            // Perform double-click action immediately
                             navController.navigate(Screen.Helper.route)
                         } else {
-                            // Single click - delay the speech
                             pendingSpeechJob.value = scope.launch {
-                                // Wait to see if this becomes a double click
                                 delay(doubleClickTimeWindow)
-
-                                // If we reach here, no double-click happened
                                 speechHelper.speak("SOS button")
                             }
                         }
@@ -296,19 +264,11 @@ fun SearchScreen(
                         val currentTime = System.currentTimeMillis()
 
                         if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
-                            // Double click detected
-                            // Cancel any pending speech from single click
                             pendingSpeechJob.value?.cancel()
-
-                            // Perform double-click action immediately
                             navController.navigate("repair/CONNECTED?date=12.03.2025&time=17:00")
                         } else {
-                            // Single click - delay the speech
                             pendingSpeechJob.value = scope.launch {
-                                // Wait to see if this becomes a double click
                                 delay(doubleClickTimeWindow)
-
-                                // If we reach here, no double-click happened
                                 speechHelper.speak("Repair button")
                             }
                         }

@@ -14,13 +14,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.malvoayant.navigation.NavigationController
+import com.example.malvoayant.ui.screens.StepCounterViewModel
 
 import com.example.malvoayant.ui.theme.MalvoayantTheme
 
 class MainActivity : ComponentActivity() {
+    private lateinit var viewModel: StepCounterViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            NavigationController()        }
+            viewModel = StepCounterViewModel(application)
+            viewModel.startListening()
+            NavigationController(viewModel)        }
     }
 }

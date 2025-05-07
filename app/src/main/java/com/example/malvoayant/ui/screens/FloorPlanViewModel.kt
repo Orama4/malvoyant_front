@@ -42,7 +42,6 @@ class FloorPlanViewModel : ViewModel() {
     var floorPlanState by mutableStateOf(FloorPlanState())
         private set
 
-
     fun loadGeoJSONFromAssets(context: Context) {
         viewModelScope.launch {
             try {
@@ -51,11 +50,9 @@ class FloorPlanViewModel : ViewModel() {
                 importFromGeoJSON(jsonString)
             } catch (e: Exception) {
                 e.printStackTrace()
-                // Handle error
             }
         }
     }
-
 
     private fun calculateMinPoint(walls: List<Wall>, pois: List<POI>, doors: List<DoorWindow>, windows: List<DoorWindow>): Point {
         var minX = Float.MAX_VALUE
@@ -67,11 +64,8 @@ class FloorPlanViewModel : ViewModel() {
         }
 
         walls.forEach { wall ->
-            Log.d("cood du wall ","cood du wall ${wall.start},${wall.end}")
             updateMinPoint(wall.start)
             updateMinPoint(wall.end)
-            Log.d(" UPDATE MIN"," UPDATE MIN $minX,$minY")
-
         }
 
         pois.forEach { poi ->
@@ -88,6 +82,7 @@ class FloorPlanViewModel : ViewModel() {
 
         return Point(minX, minY)
     }
+
     fun setWalls(walls: List<Wall>) {
         floorPlanState = floorPlanState.copy(walls = walls)
     }
@@ -128,14 +123,10 @@ class FloorPlanViewModel : ViewModel() {
         floorPlanState = floorPlanState.copy(canvasSize = canvasSize)
     }
 
-
     private fun calculateLength(start: Point, end: Point): Float {
         return sqrt((end.x - start.x).pow(2) + (end.y - start.y).pow(2))
     }
 
-
-
-    // Import from GeoJSON
     fun importFromGeoJSON(jsonString: String) {
         viewModelScope.launch {
             try {
@@ -144,7 +135,6 @@ class FloorPlanViewModel : ViewModel() {
                 }
 
                 if (!geoJSONData.has("features") || !geoJSONData.has("type") || geoJSONData.getString("type") != "FeatureCollection") {
-                    // Handle invalid GeoJSON
                     return@launch
                 }
 
@@ -159,7 +149,6 @@ class FloorPlanViewModel : ViewModel() {
                 val newRoomVertices = mutableListOf<RoomVertex>()
                 val newPlacedObjects = mutableListOf<DoorWindow>()
 
-                // Process features
                 for (i in 0 until features.length()) {
                     val feature = features.getJSONObject(i)
 
@@ -177,7 +166,6 @@ class FloorPlanViewModel : ViewModel() {
                     val className = properties.getString("class_name")
 
                     when {
-                        // Process walls
                         className == "wall" && geometry.getString("type") == "LineString" -> {
                             val coords = geometry.getJSONArray("coordinates")
                             if (coords.length() < 2) continue
@@ -196,7 +184,6 @@ class FloorPlanViewModel : ViewModel() {
                             newWalls.add(wall)
                         }
 
-                        // Process POIs
                         className == "poi" && geometry.getString("type") == "Point" -> {
                             val coords = geometry.getJSONArray("coordinates")
                             if (coords.length() < 2) continue
@@ -219,7 +206,6 @@ class FloorPlanViewModel : ViewModel() {
                             newPOIs.add(poi)
                         }
 
-                        // Process doors and windows
                         (className == "door" || className == "window") && geometry.getString("type") == "Point" -> {
                             val coords = geometry.getJSONArray("coordinates")
                             if (coords.length() < 2) continue
@@ -229,7 +215,6 @@ class FloorPlanViewModel : ViewModel() {
 
                             val isDoor = className == "door"
 
-                            // Create wall reference if available
                             var wallReference: WallReference? = null
                             if (properties.has("wall_info")) {
                                 val wallInfo = JSONObject(properties.getString("wall_info"))
@@ -240,7 +225,6 @@ class FloorPlanViewModel : ViewModel() {
                                 )
                             }
 
-                            // Create door/window object
                             val doorWindow = DoorWindow(
                                 x = x,
                                 y = y,
@@ -263,11 +247,9 @@ class FloorPlanViewModel : ViewModel() {
                                 newWindows.add(doorWindow)
                             }
 
-                            // Add to placed objects collection
                             newPlacedObjects.add(doorWindow)
                         }
 
-                        // Process room polygons
                         className == "room_polygon" && geometry.getString("type") == "Polygon" -> {
                             val coordsArray = geometry.getJSONArray("coordinates").getJSONArray(0)
                             val points = mutableListOf<Point>()
@@ -294,13 +276,11 @@ class FloorPlanViewModel : ViewModel() {
                                 partitionCount = properties.optInt("partitionCount", 0),
                                 regularCount = properties.optInt("regularCount", 0),
                                 center = center
-                                // Note: edgeKeys and path are not fully implemented here
                             )
 
                             newRoomPolygons.add(roomPolygon)
                         }
 
-                        // Process room vertices
                         className == "room_vertex" && geometry.getString("type") == "Point" -> {
                             val coords = geometry.getJSONArray("coordinates")
                             if (coords.length() < 2) continue
@@ -312,7 +292,6 @@ class FloorPlanViewModel : ViewModel() {
                                 x = x,
                                 y = y,
                                 bypass = properties.optInt("bypass", 0)
-                                // Note: segment, links, and child are not fully implemented here
                             )
 
                             newRoomVertices.add(roomVertex)
@@ -320,7 +299,6 @@ class FloorPlanViewModel : ViewModel() {
                     }
                 }
 
-                // Process metadata if available
                 if (geoJSONData.has("metadata")) {
                     val metadata = geoJSONData.getJSONObject("metadata")
 
@@ -345,7 +323,6 @@ class FloorPlanViewModel : ViewModel() {
                     }
                 }
 
-                // Update state
                 setWalls(newWalls)
                 setPois(newPOIs)
                 setDoors(newDoors)
@@ -354,20 +331,19 @@ class FloorPlanViewModel : ViewModel() {
                 setRooms(Room(polygons = newRoomPolygons, vertex = newRoomVertices))
                 setPlacedObjects(newPlacedObjects)
 
-
                 val minPoint = calculateMinPoint(newWalls, newPOIs, newDoors, newWindows)
                 setMinPoint(minPoint)
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                // Handle error
             }
         }
     }
+
     fun setMinPoint(point: Point) {
         floorPlanState = floorPlanState.copy(minPoint = point)
-        Log.d("am settong the min point ","am setting the mn point ${point.x},${point.y}")
     }
+
     fun importFromGeoJSONUri(context: Context, uri: Uri) {
         viewModelScope.launch {
             try {
@@ -382,67 +358,6 @@ class FloorPlanViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                // Handle error
-            }
-        }
-    }
-}
-
-@Composable
-fun FloorPlanImportScreen(
-    viewModel: FloorPlanViewModel = FloorPlanViewModel()
-) {
-    val context = LocalContext.current
-
-    val importFileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        if (uri != null) {
-            viewModel.importFromGeoJSONUri(context, uri)
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        // Import/Export Buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Button(
-                onClick = { importFileLauncher.launch("*/*") }
-            ) {
-                Text("Importer GeoJSON")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Summary information
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "Résumé du Floor Plan",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text("Murs: ${viewModel.floorPlanState.walls.size}")
-                Text("POIs: ${viewModel.floorPlanState.pois.size}")
-                Text("Portes: ${viewModel.floorPlanState.doors.size}")
-                Text("Fenêtres: ${viewModel.floorPlanState.windows.size}")
-                Text("Pièces: ${viewModel.floorPlanState.rooms.polygons.size}")
-                Text("Échelle: ${viewModel.floorPlanState.scale}")
             }
         }
     }
