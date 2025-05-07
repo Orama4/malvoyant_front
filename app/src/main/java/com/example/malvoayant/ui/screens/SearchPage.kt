@@ -254,7 +254,7 @@ fun SearchScreen(
                             pendingSpeechJob.value?.cancel()
 
                             // Perform double-click action immediately
-                            navController.navigate(Screen.Helper.route)
+                            navController.navigate(Screen.PhoneNumbers.route)
                         } else {
                             // Single click - delay the speech
                             pendingSpeechJob.value = scope.launch {
