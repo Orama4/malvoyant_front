@@ -6,7 +6,9 @@ import com.example.malvoayant.api.AddContactRequest
 import com.example.malvoayant.api.ContactApiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.inject.Singleton
 
+@Singleton
 class ContactsRepository (
     private val contactApiService: ContactApiService
 ) {

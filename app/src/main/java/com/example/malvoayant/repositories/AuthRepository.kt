@@ -1,7 +1,5 @@
 package com.example.malvoayant.repositories
 
-import android.content.Context
-import android.content.SharedPreferences
 import android.util.Log
 import com.example.malvoayant.api.AuthApiService
 import com.example.malvoayant.api.ChangePasswordRequest
@@ -14,61 +12,11 @@ import com.example.malvoayant.api.SendOTPRequest
 import com.example.malvoayant.api.UpdateProfileRequest
 import com.example.malvoayant.api.UserProfileResponse
 import com.example.malvoayant.api.VerifyOTPRequest
-import com.google.gson.Gson
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class AuthRepository @Inject constructor(
-    private val authApiService: AuthApiService,
-    private val context: Context
-) {
-    companion object {
-        private const val PREF_NAME = "auth_prefs"
-        private const val KEY_TOKEN = "auth_token"
-        private const val KEY_USER_INFO = "user_info"
-    }
-
-    private val prefs: SharedPreferences by lazy {
-        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-    }
-
-    private val gson = Gson()
-
-    // Get authentication token
-    fun getToken(): String? {
-        return prefs.getString(KEY_TOKEN, null)
-    }
-
-    // Save authentication token
-    private fun saveToken(token: String) {
-        prefs.edit().putString(KEY_TOKEN, token).apply()
-    }
-
-    // Clear authentication data (for logout)
-    fun clearAuthData() {
-        prefs.edit()
-            .remove(KEY_TOKEN)
-            .remove(KEY_USER_INFO)
-            .apply()
-    }
-
-    // Get user information
-    fun getUserInfo(): UserProfileResponse? {
-        val userJson = prefs.getString(KEY_USER_INFO, null) ?: return null
-        return try {
-            gson.fromJson(userJson, UserProfileResponse::class.java)
-        } catch (e: Exception) {
-            Log.e("AuthRepository", "Error parsing user info", e)
-            null
-        }
-    }
-
-    // Save user information
-    private fun saveUserInfo(userInfo: UserProfileResponse) {
-        val userJson = gson.toJson(userInfo)
-        prefs.edit().putString(KEY_USER_INFO, userJson).apply()
-    }
+class AuthRepository(private val authApiService: AuthApiService) {
+    // Variable to store the token
+    private var authToken: String? = null
+    private var userId: Int? = null
 
     suspend fun register(request: RegisterRequest): Result<Unit> {
         Log.d("repo1", "repo1: $request")
@@ -78,7 +26,6 @@ class AuthRepository @Inject constructor(
             Log.d("response", "response: $response")
 
             if (response.isSuccessful) {
-                // Return success without trying to access the body
                 Log.d("register", "Registration successful with code: ${response.code()}")
                 Result.success(Unit)
             } else {
@@ -99,12 +46,10 @@ class AuthRepository @Inject constructor(
             Log.d("in repo result ", "in repo resulet  : $response")
 
             if (response.isSuccessful && response.body() != null) {
-                val loginResponse = response.body()!!
-
-                // Save the token and potentially some user information from login response
-                loginResponse.token?.let { saveToken(it) }
-
-                Result.success(loginResponse)
+                // Store the token from the response
+                authToken = response.body()!!.token
+                userId = response.body()!!.user.endUserId  // This will give you 1
+                Result.success(response.body()!!)
             } else {
                 Result.failure(Exception("API error: ${response.code()} - ${response.message()}"))
             }
@@ -114,17 +59,23 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    // Function to get the stored token
+    fun getToken(): String? {
+        return authToken
+    }
+    // Function to get the stored token
+    fun getUserId(): String? {
+        return userId.toString()
+    }
+
     suspend fun getProfile(token: String): Result<UserProfileResponse> {
         return try {
-            Log.d("entering to repo to fetch userprofile ","fetching with token: $token")
+            Log.d("entering to repo to fetch userprofile ","fetchin with token: $token")
             val response = authApiService.getProfile("Bearer $token")
             Log.d("see response ","heyyyyyyyy $response")
 
             if (response.isSuccessful && response.body() != null) {
-                val userProfile = response.body()!!
-                // Save user profile information locally
-                saveUserInfo(userProfile)
-                Result.success(userProfile)
+                Result.success(response.body()!!)
             } else {
                 Result.failure(Exception("API error: ${response.code()} - ${response.message()}"))
             }
@@ -133,18 +84,10 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    // This function refreshes user profile from the API
-    suspend fun refreshUserProfile(): Result<UserProfileResponse> {
-        val token = getToken() ?: return Result.failure(Exception("Not authenticated"))
-        return getProfile(token)
-    }
-
     suspend fun updateProfile(token: String, request: UpdateProfileRequest): Result<Unit> {
         return try {
             val response = authApiService.updateProfile("Bearer $token", request)
             if (response.isSuccessful) {
-                // After successful profile update, refresh the stored profile
-                refreshUserProfile()
                 Result.success(Unit)
             } else {
                 Result.failure(Exception("API error: ${response.code()} - ${response.message()}"))
@@ -206,12 +149,11 @@ class AuthRepository @Inject constructor(
         }
     }
 
+
     suspend fun deleteAccount(token: String, request: DeleteAccountRequest): Result<Unit> {
         return try {
             val response = authApiService.deleteAccount("Bearer $token", request)
             if (response.isSuccessful) {
-                // Clear local authentication data after successful account deletion
-                clearAuthData()
                 Result.success(Unit)
             } else {
                 Result.failure(Exception("API error: ${response.code()} - ${response.message()}"))
@@ -219,10 +161,5 @@ class AuthRepository @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
-    }
-
-    // Function to logout user
-    fun logout() {
-        clearAuthData()
     }
 }

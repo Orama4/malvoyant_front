@@ -6,14 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.malvoayant.repositories.AuthRepository
 import com.example.malvoayant.repositories.ContactsRepository
 import com.example.malvoayant.ui.screens.Contact
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class ContactViewModel @Inject constructor(
+class ContactViewModel (
     private val contactRepository: ContactsRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
@@ -38,9 +35,10 @@ class ContactViewModel @Inject constructor(
                     return@launch
                 }
 
-                val userInfo = authRepository.getUserInfo()
-                val endUserId = userInfo?.id
+                val response = authRepository.getProfile(token)
+                val endUserId = authRepository.getUserId()
                 if (endUserId == null) {
+                    Log.d("ContactVM", "user id: $endUserId")
                     _error.value = "User ID not available"
                     return@launch
                 }
@@ -48,7 +46,8 @@ class ContactViewModel @Inject constructor(
                 contactRepository.getEmergencyContacts(token, endUserId.toString())
                     .onSuccess { apiContacts ->
                         _contacts.value = apiContacts.map {
-                            Contact(it.name, it.phoneNumber)
+                            Log.d("ContactVM", "apiContacts: $apiContacts")
+                            Contact(it.nom, it.telephone)
                         }
                     }
                     .onFailure { e ->
@@ -76,8 +75,8 @@ class ContactViewModel @Inject constructor(
                     return@launch
                 }
 
-                val userInfo = authRepository.getUserInfo()
-                val endUserId = userInfo?.id
+
+                val endUserId = authRepository.getUserId()
                 if (endUserId == null) {
                     _error.value = "User ID not available"
                     return@launch

@@ -12,10 +12,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.malvoayant.api.RetrofitClient
 import com.example.malvoayant.repositories.AuthRepository
+import com.example.malvoayant.repositories.ContactsRepository
 import com.example.malvoayant.ui.screens.*
 import com.example.malvoayant.viewmodels.AuthViewModel
 import com.example.malvoayant.viewmodels.AuthViewModelFactory
+import com.example.malvoayant.viewmodels.ContactViewModel
+import com.example.malvoayant.viewmodels.ContactsViewModelFactory
 import com.example.malvoayant.viewmodels.FloorPlanViewModel
 
 // Define the navigation routes
@@ -46,6 +50,15 @@ sealed class Screen(val route: String) {
 
 @Composable
 fun NavigationController(authRepository: AuthRepository) {
+    val contactApiService= RetrofitClient.contactService
+    val contactViewModel: ContactViewModel = viewModel(
+        factory = ContactsViewModelFactory(
+            repository = ContactsRepository(
+                contactApiService = contactApiService
+            ), // Provide dependencies manually
+            authRepository = authRepository // Provide dependencies manually
+        )
+    )
     val navController = rememberNavController()
     val context = LocalContext.current
     val viewModel: FloorPlanViewModel = viewModel()
@@ -89,6 +102,7 @@ fun NavigationController(authRepository: AuthRepository) {
             PhoneNumbersScreen(
                 context = context,
                 navController = navController,
+                viewModel = contactViewModel
             )
         }
 

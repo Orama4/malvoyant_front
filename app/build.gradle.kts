@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("kotlin-kapt")  // Add this line for kapt support
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -46,6 +48,8 @@ dependencies {
     implementation ("com.squareup.okhttp3:okhttp:4.9.3")
 // Hilt pour l'injection de dépendances
     implementation ("com.google.dagger:hilt-android:2.44")
+    kapt("com.google.dagger:hilt-android-compiler:2.48")
+    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
     implementation(libs.androidx.core.ktx)
     implementation("androidx.compose.material:material-icons-extended:1.5.1")
     implementation(libs.androidx.lifecycle.runtime.ktx)
