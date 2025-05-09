@@ -397,7 +397,7 @@ fun AddContactDialog(
 
                     Button(
                         onClick = onConfirm,
-                        enabled = name.isNotBlank() && phone.isNotBlank() && phone.length >= 10,
+                        enabled = name.isNotBlank() && phone.isNotBlank() && phone.length >= 2,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A2E))
                     ) {
                         Text("Save")
