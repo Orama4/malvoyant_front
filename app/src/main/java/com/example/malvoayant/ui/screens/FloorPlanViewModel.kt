@@ -99,7 +99,11 @@ class FloorPlanViewModel : ViewModel() {
         floorPlanState = floorPlanState.copy(windows = windows)
     }
 
-    fun setZones(zones: List<Any>) {
+    fun setZones(zones: List<Zone>) {
+        Log.d("am in setting zones ","am in setting zones ")
+        zones.forEach { zone ->
+           Log.d("a zone","${zone.name}")
+        }
         floorPlanState = floorPlanState.copy(zones = zones)
     }
 
@@ -144,7 +148,7 @@ class FloorPlanViewModel : ViewModel() {
                 val newPOIs = mutableListOf<POI>()
                 val newDoors = mutableListOf<DoorWindow>()
                 val newWindows = mutableListOf<DoorWindow>()
-                val newZones = mutableListOf<Any>()
+                val newZones = mutableListOf<Zone>()
                 val newRoomPolygons = mutableListOf<RoomPolygon>()
                 val newRoomVertices = mutableListOf<RoomVertex>()
                 val newPlacedObjects = mutableListOf<DoorWindow>()
@@ -206,6 +210,34 @@ class FloorPlanViewModel : ViewModel() {
                             newPOIs.add(poi)
                         }
 
+                        className == "zone" && geometry.getString("type") == "Polygon" -> {
+                            val coordsArray = geometry.getJSONArray("coordinates").getJSONArray(0)
+                            val points = mutableListOf<Point>()
+
+                            for (j in 0 until coordsArray.length()) {
+                                val coord = coordsArray.getJSONArray(j)
+                                points.add(Point(coord.getDouble(0).toFloat(), coord.getDouble(1).toFloat()))
+                            }
+
+                            val center = if (properties.has("centerX") && properties.has("centerY")) {
+                                Point(properties.getDouble("centerX").toFloat(), properties.getDouble("centerY").toFloat())
+                            } else {
+                                Point(0f, 0f)
+                            }
+
+                            val zone = Zone(
+                                coords = points,
+                                name = properties.optString("name", "Zone ${newZones.size + 1}"),
+                                zone_type = properties.optString("zone_type", "default"),
+                                type = properties.optString("type", "rectangle"),
+                                fill = properties.optString("fill", "rgba(255, 111, 0, 0.4)"),
+                                stroke = properties.optString("stroke", "#4B9CD3"),
+                                strokeWidth = properties.optDouble("strokeWidth", 2.0).toFloat(),
+                                center = center
+                            )
+
+                            newZones.add(zone)
+                        }
                         (className == "door" || className == "window") && geometry.getString("type") == "Point" -> {
                             val coords = geometry.getJSONArray("coordinates")
                             if (coords.length() < 2) continue
@@ -327,6 +359,7 @@ class FloorPlanViewModel : ViewModel() {
                 setPois(newPOIs)
                 setDoors(newDoors)
                 setWindows(newWindows)
+                Log.d("after setting zones ","after setting zones ")
                 setZones(newZones)
                 setRooms(Room(polygons = newRoomPolygons, vertex = newRoomVertices))
                 setPlacedObjects(newPlacedObjects)

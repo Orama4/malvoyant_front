@@ -5,7 +5,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
@@ -83,6 +82,7 @@ fun FloorPlanCanvasView(
                     drawDoorWindows(floorPlanState.doors, doorColor, isDoor = true)
                     drawDoorWindows(floorPlanState.windows, windowColor, isDoor = false)
                     drawPOIs(floorPlanState.pois, poiColor)
+                    drawZones(floorPlanState.zones) // Ajoutez cette ligne
                     drawPath(floorPlanState.minPoint, pathPoints, currentPosition, currentHeading)
                 }
             }
@@ -155,6 +155,62 @@ private fun DrawScope.drawWalls(walls: List<Wall>, wallColor: Color) {
             end = Offset(wall.end.x, wall.end.y),
             strokeWidth = wall.thickness
         )
+    }
+}
+private fun DrawScope.drawZones(zones: List<Zone>) {
+
+
+    zones.forEach { zone ->
+        val path = Path()
+        if (zone.coords.isNotEmpty()) {
+            path.moveTo(zone.coords[0].x, zone.coords[0].y)
+            for (i in 1 until zone.coords.size) {
+                path.lineTo(zone.coords[i].x, zone.coords[i].y)
+            }
+            path.close()
+
+            // Validation pour la couleur de remplissage
+            val fillColor = try {
+                Color(android.graphics.Color.parseColor(zone.fill))
+            } catch (e: IllegalArgumentException) {
+                Color.Gray // Couleur par défaut si la couleur de remplissage n'est pas valide
+            }
+
+            // Validation pour la couleur de contour
+            val strokeColor = try {
+                Color(android.graphics.Color.parseColor(zone.stroke))
+            } catch (e: IllegalArgumentException) {
+                Color.Black // Couleur par défaut si la couleur de contour n'est pas valide
+            }
+
+            drawPath(
+                path = path,
+                color = fillColor,
+                style = Fill
+            )
+
+            drawPath(
+                path = path,
+                color = strokeColor,
+                style = Stroke(width = zone.strokeWidth)
+            )
+            Log.d("am in setting zones ","am in setting zones ")
+
+            Log.d("a zone","${zone.name}")
+
+            if (zone.name.isNotEmpty() && zone.center.x != 0f && zone.center.y != 0f) {
+                drawContext.canvas.nativeCanvas.drawText(
+                    zone.name,
+                    zone.center.x,
+                    zone.center.y,
+                    android.graphics.Paint().apply {
+                        color = android.graphics.Color.BLACK
+                        textSize = 12f
+                        textAlign = android.graphics.Paint.Align.CENTER
+                    }
+                )
+            }
+        }
     }
 }
 

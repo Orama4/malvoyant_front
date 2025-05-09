@@ -97,7 +97,7 @@ data class FloorPlanState(
     val pois: List<POI> = listOf(),
     val doors: List<DoorWindow> = listOf(),
     val windows: List<DoorWindow> = listOf(),
-    val zones: List<Any> = listOf(),
+    val zones: List<Zone> = listOf(),
     val rooms: Room = Room(),
     val placedObjects: List<DoorWindow> = listOf(),
     val scale: Float = 1f,
@@ -106,6 +106,17 @@ data class FloorPlanState(
     val minPoint: Point = Point(0f, 0f) // Add minPoint here
 )
 
+
+data class Zone(
+    val coords: List<Point>,
+    val name: String = "",
+    val zone_type: String = "default",
+    val type: String = "rectangle",
+    val fill: String = "rgba(255, 111, 0, 0.4)",
+    val stroke: String = "#4B9CD3",
+    val strokeWidth: Float = 2f,
+    val center: Point = Point(0f, 0f)
+)
 
 
 
