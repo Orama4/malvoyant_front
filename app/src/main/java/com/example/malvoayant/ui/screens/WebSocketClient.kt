@@ -28,8 +28,7 @@ class WebSocketClient(private val url: String) {
 
     fun connect() {
         val request = Request.Builder()
-            .url(url)
-            .build()
+            .url(url)            .build()
 
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {

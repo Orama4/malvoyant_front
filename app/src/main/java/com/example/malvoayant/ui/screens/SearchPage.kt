@@ -1,22 +1,29 @@
 package com.example.malvoayant.ui.screens
 
 import android.content.Context
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.rounded.KeyboardArrowLeft
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -25,6 +32,7 @@ import com.example.malvoayant.navigation.Screen
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -37,16 +45,24 @@ fun SearchScreen(
     stepCounterViewModel: StepCounterViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val searchText = remember { mutableStateOf("") }
-    val helperClickCount = remember { mutableStateOf(0) }
-    val sosClickCount = remember { mutableStateOf(0) }
-    val repairClickCount = remember { mutableStateOf(0) }
-
-    var lastClickTime = remember { mutableStateOf(0L) }
+    val lastClickTime = remember { mutableStateOf(0L) }
     val doubleClickTimeWindow = 300L
 
     val scope = rememberCoroutineScope()
     val pendingSpeechJob = remember { mutableStateOf<Job?>(null) }
     val speechHelper = remember { SpeechHelper(context) }
+
+    // Animation states
+    val pulsateAnimation = rememberInfiniteTransition(label = "pulsate")
+    val scale = pulsateAnimation.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
 
     LaunchedEffect(Unit) {
         speechHelper.initializeSpeech {
@@ -70,219 +86,407 @@ fun SearchScreen(
         floorPlanViewModel.setPois(filteredPois)
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-        ) {
-            IconButton(
-                onClick = { navController.navigateUp() },
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .size(50.dp)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.back_icon),
-                    contentDescription = "Back",
-                    modifier = Modifier.size(35.dp)
-                )
-            }
-
-            IconButton(
-                onClick = {
-                    speechHelper.speak("This is the search page. You can search for points of interest. Use the search bar to find locations. The buttons at the bottom provide different services.")
-                },
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .background(Color.White)
-                    .size(40.dp)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.mic),
-                    contentDescription = "Description"
-                )
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .height(100.dp)
-                .border(2.dp, AppColors.darkBlue, RoundedCornerShape(8.dp))
-                .background(AppColors.lightBlue, RoundedCornerShape(8.dp))
-                .clickable {
-                    speechHelper.speak("Search field. Click to search for points of interest.")
-                }
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = AppColors.darkBlue,
-                    modifier = Modifier.size(32.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-
-                TextField(
-                    value = searchText.value,
-                    onValueChange = { searchText.value = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.Transparent),
-                    placeholder = {
-                        Text(
-                            text = "Find your POI...",
-                            color = AppColors.darkBlue,
-                            fontSize = 24.sp,
-                            fontFamily = PlusJakartaSans,
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    colors = TextFieldDefaults.colors(
-                        focusedTextColor = AppColors.darkBlue,
-                        unfocusedTextColor = AppColors.darkBlue,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        cursorColor = AppColors.darkBlue,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    singleLine = true,
-                    textStyle = LocalTextStyle.current.copy(
-                        fontSize = 18.sp,
-                        fontFamily = PlusJakartaSans,
-                        fontWeight = FontWeight.Bold
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFF8F9FA),
+                        Color(0xFFE9ECEF)
                     )
                 )
-            }
-        }
-
-        Box(
+            )
+    ) {
+        // Main content
+        Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .padding(bottom = 8.dp)
         ) {
-            FloorPlanCanvasView(
-                floorPlanState = floorPlanViewModel.floorPlanState,
-                modifier = Modifier.fillMaxSize(),
-                viewModel = stepCounterViewModel
+            // Top app bar with back button and mic
+            TopAppBar(
+                navController = navController,
+                speechHelper = speechHelper
+            )
+
+            // Search box
+            SearchBox(
+                searchText = searchText,
+                speechHelper = speechHelper
+            )
+
+            // Floor plan view
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .shadow(elevation = 8.dp)
+                    .background(Color.White),
+                contentAlignment = Alignment.Center
+            ) {
+                FloorPlanCanvasView(
+                    floorPlanState = floorPlanViewModel.floorPlanState,
+                    modifier = Modifier.fillMaxSize(),
+                    viewModel = stepCounterViewModel
+                )
+            }
+
+            // Bottom navigation buttons
+            BottomNavigationButtons(
+                navController = navController,
+                lastClickTime = lastClickTime,
+                doubleClickTimeWindow = doubleClickTimeWindow,
+                pendingSpeechJob = pendingSpeechJob,
+                speechHelper = speechHelper,
+                scope = scope
+            )
+        }
+    }
+}
+
+@Composable
+private fun TopAppBar(
+    navController: NavHostController,
+    speechHelper: SpeechHelper
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        IconButton(
+            onClick = { navController.navigateUp() },
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            AppColors.darkBlue,
+                            AppColors.darkBlue.copy(alpha = 0.8f)
+                        )
+                    )
+                )
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowLeft,
+                contentDescription = "Back",
+                modifier = Modifier.size(28.dp),
+                tint = Color.White
             )
         }
 
+        Text(
+            text = "Floor Map Explorer",
+            color = AppColors.darkBlue,
+            fontSize = 20.sp,
+            fontFamily = PlusJakartaSans,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.Center)
+        )
+
+        IconButton(
+            onClick = {
+                speechHelper.speak("This is the search page. You can search for points of interest. Use the search bar to find locations. The buttons at the bottom provide different services.")
+            },
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            AppColors.primary,
+                            AppColors.primary.copy(alpha = 0.8f)
+                        )
+                    )
+                )
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.mic),
+                contentDescription = "Voice Assistant",
+                modifier = Modifier.size(24.dp),
+                tint = Color.White
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchBox(
+    searchText: MutableState<String>,
+    speechHelper: SpeechHelper
+) {
+    Box(
+        modifier = Modifier
+
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .height(70.dp)
+            .shadow(elevation = 6.dp, shape = RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        AppColors.darkBlue.copy(alpha = 0.95f),
+                        AppColors.darkBlue.copy(alpha = 0.9f)
+                    ),
+                    start = androidx. compose. ui. geometry. Offset(0f, 0f),
+                    end = androidx. compose. ui. geometry. Offset(1000f, 0f)
+                )
+            )
+            .clickable {
+                speechHelper.speak("Search field. Click to search for points of interest.")
+            }
+    ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
+                tint = Color.White,
+                modifier = Modifier.size(28.dp)
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            TextField(
+                value = searchText.value,
+                onValueChange = { searchText.value = it },
                 modifier = Modifier
-                    .weight(1f)
-                    .aspectRatio(1f)
-                    .padding(4.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(AppColors.primary)
-                    .clickable {
-                        val currentTime = System.currentTimeMillis()
-
-                        if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
-                            pendingSpeechJob.value?.cancel()
-                            navController.navigate(Screen.Helper.route)
-                        } else {
-                            pendingSpeechJob.value = scope.launch {
-                                delay(doubleClickTimeWindow)
-                                speechHelper.speak("Helper button, click to navigate to helper page.")
-                            }
-                        }
-
-                        lastClickTime.value = currentTime
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "HELPER",
-                    color = Color.White,
-                    fontSize = 18.sp,
+                    .fillMaxWidth()
+                    .background(Color.Transparent),
+                placeholder = {
+                    Text(
+                        text = "Find your Point of Interest",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 16.sp,
+                        fontFamily = PlusJakartaSans,
+                        fontWeight = FontWeight.Medium
+                    )
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    cursorColor = AppColors.primary,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                singleLine = true,
+                textStyle = LocalTextStyle.current.copy(
+                    fontSize = 16.sp,
                     fontFamily = PlusJakartaSans,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Medium
                 )
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+private fun BottomNavigationButtons(
+    navController: NavHostController,
+    lastClickTime: MutableState<Long>,
+    doubleClickTimeWindow: Long,
+    pendingSpeechJob: MutableState<Job?>,
+    speechHelper: SpeechHelper,
+    scope: CoroutineScope
+) {
+    // Animation states
+    val buttonHoverStates = remember { mutableStateListOf(false, false, false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .height(80.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Helper Button
+        AnimatedActionButton(
+            text = "HELPER",
+            icon = R.drawable.ic_phoen,
+            description = "Helper",
+            isHovered = buttonHoverStates[0],
+            onHoverChange = { buttonHoverStates[0] = it },
+            onClick = {
+                val currentTime = System.currentTimeMillis()
+
+                if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
+                    pendingSpeechJob.value?.cancel()
+                    navController.navigate(Screen.Helper.route)
+                } else {
+                    pendingSpeechJob.value = scope.launch {
+                        delay(doubleClickTimeWindow)
+                        speechHelper.speak("Helper button, click to navigate to helper page.")
+                    }
+                }
+
+                lastClickTime.value = currentTime
             }
+        )
 
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .aspectRatio(1f)
-                    .padding(4.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(AppColors.primary)
-                    .clickable {
-                        val currentTime = System.currentTimeMillis()
+        // SOS Button
+        AnimatedActionButton(
+            text = "SOS",
+            icon = R.drawable.mic,
+            description = "SOS",
+            isHovered = buttonHoverStates[1],
+            onHoverChange = { buttonHoverStates[1] = it },
+            isEmergency = true,
+            onClick = {
+                val currentTime = System.currentTimeMillis()
 
-                        if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
-                            pendingSpeechJob.value?.cancel()
-                            navController.navigate(Screen.Helper.route)
-                        } else {
-                            pendingSpeechJob.value = scope.launch {
-                                delay(doubleClickTimeWindow)
-                                speechHelper.speak("SOS button")
-                            }
-                        }
+                if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
+                    pendingSpeechJob.value?.cancel()
+                    navController.navigate(Screen.Helper.route)
+                } else {
+                    pendingSpeechJob.value = scope.launch {
+                        delay(doubleClickTimeWindow)
+                        speechHelper.speak("SOS button")
+                    }
+                }
 
-                        lastClickTime.value = currentTime
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "SOS",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontFamily = PlusJakartaSans,
-                    fontWeight = FontWeight.Bold
+                lastClickTime.value = currentTime
+            }
+        )
+
+        // Repair Button
+        AnimatedActionButton(
+            text = "REPAIR",
+            icon = R.drawable.ic_down,
+            description = "Repair",
+            isHovered = buttonHoverStates[2],
+            onHoverChange = { buttonHoverStates[2] = it },
+            onClick = {
+                val currentTime = System.currentTimeMillis()
+
+                if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
+                    pendingSpeechJob.value?.cancel()
+                    navController.navigate("repair/CONNECTED?date=12.03.2025&time=17:00")
+                } else {
+                    pendingSpeechJob.value = scope.launch {
+                        delay(doubleClickTimeWindow)
+                        speechHelper.speak("Repair button")
+                    }
+                }
+
+                lastClickTime.value = currentTime
+            }
+        )
+    }
+}
+
+@Composable
+private fun AnimatedActionButton(
+    text: String,
+    icon: Int,
+    description: String,
+    isHovered: Boolean,
+    onHoverChange: (Boolean) -> Unit,
+    isEmergency: Boolean = false,
+    onClick: () -> Unit
+) {
+    // Animation
+    val infiniteTransition = rememberInfiniteTransition(label = "buttonAnimation")
+    val scale = infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (isEmergency) 1.05f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scaleAnimation"
+    )
+
+    val backgroundColor = if (isEmergency) {
+        infiniteTransition.animateColor(
+            initialValue = AppColors.primary,
+            targetValue = Color(0xFFE74C3C),
+            animationSpec = infiniteRepeatable(
+                animation = tween(800, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "colorAnimation"
+        )
+    } else {
+        rememberUpdatedState(AppColors.primary)
+    }
+
+    Box(
+        modifier = Modifier
+
+            .fillMaxHeight()
+            .width(100.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .shadow(
+                elevation = if (isHovered) 10.dp else 6.dp,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        if (isEmergency) backgroundColor.value else AppColors.primary,
+                        if (isEmergency) backgroundColor.value.copy(alpha = 0.8f) else AppColors.primary.copy(alpha = 0.8f)
+                    ),
+                    start = androidx. compose. ui. geometry. Offset(0f, 0f),
+                    end = androidx. compose. ui. geometry. Offset(0f, 1000f)
                 )
+            )
+            .clickable { onClick() }
+            .graphicsLayer {
+                if (isEmergency) {
+                    scaleX = scale.value
+                    scaleY = scale.value
+                }
             }
+            .pointerHoverIcon(PointerIcon.Hand),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(8.dp)
+        ) {
+            Icon(
+                painter = painterResource(id = icon),
+                contentDescription = description,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
 
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .aspectRatio(1f)
-                    .padding(4.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(AppColors.primary)
-                    .clickable {
-                        val currentTime = System.currentTimeMillis()
+            Spacer(modifier = Modifier.height(8.dp))
 
-                        if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
-                            pendingSpeechJob.value?.cancel()
-                            navController.navigate("repair/CONNECTED?date=12.03.2025&time=17:00")
-                        } else {
-                            pendingSpeechJob.value = scope.launch {
-                                delay(doubleClickTimeWindow)
-                                speechHelper.speak("Repair button")
-                            }
-                        }
+            Text(
+                text = text,
+                color = Color.White,
+                fontSize = 16.sp,
+                fontFamily = PlusJakartaSans,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        }
 
-                        lastClickTime.value = currentTime
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "REPAIR",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontFamily = PlusJakartaSans,
-                    fontWeight = FontWeight.Bold
+        // Add pulsating effect for emergency button
+        if (isEmergency) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val radius = size.minDimension / 2
+
+                drawCircle(
+                    color = Color.White.copy(alpha = (1 - scale.value) * 0.3f),
+                    radius = radius * scale.value,
+                    style = Stroke(width = 2.dp.toPx())
                 )
             }
         }
