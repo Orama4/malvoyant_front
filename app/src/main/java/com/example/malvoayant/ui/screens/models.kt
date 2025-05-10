@@ -86,12 +86,10 @@ data class CanvasSize(
     val width: Float = 800f,
     val height: Float = 600f
 )
-
 data class Offset(
     val x: Float = 0f,
     val y: Float = 0f
 )
-
 data class FloorPlanState(
     val walls: List<Wall> = listOf(),
     val pois: List<POI> = listOf(),
@@ -105,8 +103,6 @@ data class FloorPlanState(
     val canvasSize: CanvasSize = CanvasSize(),
     val minPoint: Point = Point(0f, 0f) // Add minPoint here
 )
-
-
 data class Zone(
     val coords: List<Point>,
     val name: String = "",
