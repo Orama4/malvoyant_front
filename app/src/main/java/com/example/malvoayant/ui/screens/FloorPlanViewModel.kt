@@ -366,7 +366,29 @@ class FloorPlanViewModel : ViewModel() {
 
                 val minPoint = calculateMinPoint(newWalls, newPOIs, newDoors, newWindows)
                 setMinPoint(minPoint)
+                //pour tester le graphe
+                val navigationGr:NavigationGraph= NavigationGraph()
+                navigationGr.addNavigableElements(floorPlanState)
+                //voir si les nodes sont bien ajoutés
+                Log.d("voir","${navigationGr.nodes}")
+                navigationGr.connectNodes(floorPlanState)
+                //voir si les edges sont bien ajoutés
+                Log.d("voir","${navigationGr.edges}")
+                val dk:Dijkstra=Dijkstra(navigationGr.nodes, navigationGr.edges)
+                //find path
+                val list=dk.findShortestPath(navigationGr.nodes[0].id, navigationGr.nodes[1].id)
+                //voir le chemain :
+                Log.d("voir", list.size.toString())
 
+
+                Log.d("broXY","brooo")
+                val depar : Point = Point(newPOIs[0].x+4, newPOIs[0].y+3)
+                Log.d("broXY",depar.toString())
+                Log.d("broXY", "Appel à findPath depuis: ${Thread.currentThread().stackTrace.joinToString("\n")}")
+
+                val p=findPath(depar,newDoors[1],floorPlanState)
+                Log.d("voir","ablus")
+                Log.d("voir", "chemin direct entre ${newPOIs[0].name} et ${newPOIs[2].name} est : ${p}")
             } catch (e: Exception) {
                 e.printStackTrace()
             }
