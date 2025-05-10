@@ -1,4 +1,4 @@
-package com.example.malvoayant.ui.screens
+/*package com.example.malvoayant.ui.screens
 
 import android.Manifest
 import android.R.attr
@@ -239,3 +239,4 @@ fun LoginScreen(context: Context, navController: NavHostController) {
         }
     }
 }
+*/

@@ -1,31 +1,31 @@
 package com.example.malvoayant
 
-
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.ViewModelProvider
 import com.example.malvoayant.navigation.NavigationController
 import com.example.malvoayant.ui.screens.StepCounterViewModel
 
-import com.example.malvoayant.ui.theme.MalvoayantTheme
-
 class MainActivity : ComponentActivity() {
-    private lateinit var viewModel: StepCounterViewModel
+    private lateinit var stepCounterViewModel: StepCounterViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            viewModel = StepCounterViewModel(application)
-            viewModel.startListening()
-            NavigationController(viewModel)        }
+            stepCounterViewModel = ViewModelProvider(this)[StepCounterViewModel::class.java]
+
+            // Start listening to sensors and WebSocket
+            stepCounterViewModel.startListening()
+
+            // Set up the navigation with the StepCounterViewModel
+            NavigationController(stepCounterViewModel)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Stop listening when the app is closed
+        stepCounterViewModel.stopListening()
     }
 }

@@ -1,4 +1,4 @@
-package com.example.malvoayant.ui.screens
+/*package com.example.malvoayant.ui.screens
 
 import android.content.Context
 import androidx.compose.foundation.Image
@@ -288,3 +288,4 @@ fun SearchScreen(
         }
     }
 }
+*/

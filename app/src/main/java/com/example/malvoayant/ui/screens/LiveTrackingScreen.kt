@@ -1,4 +1,4 @@
-package com.example.malvoayant.ui.screens
+/*package com.example.malvoayant.ui.screens
 
 
 import androidx.compose.foundation.layout.Box
@@ -92,4 +92,4 @@ fun LiveTrackingScreen(
             }
         }
     }
-}
+}*/

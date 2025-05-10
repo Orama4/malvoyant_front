@@ -1,11 +1,9 @@
 package com.example.malvoayant.ui.screens
 
-import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
@@ -20,23 +18,19 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlin.math.cos
-import kotlin.math.sin
 
 @Composable
 fun FloorPlanCanvasView(
     floorPlanState: FloorPlanState,
     modifier: Modifier = Modifier,
-    viewModel: StepCounterViewModel = viewModel()
+    stepCounterViewModel: StepCounterViewModel = viewModel()
 ) {
-    val pathPoints by viewModel.pathPoints.observeAsState(listOf(Pair(0f, 0f)))
-    val currentPosition by viewModel.currentPositionLive.observeAsState(Pair(0f, 0f))
-    val currentHeading by viewModel.currentHeadingLive.observeAsState(0f)
+    val pathPoints by stepCounterViewModel.pathPoints.observeAsState(listOf())
+    val wifiPosition by stepCounterViewModel.wifiPositionLive.observeAsState(null)
 
     var scale by remember { mutableStateOf(floorPlanState.scale) }
-    var offset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset(floorPlanState.offset.x, floorPlanState.offset.y)) }
+    var offset by remember { mutableStateOf(Offset(floorPlanState.offset.x, floorPlanState.offset.y)) }
 
     LaunchedEffect(floorPlanState.scale, floorPlanState.offset) {
         scale = floorPlanState.scale
@@ -47,7 +41,7 @@ fun FloorPlanCanvasView(
     val doorColor = Color(0xFFAA7722)
     val windowColor = Color(0xFF6699CC)
     val poiColor = Color(0xFFCC3344)
-    val pathColor = Color(0xFF4CAF50)
+    val wifiColor = Color(0xFF4CAF50)
 
     val roomColors = remember {
         mapOf(
@@ -59,7 +53,6 @@ fun FloorPlanCanvasView(
             "default" to Color(0xFFF0DAAF)
         )
     }
-// Use the smaller scale factor to fit the floor plan within the canvas
 
     Box(
         modifier = modifier
@@ -83,69 +76,68 @@ fun FloorPlanCanvasView(
                     drawDoorWindows(floorPlanState.doors, doorColor, isDoor = true)
                     drawDoorWindows(floorPlanState.windows, windowColor, isDoor = false)
                     drawPOIs(floorPlanState.pois, poiColor)
-                    drawPath(floorPlanState.minPoint, pathPoints, currentPosition, currentHeading)
+
+                    // Draw WiFi position and path
+                    wifiPosition?.let { position ->
+                        drawWiFiPath(floorPlanState.minPoint, pathPoints, position, wifiColor)
+                    }
                 }
             }
         }
     }
 }
-private fun DrawScope.drawPath(minPoint: Point, pathPoints: List<Pair<Float, Float>>, currentPosition: Pair<Float, Float>, currentHeading: Float) {
-    val path = Path()
 
-    if (pathPoints.size > 1) {
-        path.moveTo(pathPoints[0].first * 50 + minPoint.x, pathPoints[0].second * 50 + minPoint.y)
+private fun DrawScope.drawWiFiPath(
+    minPoint: Point,
+    pathPoints: List<Pair<Float, Float>>,
+    currentPosition: Pair<Float, Float>,
+    pathColor: Color
+) {
+    // Only draw path if there are points
+    if (pathPoints.isNotEmpty()) {
+        val path = Path()
 
-        for (i in 1 until pathPoints.size) {
-            val start = pathPoints[i - 1]
-            val end = pathPoints[i]
-            val control = Offset((start.first + end.first) / 2, (start.second + end.second) / 2)
+        // Start the path at the first point
+        if (pathPoints.size >= 1) {
+            path.moveTo(pathPoints[0].first * 50 + minPoint.x, pathPoints[0].second * 50 + minPoint.y)
 
-            path.quadraticBezierTo(
-                control.x * 50 + minPoint.x, control.y * 50 + minPoint.y,
-                end.first * 50 + minPoint.x, end.second * 50 + minPoint.y
+            // Draw lines connecting the path points
+            for (i in 1 until pathPoints.size) {
+                path.lineTo(
+                    pathPoints[i].first * 50 + minPoint.x,
+                    pathPoints[i].second * 50 + minPoint.y
+                )
+            }
+
+            // Draw the path with a gradient
+            drawPath(
+                path = path,
+                brush = Brush.linearGradient(
+                    start = Offset(pathPoints.first().first * 50 + minPoint.x, pathPoints.first().second * 50 + minPoint.y),
+                    end = Offset(pathPoints.last().first * 50 + minPoint.x, pathPoints.last().second * 50 + minPoint.y),
+                    colors = listOf(Color(0xFF4CAF50), Color(0xFFFFEB3B))
+                ),
+                style = Stroke(width = 5f)
             )
+
+            // Draw dots at each position point
+            pathPoints.forEach { point ->
+                drawCircle(
+                    color = Color(0xFF2196F3),
+                    radius = 8f,
+                    center = Offset(point.first * 50 + minPoint.x, point.second * 50 + minPoint.y)
+                )
+            }
         }
 
-        drawPath(
-            path = path,
-            brush = Brush.linearGradient(
-                start = Offset(pathPoints.first().first * 50 + minPoint.x, pathPoints.first().second * 50 + minPoint.y),
-                end = Offset(pathPoints.last().first * 50 + minPoint.x, pathPoints.last().second * 50 + minPoint.y),
-                colors = listOf(Color(0xFF4CAF50), Color(0xFFFFEB3B))
-            ),
-            style = Stroke(width = 5f)
-        )
-
-        pathPoints.forEach { point ->
-            drawCircle(
-                color = Color(0xFF2196F3),
-                radius = 8f,
-                center = Offset(point.first * 50 + minPoint.x, point.second * 50 + minPoint.y)
-            )
-        }
-
-        if (pathPoints.isNotEmpty()) {
-            drawCircle(
-                color = Color.Red,
-                radius = 12f,
-                center = Offset(currentPosition.first * 50 + minPoint.x, currentPosition.second * 50 + minPoint.y)
-            )
-        }
-
-        val headingRad = Math.toRadians(currentHeading.toDouble())
-        val arrowLength = 20.dp.toPx()
-        drawLine(
+        // Draw the current position as a larger red circle
+        drawCircle(
             color = Color.Red,
-            start = Offset(currentPosition.first * 50 + minPoint.x, currentPosition.second * 50 + minPoint.y),
-            end = Offset(
-                (currentPosition.first * 50 + minPoint.x) + arrowLength * cos(headingRad).toFloat(),
-                (currentPosition.second * 50 + minPoint.y) + arrowLength * sin(headingRad).toFloat()
-            ),
-            strokeWidth = 3.dp.toPx()
+            radius = 12f,
+            center = Offset(currentPosition.first * 50 + minPoint.x, currentPosition.second * 50 + minPoint.y)
         )
     }
 }
-
 
 private fun DrawScope.drawWalls(walls: List<Wall>, wallColor: Color) {
     walls.forEach { wall ->

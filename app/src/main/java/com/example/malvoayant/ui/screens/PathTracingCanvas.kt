@@ -1,4 +1,4 @@
-package com.example.malvoayant.ui.screens
+/*package com.example.malvoayant.ui.screens
 
 
 import android.util.Log
@@ -104,4 +104,4 @@ fun PathTracingCanvas(
             }
         }
     }
-}
+}*/

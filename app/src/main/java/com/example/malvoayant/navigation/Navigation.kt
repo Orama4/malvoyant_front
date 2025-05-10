@@ -1,4 +1,4 @@
-package com.example.malvoayant.navigation
+/*package com.example.malvoayant.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -99,4 +99,4 @@ fun NavigationController(    stepCounterViewModel: StepCounterViewModel = viewMo
             )
         }
     }
-}
+}*/

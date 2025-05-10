@@ -1,4 +1,4 @@
-package  com.example.malvoayant.ui.screens
+/*package  com.example.malvoayant.ui.screens
 
 import android.Manifest
 import android.content.Context
@@ -241,3 +241,4 @@ fun HomeScreen(context: Context,navController: NavHostController) {
     }
 }
 
+*/
