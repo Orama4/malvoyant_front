@@ -148,6 +148,8 @@ class FloorPlanViewModel : ViewModel() {
                 val newRoomPolygons = mutableListOf<RoomPolygon>()
                 val newRoomVertices = mutableListOf<RoomVertex>()
                 val newPlacedObjects = mutableListOf<DoorWindow>()
+                var navigationSettings: NavigationSettings? = null
+                var hazards: List<HazardMarker> = emptyList()
 
                 for (i in 0 until features.length()) {
                     val feature = features.getJSONObject(i)
@@ -178,7 +180,8 @@ class FloorPlanViewModel : ViewModel() {
                                 end = Point(end.getDouble(0).toFloat(), end.getDouble(1).toFloat()),
                                 thickness = properties.optDouble("thickness", 12.0).toFloat(),
                                 wallId = properties.optInt("wallId", newWalls.size),
-                                type = properties.optString("type", "wall")
+                                type = properties.optString("type", "wall"),
+                                navigation = parseNavigationProperties(properties)
                             )
 
                             newWalls.add(wall)
@@ -200,7 +203,8 @@ class FloorPlanViewModel : ViewModel() {
                                 description = properties.optString("description", ""),
                                 icon = if (properties.has("icon") && !properties.isNull("icon")) properties.getString("icon") else null,
                                 width = properties.optDouble("width", 50.0).toFloat(),
-                                height = properties.optDouble("height", 50.0).toFloat()
+                                height = properties.optDouble("height", 50.0).toFloat(),
+                                navigation = parseNavigationProperties(properties)
                             )
 
                             newPOIs.add(poi)
@@ -238,7 +242,8 @@ class FloorPlanViewModel : ViewModel() {
                                 width = properties.optString("width", "1.00"),
                                 height = properties.optString("height", "0.17"),
                                 wallId = if (properties.has("wallId") && !properties.isNull("wallId")) properties.getInt("wallId") else null,
-                                wall = wallReference
+                                wall = wallReference,
+                                navigation = parseNavigationProperties(properties)
                             )
 
                             if (isDoor) {
@@ -275,7 +280,8 @@ class FloorPlanViewModel : ViewModel() {
                                 color = properties.optString("color", "#f0daaf"),
                                 partitionCount = properties.optInt("partitionCount", 0),
                                 regularCount = properties.optInt("regularCount", 0),
-                                center = center
+                                center = center,
+                                navigation = parseNavigationProperties(properties)
                             )
 
                             newRoomPolygons.add(roomPolygon)
@@ -321,6 +327,33 @@ class FloorPlanViewModel : ViewModel() {
                             height = sizeObj.optDouble("height", 600.0).toFloat()
                         ))
                     }
+                    if (metadata.has("navigationSettings")) {
+                        val navSettings = metadata.getJSONObject("navigationSettings")
+
+                        val northRef = navSettings.getJSONObject("northReference")
+                        val audioSettings = navSettings.getJSONObject("audioSettings")
+
+                        navigationSettings = NavigationSettings(
+                            defaultStepLength = navSettings.getDouble("defaultStepLength").toFloat(),
+                            unit = navSettings.getString("unit"),
+                            magneticDeclination = navSettings.getDouble("magneticDeclination").toFloat(),
+                            northReference = NorthReference(
+                                wallId = northRef.getInt("wallId"),
+                                direction = northRef.getDouble("direction").toFloat()
+                            ),
+                            calibrationPoints = parseCalibrationPoints(navSettings),
+                            knownDistances = parseKnownDistances(navSettings),
+                            hazardMarkers = parseHazardMarkers(navSettings),
+                            audioSettings = AudioSettings(
+                                landmarkVolume = audioSettings.getDouble("landmarkVolume").toFloat(),
+                                directionVolume = audioSettings.getDouble("directionVolume").toFloat(),
+                                hazardVolume = audioSettings.getDouble("hazardVolume").toFloat(),
+                                repeatInterval = audioSettings.getInt("repeatInterval")
+                            )
+                        )
+
+                        hazards = parseHazardMarkers(navSettings)
+                    }
                 }
 
                 setWalls(newWalls)
@@ -334,10 +367,102 @@ class FloorPlanViewModel : ViewModel() {
                 val minPoint = calculateMinPoint(newWalls, newPOIs, newDoors, newWindows)
                 setMinPoint(minPoint)
 
+                floorPlanState = floorPlanState.copy(
+                    walls = newWalls,
+                    pois = newPOIs,
+                    doors = newDoors,
+                    windows = newWindows,
+                    zones = newZones,
+                    rooms = Room(polygons = newRoomPolygons, vertex = newRoomVertices),
+                    placedObjects = newPlacedObjects,
+                    navigationSettings = navigationSettings,
+                    hazards = hazards
+                )
+
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
+    }
+
+    // Helper functions for parsing navigation data
+    private fun parseNavigationProperties(properties: JSONObject): NavigationProperties? {
+        return if (properties.has("navigation")) {
+            val nav = properties.getJSONObject("navigation")
+            NavigationProperties(
+                audioCue = nav.optString("audioCue", null),
+                hapticFeedback = nav.optString("hapticFeedback", null),
+                approachDistance = nav.optDouble("approachDistance").takeIf { !nav.isNull("approachDistance") }?.toFloat(),
+                interaction = nav.optString("interaction", null),
+                landmark = nav.optBoolean("landmark").takeIf { nav.has("landmark") },
+                calibrationPoint = nav.optBoolean("calibrationPoint").takeIf { nav.has("calibrationPoint") },
+                defaultOrientation = nav.optDouble("defaultOrientation").takeIf { !nav.isNull("defaultOrientation") }?.toFloat(),
+                hazard = nav.optString("hazard", null),
+                surfaceType = nav.optString("surfaceType", null),
+                echoProfile = nav.optString("echoProfile", null)
+            )
+        } else {
+            null
+        }
+    }
+
+    private fun parseCalibrationPoints(navSettings: JSONObject): List<CalibrationPoint> {
+        val points = mutableListOf<CalibrationPoint>()
+        if (navSettings.has("calibrationPoints")) {
+            val pointsArray = navSettings.getJSONArray("calibrationPoints")
+            for (i in 0 until pointsArray.length()) {
+                val point = pointsArray.getJSONObject(i)
+                points.add(
+                    CalibrationPoint(
+                        featureId = point.getString("featureId"),
+                        type = point.getString("type"),
+                        defaultOrientation = point.getDouble("defaultOrientation").toFloat(),
+                        description = point.getString("description")
+                    )
+                )
+            }
+        }
+        return points
+    }
+
+    private fun parseKnownDistances(navSettings: JSONObject): List<KnownDistance> {
+        val distances = mutableListOf<KnownDistance>()
+        if (navSettings.has("knownDistances")) {
+            val distArray = navSettings.getJSONArray("knownDistances")
+            for (i in 0 until distArray.length()) {
+                val dist = distArray.getJSONObject(i)
+                distances.add(
+                    KnownDistance(
+                        from = dist.getString("from"),
+                        to = dist.getString("to"),
+                        distance = dist.getDouble("distance").toFloat(),
+                        unit = dist.getString("unit")
+                    )
+                )
+            }
+        }
+        return distances
+    }
+
+    private fun parseHazardMarkers(navSettings: JSONObject): List<HazardMarker> {
+        val hazards = mutableListOf<HazardMarker>()
+        if (navSettings.has("hazardMarkers")) {
+            val hazardsArray = navSettings.getJSONArray("hazardMarkers")
+            for (i in 0 until hazardsArray.length()) {
+                val hazard = hazardsArray.getJSONObject(i)
+                val coords = hazard.getJSONArray("coordinates")
+                hazards.add(
+                    HazardMarker(
+                        coordinates = listOf(coords.getDouble(0).toFloat(), coords.getDouble(1).toFloat()),
+                        type = hazard.getString("type"),
+                        description = hazard.getString("description"),
+                        warningDistance = hazard.getDouble("warningDistance").toFloat(),
+                        unit = hazard.getString("unit")
+                    )
+                )
+            }
+        }
+        return hazards
     }
 
     fun setMinPoint(point: Point) {

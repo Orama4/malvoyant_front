@@ -5,10 +5,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.malvoayant.ui.screens.FloorPlanScreen
+import com.example.malvoayant.ui.screens.FloorPlanViewModel
 import com.example.malvoayant.ui.screens.StepCounterViewModel
 
 @Composable
-fun NavigationController(stepCounterViewModel: StepCounterViewModel) {
+fun NavigationController(
+    stepCounterViewModel: StepCounterViewModel,
+    floorPlanViewModel: FloorPlanViewModel
+) {
     val navController = rememberNavController()
 
     NavHost(
@@ -16,7 +20,10 @@ fun NavigationController(stepCounterViewModel: StepCounterViewModel) {
         startDestination = "floorplan"
     ) {
         composable("floorplan") {
-            FloorPlanScreen(stepCounterViewModel)
+            FloorPlanScreen(
+                stepCounterViewModel = stepCounterViewModel,
+                floorPlanViewModel = floorPlanViewModel
+            )
         }
     }
 }

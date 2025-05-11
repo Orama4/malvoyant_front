@@ -20,69 +20,182 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+private val defaultRoomColors = mapOf(
+    "living" to Color(0xFFF0DAAF),
+    "bedroom" to Color(0xFFD4E2C6),
+    "kitchen" to Color(0xFFDCC0DD),
+    "bathroom" to Color(0xFFC6D8E4),
+    "entrance" to Color(0xFFE0E0E0),
+    "default" to Color(0xFFF0DAAF)
+)
+
 @Composable
 fun FloorPlanCanvasView(
     floorPlanState: FloorPlanState,
+    roomColors: Map<String, Color> = defaultRoomColors,
     modifier: Modifier = Modifier,
     stepCounterViewModel: StepCounterViewModel = viewModel()
 ) {
     val pathPoints by stepCounterViewModel.pathPoints.observeAsState(listOf())
     val wifiPosition by stepCounterViewModel.wifiPositionLive.observeAsState(null)
+    val currentPosition by stepCounterViewModel.currentPositionLive.observeAsState(Pair(0f, 0f))
+    val hazards by remember { derivedStateOf { floorPlanState.hazards } }
+    val nearestLandmark by stepCounterViewModel.nearestLandmark.observeAsState(null)
 
     var scale by remember { mutableStateOf(floorPlanState.scale) }
     var offset by remember { mutableStateOf(Offset(floorPlanState.offset.x, floorPlanState.offset.y)) }
 
-    LaunchedEffect(floorPlanState.scale, floorPlanState.offset) {
-        scale = floorPlanState.scale
-        offset = Offset(floorPlanState.offset.x, floorPlanState.offset.y)
-    }
-
-    val wallColor = Color(0xFF333333)
-    val doorColor = Color(0xFFAA7722)
-    val windowColor = Color(0xFF6699CC)
-    val poiColor = Color(0xFFCC3344)
-    val wifiColor = Color(0xFF4CAF50)
-
-    val roomColors = remember {
-        mapOf(
-            "living" to Color(0xFFF0DAAF),
-            "bedroom" to Color(0xFFD4E2C6),
-            "kitchen" to Color(0xFFDCC0DD),
-            "bathroom" to Color(0xFFC6D8E4),
-            "entrance" to Color(0xFFE0E0E0),
-            "default" to Color(0xFFF0DAAF)
-        )
-    }
+    // Navigation colors
+    val pathColor = Color(0xFF4285F4)
+    val currentPosColor = Color(0xFFEA4335)
+    val hazardColor = Color(0xFFFF7043)
+    val landmarkColor = Color(0xFF34A853)
 
     Box(
         modifier = modifier
             .clipToBounds()
             .background(Color.White)
-    ) {
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        scale = (scale * zoom).coerceIn(0.1f, 5f)
-                        offset += pan
-                    }
+            .pointerInput(Unit) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    scale = (scale * zoom).coerceIn(0.1f, 5f)
+                    offset += pan
                 }
-        ) {
+            }
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
             translate(offset.x, offset.y) {
                 scale(scale, scale) {
+                    // Draw rooms first (background)
                     drawRooms(floorPlanState.rooms, roomColors)
-                    drawWalls(floorPlanState.walls, wallColor)
-                    drawDoorWindows(floorPlanState.doors, doorColor, isDoor = true)
-                    drawDoorWindows(floorPlanState.windows, windowColor, isDoor = false)
-                    drawPOIs(floorPlanState.pois, poiColor)
 
-                    // Draw WiFi position and path
-                    wifiPosition?.let { position ->
-                        drawWiFiPath(floorPlanState.minPoint, pathPoints, position, wifiColor)
+                    // Draw walls
+                    drawWalls(floorPlanState.walls, Color(0xFF333333))
+
+                    // Draw navigation path
+                    drawPath(
+                        path = pathPoints.toPath(floorPlanState.minPoint),
+                        color = pathColor,
+                        style = Stroke(width = 8f)
+                    )
+
+                    // Draw current position
+                    drawCircle(
+                        color = currentPosColor,
+                        radius = 20f,
+                        center = Offset(
+                            currentPosition.first * 50 + floorPlanState.minPoint.x,
+                            currentPosition.second * 50 + floorPlanState.minPoint.y
+                        )
+                    )
+
+                    // Draw hazards
+                    hazards.forEach { hazard ->
+                        drawCircle(
+                            color = hazardColor.copy(alpha = 0.3f),
+                            radius = hazard.warningDistance * 50,
+                            center = Offset(hazard.coordinates[0], hazard.coordinates[1])
+                        )
+                    }
+
+                    // Draw doors and windows
+                    drawDoorWindows(floorPlanState.doors, Color(0xFFAA7722), true)
+                    drawDoorWindows(floorPlanState.windows, Color(0xFF6699CC), false)
+
+                    // Draw POIs
+                    drawPOIs(floorPlanState.pois, landmarkColor)
+
+                    // Highlight nearest landmark
+                    nearestLandmark?.let { (name, distance) ->
+                        floorPlanState.pois.firstOrNull { it.name == name }?.let { poi ->
+                            drawCircle(
+                                color = landmarkColor.copy(alpha = 0.3f),
+                                radius = 40f,
+                                center = Offset(poi.x, poi.y)
+                            )
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+// Extension function to convert path points to Path
+private fun List<Pair<Float, Float>>.toPath(minPoint: Point): Path {
+    return Path().apply {
+        if (isNotEmpty()) {
+            val first = first()
+            moveTo(first.first * 50 + minPoint.x, first.second * 50 + minPoint.y)
+            for (i in 1 until size) {
+                getOrNull(i)?.let { point ->
+                    lineTo(point.first * 50 + minPoint.x, point.second * 50 + minPoint.y)
+                }
+            }
+        }
+    }
+}
+
+// Updated drawWalls function with navigation highlights
+private fun DrawScope.drawWalls(walls: List<Wall>,
+                                wallColor: Color,
+                                northReferenceWallId: Int? = null) {
+    walls.forEach { wall ->
+        // Highlight north wall if specified
+        val isNorthWall = northReferenceWallId?.let { wall.wallId == it } ?: false
+        var color = if (isNorthWall) Color(0xFF4CAF50) else wallColor
+        val strokeWidth = if (isNorthWall) wall.thickness * 1.5f else wall.thickness
+
+        drawLine(
+            color = color,
+            start = Offset(wall.start.x, wall.start.y),
+            end = Offset(wall.end.x, wall.end.y),
+            strokeWidth = strokeWidth
+        )
+
+        // Draw wall ID for debugging (remove in production)
+        if (wall.wallId != null) {
+            drawContext.canvas.nativeCanvas.drawText(
+                wall.wallId.toString(),
+                (wall.start.x + wall.end.x) / 2,
+                (wall.start.y + wall.end.y) / 2,
+                android.graphics.Paint().apply {
+                    color = Color.Black
+                    textSize = 12f
+                    textAlign = android.graphics.Paint.Align.CENTER
+                }
+            )
+        }
+    }
+}
+
+// Updated drawPOIs with navigation support
+private fun DrawScope.drawPOIs(pois: List<POI>, poiColor: Color) {
+    pois.forEach { poi ->
+        // Different colors based on category
+        var color = when (poi.category) {
+            "electronics" -> Color(0xFF4285F4)
+            "plant" -> Color(0xFF0F9D58)
+            else -> poiColor
+        }
+
+        drawCircle(
+            color = color,
+            radius = poi.width / 2,
+            center = Offset(poi.x, poi.y)
+        )
+
+        // Draw navigation-related info if available
+        poi.navigation?.audioCue?.let { cue ->
+            drawContext.canvas.nativeCanvas.drawText(
+                cue.take(15),
+                poi.x,
+                poi.y + poi.height / 2 + 15f,
+                android.graphics.Paint().apply {
+                    color = Color.Black
+                    textSize = 10f
+                    textAlign = android.graphics.Paint.Align.CENTER
+                }
+            )
         }
     }
 }
@@ -139,13 +252,18 @@ private fun DrawScope.drawWiFiPath(
     }
 }
 
-private fun DrawScope.drawWalls(walls: List<Wall>, wallColor: Color) {
-    walls.forEach { wall ->
-        drawLine(
-            color = wallColor,
-            start = Offset(wall.start.x, wall.start.y),
-            end = Offset(wall.end.x, wall.end.y),
-            strokeWidth = wall.thickness
+private fun DrawScope.drawHazards(hazards: List<HazardMarker>, hazardColor: Color) {
+    hazards.forEach { hazard ->
+        drawCircle(
+            color = hazardColor.copy(alpha = 0.3f),
+            radius = hazard.warningDistance * 50,
+            center = Offset(hazard.coordinates[0], hazard.coordinates[1])
+        )
+
+        drawCircle(
+            color = hazardColor,
+            radius = 10f,
+            center = Offset(hazard.coordinates[0], hazard.coordinates[1])
         )
     }
 }
@@ -246,29 +364,6 @@ private fun DrawScope.drawDoorWindows(items: List<DoorWindow>, color: Color, isD
                     strokeWidth = 1f
                 )
             }
-        }
-    }
-}
-
-private fun DrawScope.drawPOIs(pois: List<POI>, color: Color) {
-    pois.forEach { poi ->
-        drawCircle(
-            color = color,
-            radius = poi.width / 2,
-            center = Offset(poi.x, poi.y)
-        )
-
-        if (poi.name.isNotEmpty()) {
-            drawContext.canvas.nativeCanvas.drawText(
-                poi.name,
-                poi.x,
-                poi.y + poi.height / 2 + 15f,
-                android.graphics.Paint().apply {
-                    this.color = android.graphics.Color.BLACK
-                    textSize = 10f
-                    textAlign = android.graphics.Paint.Align.CENTER
-                }
-            )
         }
     }
 }

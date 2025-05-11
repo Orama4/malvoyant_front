@@ -26,11 +26,17 @@ fun FloorPlanScreen(
     val context = LocalContext.current
     val floorPlanState = floorPlanViewModel.floorPlanState
     val isConnected by stepCounterViewModel.isConnected.observeAsState(false)
+    val steps by stepCounterViewModel.steps.observeAsState(0)
+    val currentHeading by stepCounterViewModel.currentHeadingLive.observeAsState(0f)
+    val navigationInstructions by stepCounterViewModel.navigationInstructions.observeAsState("")
+    val hazardWarning by stepCounterViewModel.hazardWarning.observeAsState(null)
+    val nearestLandmark by stepCounterViewModel.nearestLandmark.observeAsState(null)
 
     // Observe position data from Raspberry Pi
     val wifiPosition by stepCounterViewModel.wifiPositionLive.observeAsState(null)
     val lastWifiUpdateAgo by stepCounterViewModel.lastWifiUpdateAgo.observeAsState("Never")
     val wifiConfidence by stepCounterViewModel.wifiConfidence.observeAsState(0f)
+    val fusedPosition by stepCounterViewModel.fusedPositionLive.observeAsState(Pair(0f, 0f))
 
     // Remember the launcher for file picking
     val launcher = rememberLauncherForActivityResult(
@@ -41,12 +47,28 @@ fun FloorPlanScreen(
         }
     }
 
+    LaunchedEffect(floorPlanState.navigationSettings) {
+        floorPlanState.navigationSettings?.let {
+            stepCounterViewModel.updateNavigationSettings(it)
+        }
+    }
+
     LaunchedEffect(Unit) {
         // Load default floor plan from assets when the screen is first composed
         floorPlanViewModel.loadGeoJSONFromAssets(context)
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        // Navigation information panel
+        NavigationInfoPanel(
+            steps = steps,
+            currentHeading = currentHeading,
+            navigationInstructions = navigationInstructions,
+            hazardWarning = hazardWarning,
+            nearestLandmark = nearestLandmark,
+            modifier = Modifier.fillMaxWidth()
+        )
+
         // Connection status indicator and WiFi position display
         Surface(
             modifier = Modifier
@@ -83,21 +105,30 @@ fun FloorPlanScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // WiFi Position data display
-                wifiPosition?.let { position ->
+                // Position data display
+                Column {
                     CoordinatesDisplay(
-                        title = "WiFi Position",
-                        x = position.first,
-                        y = position.second,
-                        confidence = wifiConfidence,
-                        lastUpdate = lastWifiUpdateAgo
+                        title = "Fused Position",
+                        x = fusedPosition.first,
+                        y = fusedPosition.second,
+                        lastUpdate = "Live"
                     )
-                } ?: run {
-                    Text(
-                        text = "Waiting for WiFi position data...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+
+                    wifiPosition?.let { position ->
+                        CoordinatesDisplay(
+                            title = "WiFi Position",
+                            x = position.first,
+                            y = position.second,
+                            confidence = wifiConfidence,
+                            lastUpdate = lastWifiUpdateAgo
+                        )
+                    } ?: run {
+                        Text(
+                            text = "Waiting for WiFi position data...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
@@ -118,16 +149,113 @@ fun FloorPlanScreen(
                 .padding(8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Button(onClick = { launcher.launch("application/json") }) {
-                Text("Load Floor Plan")
-            }
 
             Button(onClick = { stepCounterViewModel.resetAll() }) {
                 Text("Reset Path")
             }
 
-            Button(onClick = { stepCounterViewModel.requestSingleWifiUpdate() }) {
-                Text("Get Position")
+            Button(onClick = {
+                stepCounterViewModel.calibrateOrientation(0f) // Force 0° (east)
+            }) { Text("Set East") }
+
+            Button(onClick = {
+                stepCounterViewModel.calibrateOrientation(90f) // Force 90° (south)
+            }) { Text("Set South") }
+
+        }
+
+        // Calibration controls
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Button(onClick = {
+                stepCounterViewModel.calibrateWithWifi()
+            }) {
+                Text("Calibrate Position")
+            }
+
+            Button(onClick = {
+                // Calibrate orientation to north (assuming wall 1 is north)
+                floorPlanState.navigationSettings?.northReference?.direction?.let {
+                    stepCounterViewModel.calibrateOrientation(it)
+                }
+            }) {
+                Text("Calibrate North")
+            }
+
+        }
+    }
+}
+
+@Composable
+fun NavigationInfoPanel(
+    steps: Int,
+    currentHeading: Float,
+    navigationInstructions: String,
+    hazardWarning: String?,
+    nearestLandmark: Pair<String, Float>?,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .padding(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(8.dp)
+                .fillMaxWidth()
+        ) {
+            // Steps and heading
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Steps: $steps",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "Heading: ${"%.1f".format(currentHeading)}°",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Navigation instructions
+            if (navigationInstructions.isNotEmpty()) {
+                Text(
+                    text = navigationInstructions,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // Hazard warning
+            hazardWarning?.let { warning ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = warning,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            // Nearest landmark
+            nearestLandmark?.let { (name, distance) ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Near: $name (${"%.1f".format(distance)}m)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.secondary
+                )
             }
         }
     }
@@ -166,17 +294,17 @@ fun CoordinatesDisplay(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "X: ${String.format("%.2f", x)}",
+                    text = "X: ${"%.2f".format(x)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "Y: ${String.format("%.2f", y)}",
+                    text = "Y: ${"%.2f".format(y)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
 
                 confidence?.let {
                     Text(
-                        text = "Conf: ${String.format("%.1f", it * 100)}%",
+                        text = "Conf: ${"%.1f".format(it * 100)}%",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
