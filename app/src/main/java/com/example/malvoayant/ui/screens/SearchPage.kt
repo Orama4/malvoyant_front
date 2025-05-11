@@ -57,7 +57,9 @@ fun SearchScreen(
     val scope = rememberCoroutineScope()
     val pendingSpeechJob = remember { mutableStateOf<Job?>(null) }
     val speechHelper = remember { SpeechHelper(context) }
-
+    // Accès correct avec .value quand pas de delegate
+    val currentPath = navigationViewModel.currentPath
+    val isLoading = navigationViewModel.isLoading
     // Animation states
     val pulsateAnimation = rememberInfiniteTransition(label = "pulsate")
     val scale = pulsateAnimation.animateFloat(
@@ -69,7 +71,10 @@ fun SearchScreen(
         ),
         label = "scale"
     )
-
+// Observer les changements de chemin
+    LaunchedEffect(navigationViewModel.currentPath) {
+        Log.d("SearchScreen", "Chemin actuel: $currentPath")
+    }
     LaunchedEffect(Unit) {
         speechHelper.initializeSpeech {
             speechHelper.speak("Search page. You can search for points of interest. Use the buttons at the bottom for help, SOS, or repair services.")
@@ -92,21 +97,22 @@ fun SearchScreen(
         floorPlanViewModel.setPois(filteredPois)
 
     }
+    // Calcul initial
     LaunchedEffect(floorPlan.pois) {
-        if (floorPlan.pois.size >= 3) {
-            val start = floorPlan.pois[0]
+        if (floorPlan.pois.size >= 3 && !isLoading) {
+            val start = Point(340.0f,340.0f)
             val destination = floorPlan.pois[2]
 
-            navigationViewModel.calculatePath(
-                start = start,
-                destination = destination,
-
-            )
-            Log.d("SearchScreen", "list of POIs: ${floorPlanViewModel.floorPlanState.pois}")
-            Log.d("SearchScreen", "Calculated path: ${navigationViewModel.currentPath}")
+            navigationViewModel.calculatePath(start, destination)
         }
-
     }
+    /*if (isLoading) {
+        CircularProgressIndicator()
+    } else {
+        currentPath?.let { path ->
+            PathVisualizer(path)
+        }
+    }*/
 
     Box(
         modifier = Modifier
@@ -152,7 +158,8 @@ fun SearchScreen(
                 FloorPlanCanvasView(
                     floorPlanState = floorPlanViewModel.floorPlanState,
                     modifier = Modifier.fillMaxSize(),
-                    viewModel = stepCounterViewModel
+                    viewModel = stepCounterViewModel,
+                    navigationViewModel = navigationViewModel
                 )
             }
 

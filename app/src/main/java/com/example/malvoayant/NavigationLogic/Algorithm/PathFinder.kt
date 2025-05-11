@@ -7,6 +7,7 @@ import com.example.malvoayant.NavigationLogic.utils.calculateDistance
 import com.example.malvoayant.NavigationLogic.utils.isPointInPolygon
 import com.example.malvoayant.data.models.FloorPlanState
 import com.example.malvoayant.data.models.*
+import kotlin.math.abs
 
 
 class PathFinder {
@@ -63,14 +64,89 @@ class PathFinder {
         // Nettoyage des nœuds temporaires si nécessaire
         if (isTempDest) graph.nodes.remove(destNode)
         if (path != null) {
+            return smoothPathWithCorners(path, graph)
 
-            return path.mapNotNull { nodeId ->
-                graph.nodes.find { it.id == nodeId }?.let { Point(it.x, it.y) }
-            }
         }
 
         return emptyList()
     }
+    private fun smoothPathWithCorners(path: List<Point>, graph: NavigationGraph): List<Point> {
+        if (path.size < 2) return path
+
+        val smoothedPath = mutableListOf<Point>()
+        smoothedPath.add(path[0])
+
+        for (i in 0 until path.size - 1) {
+            val current = path[i]
+            val next = path[i + 1]
+
+            // Votre condition exacte
+            if (shouldAddCorner(current, next, graph)) {
+                // Ajout du point d'angle
+                val corner = Point(current.x, next.y)
+                smoothedPath.add(corner)
+            }
+            smoothedPath.add(next)
+        }
+
+        return addRoundedCorners(smoothedPath)
+    }
+    private fun shouldAddCorner(current: Point, next: Point, graph: NavigationGraph): Boolean {
+        // Condition 1: Différence verticale significative
+        val yDiffSignificant = abs(current.y - next.y) > 15f
+
+        // Condition 2: Aucun nœud entre current.x et next.x avec le même y
+        val hasObstacleNode = graph.nodes.any { node ->
+            node.y == next.y && // Même y que le point suivant
+                    node.x > minOf(current.x, next.x) && // Entre les x
+                    node.x < maxOf(current.x, next.x)
+        }
+
+        return yDiffSignificant && !hasObstacleNode
+    }
+
+    private fun addRoundedCorners(path: List<Point>): List<Point> {
+        if (path.size < 3) return path
+
+        val roundedPath = mutableListOf<Point>()
+        roundedPath.add(path[0])
+
+        for (i in 1 until path.size - 1) {
+            val prev = path[i-1]
+            val curr = path[i]
+            val next = path[i+1]
+
+            // Détection des angles droits (votre cas)
+            if ((prev.x == curr.x && curr.y == next.y) ||
+                (prev.y == curr.y && curr.x == next.x)) {
+
+                // Ajout de points pour créer un arrondi
+                val steps = 5
+                for (t in 1 until steps) {
+                    val ratio = t.toFloat() / steps
+                    val x = when {
+                        prev.x == curr.x -> curr.x
+                        else -> lerp(prev.x, next.x, ratio)
+                    }
+                    val y = when {
+                        prev.y == curr.y -> curr.y
+                        else -> lerp(prev.y, next.y, ratio)
+                    }
+                    roundedPath.add(Point(x, y))
+                }
+            } else {
+                roundedPath.add(curr)
+            }
+        }
+
+        roundedPath.add(path.last())
+        return roundedPath
+    }
+    private fun lerp(a: Float, b: Float, t: Float): Float = a + (b - a) * t
+
+
+
+
 
 
     private fun createTempNode(

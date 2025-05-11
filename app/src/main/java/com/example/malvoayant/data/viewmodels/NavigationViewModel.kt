@@ -13,28 +13,31 @@ import com.example.malvoayant.data.models.FloorPlanState
 import com.example.malvoayant.data.models.Point
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-
 class NavigationViewModel(
     private val floorPlanViewModel: FloorPlanViewModel
 ) : ViewModel() {
     private val pathFinder = PathFinder()
+
+    // Déclaration correcte avec delegate property
     var currentPath by mutableStateOf<List<Point>?>(null)
         private set
 
-    fun calculatePath(
-        start: Any,
-        destination: Any
-    ) {
+    // Déclaration correcte pour le loading state
+    var isLoading by mutableStateOf(false)
+        private set
+
+    fun calculatePath(start: Any, destination: Any) {
         viewModelScope.launch(Dispatchers.IO) {
+            isLoading = true
             try {
                 val floorPlan = floorPlanViewModel.floorPlanState
-                val path = pathFinder.findPath(start, destination, floorPlan)
-
-                currentPath = path
-                Log.d("PathFinder", "Chemin nettoyé: $currentPath")
+                currentPath = pathFinder.findPath(start, destination, floorPlan)
+                Log.d("PathDebug", "Path calculated: ${currentPath?.size} points")
             } catch (e: Exception) {
                 currentPath = null
-                Log.e("Navigation", "Erreur calcul chemin", e)
+                Log.e("PathError", "Calculation failed", e)
+            } finally {
+                isLoading = false
             }
         }
     }
