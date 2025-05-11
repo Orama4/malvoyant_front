@@ -1,6 +1,7 @@
 package com.example.malvoayant.ui.screens
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -18,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.res.painterResource
@@ -28,6 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.malvoayant.R
+import com.example.malvoayant.data.models.Point
+import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
+import com.example.malvoayant.data.viewmodels.NavigationViewModel
+import com.example.malvoayant.data.viewmodels.StepCounterViewModel
 import com.example.malvoayant.navigation.Screen
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
@@ -42,8 +46,10 @@ fun SearchScreen(
     context: Context,
     navController: NavHostController,
     floorPlanViewModel: FloorPlanViewModel,
-    stepCounterViewModel: StepCounterViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    stepCounterViewModel: StepCounterViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    navigationViewModel: NavigationViewModel
 ) {
+    val floorPlan = floorPlanViewModel.floorPlanState
     val searchText = remember { mutableStateOf("") }
     val lastClickTime = remember { mutableStateOf(0L) }
     val doubleClickTimeWindow = 300L
@@ -84,6 +90,22 @@ fun SearchScreen(
 
     LaunchedEffect(filteredPois) {
         floorPlanViewModel.setPois(filteredPois)
+
+    }
+    LaunchedEffect(floorPlan.pois) {
+        if (floorPlan.pois.size >= 3) {
+            val start = floorPlan.pois[0]
+            val destination = floorPlan.pois[2]
+
+            navigationViewModel.calculatePath(
+                start = start,
+                destination = destination,
+
+            )
+            Log.d("SearchScreen", "list of POIs: ${floorPlanViewModel.floorPlanState.pois}")
+            Log.d("SearchScreen", "Calculated path: ${navigationViewModel.currentPath}")
+        }
+
     }
 
     Box(

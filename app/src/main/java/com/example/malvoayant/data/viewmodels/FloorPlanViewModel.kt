@@ -1,33 +1,26 @@
-package com.example.malvoayant.ui.screens
+package com.example.malvoayant.data.viewmodels
 
 
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.malvoayant.data.models.CanvasSize
+import com.example.malvoayant.data.models.DoorWindow
+import com.example.malvoayant.data.models.FloorPlanState
+import com.example.malvoayant.data.models.Offset
+import com.example.malvoayant.data.models.POI
+import com.example.malvoayant.data.models.Point
+import com.example.malvoayant.data.models.Room
+import com.example.malvoayant.data.models.RoomPolygon
+import com.example.malvoayant.data.models.RoomVertex
+import com.example.malvoayant.data.models.Wall
+import com.example.malvoayant.data.models.WallReference
+import com.example.malvoayant.data.models.Zone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -39,6 +32,7 @@ import kotlin.math.sqrt
 
 
 class FloorPlanViewModel : ViewModel() {
+
     var floorPlanState by mutableStateOf(FloorPlanState())
         private set
 
@@ -340,18 +334,22 @@ class FloorPlanViewModel : ViewModel() {
 
                     if (metadata.has("offset")) {
                         val offsetObj = metadata.getJSONObject("offset")
-                        setOffset(Offset(
+                        setOffset(
+                            Offset(
                             x = offsetObj.optDouble("x", 0.0).toFloat(),
                             y = offsetObj.optDouble("y", 0.0).toFloat()
-                        ))
+                        )
+                        )
                     }
 
                     if (metadata.has("canvasSize")) {
                         val sizeObj = metadata.getJSONObject("canvasSize")
-                        setCanvasSize(CanvasSize(
+                        setCanvasSize(
+                            CanvasSize(
                             width = sizeObj.optDouble("width", 800.0).toFloat(),
                             height = sizeObj.optDouble("height", 600.0).toFloat()
-                        ))
+                        )
+                        )
                     }
                 }
 

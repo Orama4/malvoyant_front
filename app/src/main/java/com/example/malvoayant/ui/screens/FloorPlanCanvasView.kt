@@ -1,6 +1,5 @@
 package com.example.malvoayant.ui.screens
 
-import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -20,6 +19,14 @@ import androidx.compose.ui.graphics.drawscope.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.malvoayant.data.models.DoorWindow
+import com.example.malvoayant.data.models.FloorPlanState
+import com.example.malvoayant.data.models.POI
+import com.example.malvoayant.data.models.Point
+import com.example.malvoayant.data.models.Room
+import com.example.malvoayant.data.models.Wall
+import com.example.malvoayant.data.models.Zone
+import com.example.malvoayant.data.viewmodels.StepCounterViewModel
 import kotlin.math.*
 
 @Composable

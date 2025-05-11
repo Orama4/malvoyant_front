@@ -1,4 +1,4 @@
-package com.example.malvoayant.ui.screens
+package com.example.malvoayant.data.viewmodels
 
 import android.app.Application
 import android.content.Context

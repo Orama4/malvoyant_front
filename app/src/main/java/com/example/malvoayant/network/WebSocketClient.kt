@@ -1,4 +1,4 @@
-package com.example.malvoayant.ui.screens
+package com.example.malvoayant.network
 
 
 import android.util.Log

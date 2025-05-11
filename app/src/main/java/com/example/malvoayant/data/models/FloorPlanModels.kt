@@ -1,4 +1,4 @@
-package com.example.malvoayant.ui.screens
+package com.example.malvoayant.data.models
 
 import java.util.UUID
 

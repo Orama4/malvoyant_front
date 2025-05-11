@@ -1,16 +1,20 @@
 package com.example.malvoayant.navigation
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.malvoayant.NavigationLogic.Algorithm.SafePathFinder
+import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
+import com.example.malvoayant.data.viewmodels.NavigationViewModel
+import com.example.malvoayant.data.viewmodels.StepCounterViewModel
 import com.example.malvoayant.ui.screens.*
 
 // Define the navigation routes
@@ -31,9 +35,14 @@ fun NavigationController(    stepCounterViewModel: StepCounterViewModel = viewMo
     val navController = rememberNavController()
     val context = LocalContext.current
 
+
     val floorPlanViewModel: FloorPlanViewModel = viewModel()
+    val navigationViewModel: NavigationViewModel = remember { NavigationViewModel(floorPlanViewModel) }
+
     LaunchedEffect(Unit) {
         floorPlanViewModel.loadGeoJSONFromAssets(context)
+
+
     }
     NavHost(
         navController = navController,
@@ -94,7 +103,8 @@ fun NavigationController(    stepCounterViewModel: StepCounterViewModel = viewMo
                 context = context,
                 navController = navController,
                 floorPlanViewModel = floorPlanViewModel,
-                stepCounterViewModel = stepCounterViewModel
+                stepCounterViewModel = stepCounterViewModel,
+                navigationViewModel = navigationViewModel
 
             )
         }
