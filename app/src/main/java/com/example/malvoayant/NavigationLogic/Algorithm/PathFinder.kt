@@ -56,6 +56,8 @@ class PathFinder {
 
         // Exécution de Dijkstra
         val path = destNode?.let {
+            // log des edges
+            Log.d("PathFinder", "Edges: ${graph.edges}")
             Dijkstra(graph.nodes, graph.edges)
                 .findShortestPath(startNode.id, it.id)
         }
@@ -65,6 +67,9 @@ class PathFinder {
         if (isTempDest) graph.nodes.remove(destNode)
         if (path != null) {
             return smoothPathWithCorners(path, graph)
+            /*return path.mapNotNull { nodeId ->
+                graph.nodes.find { it.id == nodeId }?.let { Point(it.x, it.y) }
+            }*/
 
         }
 
@@ -73,39 +78,109 @@ class PathFinder {
     private fun smoothPathWithCorners(path: List<Point>, graph: NavigationGraph): List<Point> {
         if (path.size < 2) return path
 
-        val smoothedPath = mutableListOf<Point>()
-        smoothedPath.add(path[0])
+        val orthogonalPath = mutableListOf<Point>()
+        orthogonalPath.add(path[0])
+
+        // Étape 1: Créer un chemin orthogonal strict
+        for (i in 0 until path.size - 1) {
+            val current = path[i]
+            val next = path[i + 1]
+
+            // Ajouter un point intermédiaire pour forcer l'angle droit
+            if (current.x != next.x && current.y != next.y) {
+                // Choix basé sur la plus grande différence
+                if (abs(current.x - next.x) > abs(current.y - next.y)) {
+                    orthogonalPath.add(Point(next.x, current.y))
+                } else {
+                    orthogonalPath.add(Point(current.x, next.y))
+                }
+            }
+            orthogonalPath.add(next)
+        }
+
+        // Étape 2: Simplifier le chemin
+        val simplifiedPath = simplifyPath(orthogonalPath)
+
+        // Étape 3: Arrondir tous les angles
+        return addRoundedCorners(simplifiedPath)
+    }
+
+    private fun simplifyPath(path: List<Point>): List<Point> {
+        val simplified = mutableListOf<Point>()
+        var lastDirection: Direction? = null
 
         for (i in 0 until path.size - 1) {
             val current = path[i]
             val next = path[i + 1]
 
-            // Votre condition exacte
-            if (shouldAddCorner(current, next, graph)) {
-                // Ajout du point d'angle
-                val corner = Point(current.x, next.y)
-                smoothedPath.add(corner)
+            val newDirection = when {
+                current.x == next.x -> Direction.VERTICAL
+                current.y == next.y -> Direction.HORIZONTAL
+                else -> null
             }
-            smoothedPath.add(next)
+
+            if (newDirection != lastDirection) {
+                simplified.add(current)
+                lastDirection = newDirection
+            }
         }
-
-        return addRoundedCorners(smoothedPath)
-    }
-    private fun shouldAddCorner(current: Point, next: Point, graph: NavigationGraph): Boolean {
-        // Condition 1: Différence verticale significative
-        val yDiffSignificant = abs(current.y - next.y) > 15f
-
-        // Condition 2: Aucun nœud entre current.x et next.x avec le même y
-        val hasObstacleNode = graph.nodes.any { node ->
-            node.y == next.y && // Même y que le point suivant
-                    node.x > minOf(current.x, next.x) && // Entre les x
-                    node.x < maxOf(current.x, next.x)
-        }
-
-        return yDiffSignificant && !hasObstacleNode
+        simplified.add(path.last())
+        return simplified
     }
 
     private fun addRoundedCorners(path: List<Point>): List<Point> {
+        if (path.size < 3) return path
+
+        val rounded = mutableListOf<Point>()
+        rounded.add(path[0])
+
+        for (i in 1 until path.size - 1) {
+            val prev = path[i - 1]
+            val curr = path[i]
+            val next = path[i + 1]
+
+            // Détection de tout changement de direction
+            if ((prev.x == curr.x && curr.y == next.y) ||
+                (prev.y == curr.y && curr.x == next.x)) {
+
+                // Ajouter 5 points de courbe
+                val steps = 5
+                for (t in 0..steps) {
+                    val ratio = t.toFloat() / steps
+                    val x = when {
+                        prev.x == curr.x -> curr.x
+                        else -> prev.x + (next.x - prev.x) * ratio
+                    }
+                    val y = when {
+                        prev.y == curr.y -> curr.y
+                        else -> prev.y + (next.y - prev.y) * ratio
+                    }
+                    rounded.add(Point(x, y))
+                }
+            } else {
+                rounded.add(curr)
+            }
+        }
+
+        rounded.add(path.last())
+        return rounded.distinct()
+    }
+
+    private enum class Direction {
+        VERTICAL, HORIZONTAL
+    }
+    private fun shouldAddCorner(current: Point, next: Point, graph: NavigationGraph): Boolean {
+        // Vérifie les obstacles dans les deux directions
+        val xRange = minOf(current.x, next.x)..maxOf(current.x, next.x)
+        val yRange = minOf(current.y, next.y)..maxOf(current.y, next.y)
+
+        val hasXObstacle = graph.nodes.any { it.y == current.y && it.x in xRange }
+        val hasYObstacle = graph.nodes.any { it.x == next.x && it.y in yRange }
+
+        return !hasXObstacle && !hasYObstacle
+    }
+
+/*    private fun addRoundedCorners(path: List<Point>): List<Point> {
         if (path.size < 3) return path
 
         val roundedPath = mutableListOf<Point>()
@@ -141,7 +216,8 @@ class PathFinder {
 
         roundedPath.add(path.last())
         return roundedPath
-    }
+    }*/
+
     private fun lerp(a: Float, b: Float, t: Float): Float = a + (b - a) * t
 
 

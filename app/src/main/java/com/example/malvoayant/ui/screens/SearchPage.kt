@@ -100,7 +100,7 @@ fun SearchScreen(
     // Calcul initial
     LaunchedEffect(floorPlan.pois) {
         if (floorPlan.pois.size >= 3 && !isLoading) {
-            val start = Point(340.0f,340.0f)
+            val start = floorPlan.pois[0]
             val destination = floorPlan.pois[2]
 
             navigationViewModel.calculatePath(start, destination)

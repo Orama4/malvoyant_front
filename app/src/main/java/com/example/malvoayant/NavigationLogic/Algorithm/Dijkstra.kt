@@ -2,12 +2,14 @@ package com.example.malvoayant.NavigationLogic.Algorithm
 
 import com.example.malvoayant.NavigationLogic.Models.Edge
 import com.example.malvoayant.NavigationLogic.Models.Node
+import com.example.malvoayant.data.models.Point
 import java.util.*
 
 class Dijkstra(nodes: List<Node>, edges: List<Edge>) {
     private val graph: Map<String, Map<String, Double>> = buildGraph(nodes, edges)
     private val distances = mutableMapOf<String, Double>()
     private val predecessors = mutableMapOf<String, String?>()
+    private val nodeMap: Map<String, Node> = nodes.associateBy { it.id }
 
     // Construit le graphe sous forme de liste d'adjacence
     private fun buildGraph(nodes: List<Node>, edges: List<Edge>): Map<String, Map<String, Double>> {
@@ -20,9 +22,14 @@ class Dijkstra(nodes: List<Node>, edges: List<Edge>) {
         }
         return adjMap
     }
+    // Updated to return List<Point>
+    fun findShortestPath(startId: String, endId: String): List<Point> {
+        val pathIds = findShortestPathIds(startId, endId)
+        return pathIds.mapNotNull { nodeMap[it]?.let { Point(it.x, it.y) } }
+    }
 
     // Trouve le chemin le plus court entre startId et endId
-    fun findShortestPath(startId: String, endId: String): List<String> {
+    fun findShortestPathIds(startId: String, endId: String): List<String> {
         if (startId !in graph || endId !in graph) return emptyList()
 
         initializeDistances(startId)
