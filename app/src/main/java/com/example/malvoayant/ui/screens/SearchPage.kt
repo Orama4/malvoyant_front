@@ -1,7 +1,10 @@
 package com.example.malvoayant.ui.screens
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -13,6 +16,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.KeyboardArrowLeft
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,6 +25,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -28,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.malvoayant.R
-import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
 import com.example.malvoayant.data.viewmodels.NavigationViewModel
 import com.example.malvoayant.data.viewmodels.StepCounterViewModel
@@ -49,10 +53,25 @@ fun SearchScreen(
     stepCounterViewModel: StepCounterViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     navigationViewModel: NavigationViewModel
 ) {
+    val context = LocalContext.current
+    val isConnected by stepCounterViewModel.isConnected.observeAsState(false)
     val floorPlan = floorPlanViewModel.floorPlanState
     val searchText = remember { mutableStateOf("") }
     val lastClickTime = remember { mutableStateOf(0L) }
     val doubleClickTimeWindow = 300L
+    // Observe position data from Raspberry Pi
+    val wifiPosition by stepCounterViewModel.wifiPositionLive.observeAsState(null)
+    val lastWifiUpdateAgo by stepCounterViewModel.lastWifiUpdateAgo.observeAsState("Never")
+    val wifiConfidence by stepCounterViewModel.wifiConfidence.observeAsState(0f)
+
+    // Remember the launcher for file picking
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            floorPlanViewModel.importFromGeoJSONUri(context, it)
+        }
+    }
 
     val scope = rememberCoroutineScope()
     val pendingSpeechJob = remember { mutableStateOf<Job?>(null) }
@@ -158,10 +177,12 @@ fun SearchScreen(
                 FloorPlanCanvasView(
                     floorPlanState = floorPlanViewModel.floorPlanState,
                     modifier = Modifier.fillMaxSize(),
-                    viewModel = stepCounterViewModel,
+                    stepCounterViewModel = stepCounterViewModel,
                     navigationViewModel = navigationViewModel
                 )
             }
+            // Connection status and WiFi position display
+            ConnectionStatusAndWiFiInfo(isConnected, wifiPosition.toString(), lastWifiUpdateAgo, wifiConfidence)
 
             // Bottom navigation buttons
             BottomNavigationButtons(
@@ -171,6 +192,42 @@ fun SearchScreen(
                 pendingSpeechJob = pendingSpeechJob,
                 speechHelper = speechHelper,
                 scope = scope
+            )
+        }
+    }
+}
+
+
+@Composable
+private fun ConnectionStatusAndWiFiInfo(
+    isConnected: Boolean,
+    wifiPosition: String?,
+    lastWifiUpdateAgo: String?,
+    wifiConfidence: Float
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        tonalElevation = 2.dp,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Display connection status
+            Text(
+                text = if (isConnected) "WebSocket: Connected" else "WebSocket: Disconnected",
+                fontWeight = FontWeight.Bold
+            )
+
+            // WiFi position and confidence
+            Text(
+                text = "WiFi Position: $wifiPosition"
+            )
+            Text(
+                text = "Last Update: $lastWifiUpdateAgo"
+            )
+            Text(
+                text = "Confidence: ${"%.2f".format(wifiConfidence)}"
             )
         }
     }

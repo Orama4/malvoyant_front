@@ -1,9 +1,6 @@
 package com.example.malvoayant.network
 
-
 import android.util.Log
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.ui.geometry.Offset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -12,30 +9,33 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import okhttp3.*
 
-class WebSocketClient(private val url: String) {
+class WebSocketClient(private var url: String) {
     private val TAG = "WebSocketClient"
     private var webSocket: WebSocket? = null
     private val client = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS) // No timeout for reading
         .build()
 
-    // Store path points
-    val pathPoints = mutableStateListOf<Offset>()
-
     // Connection status
     private var isConnected = false
     private var reconnectJob: Job? = null
 
+    // Message handler callback
+    private var onMessageReceived: ((Float, Float) -> Unit)? = null
+
+    // Connection status handler
+    private var onConnectionStatusChanged: ((Boolean) -> Unit)? = null
+
     fun connect() {
         val request = Request.Builder()
-            .url(url)            .build()
+            .url(url)
+            .build()
 
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 Log.d(TAG, "WebSocket connection established")
                 isConnected = true
-                // Reset path on new connection
-                pathPoints.clear()
+                onConnectionStatusChanged?.invoke(true)
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
@@ -44,10 +44,10 @@ class WebSocketClient(private val url: String) {
                     val x = json.getDouble("x").toFloat()
                     val y = json.getDouble("y").toFloat()
 
-                    // Add new point to path
+                    // Pass coordinates to handler
                     CoroutineScope(Dispatchers.Main).launch {
-                        pathPoints.add(Offset(x, y))
-                        Log.d(TAG, "Received point: x=$x, y=$y, total points: ${pathPoints.size}")
+                        onMessageReceived?.invoke(x, y)
+                        Log.d(TAG, "Received point: x=$x, y=$y")
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error parsing message: $text", e)
@@ -58,11 +58,13 @@ class WebSocketClient(private val url: String) {
                 Log.d(TAG, "WebSocket closing: $code - $reason")
                 webSocket.close(1000, null)
                 isConnected = false
+                onConnectionStatusChanged?.invoke(false)
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Log.e(TAG, "WebSocket failure", t)
                 isConnected = false
+                onConnectionStatusChanged?.invoke(false)
 
                 // Attempt reconnection
                 reconnect()
@@ -86,5 +88,18 @@ class WebSocketClient(private val url: String) {
         webSocket = null
         reconnectJob?.cancel()
         isConnected = false
+        onConnectionStatusChanged?.invoke(false)
+    }
+
+    fun setMessageHandler(handler: (Float, Float) -> Unit) {
+        onMessageReceived = handler
+    }
+
+    fun setConnectionStatusHandler(handler: (Boolean) -> Unit) {
+        onConnectionStatusChanged = handler
+    }
+
+    fun setUrl(newUrl: String) {
+        url = newUrl
     }
 }

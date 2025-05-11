@@ -85,14 +85,27 @@ class PathFinder {
         for (i in 0 until path.size - 1) {
             val current = path[i]
             val next = path[i + 1]
-
+            var nodeNext= graph.nodes.find { it.x == next.x && it.y == next.y }
             // Ajouter un point intermédiaire pour forcer l'angle droit
             if (current.x != next.x && current.y != next.y) {
                 // Choix basé sur la plus grande différence
                 if (abs(current.x - next.x) > abs(current.y - next.y)) {
-                    orthogonalPath.add(Point(next.x, current.y))
+                    if (nodeNext != null) {
+                        if ( nodeNext.type == NODE_TYPE_WINDOW||nodeNext.type == NODE_TYPE_DOOR){
+                            orthogonalPath.add(Point(next.x-20, current.y))
+                            orthogonalPath.add(Point(next.x-20, next.y))}
+                        else
+                            orthogonalPath.add(Point(next.x, current.y))
+                    }
                 } else {
-                    orthogonalPath.add(Point(current.x, next.y))
+                    if (nodeNext != null) {
+                        if ( nodeNext.type == NODE_TYPE_WINDOW||nodeNext.type == NODE_TYPE_DOOR) {
+                            orthogonalPath.add(Point(current.x, next.y - 20))
+                            orthogonalPath.add(Point(next.x, next.y - 20))
+                        }
+                        else
+                            orthogonalPath.add(Point(current.x, next.y))
+                    }
                 }
             }
             orthogonalPath.add(next)

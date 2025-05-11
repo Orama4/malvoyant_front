@@ -1,103 +1,281 @@
 package com.example.malvoayant.data.viewmodels
 
 import android.app.Application
-import android.content.Context
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import kotlin.math.cos
-import kotlin.math.sin
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import org.java_websocket.client.WebSocketClient
+import org.java_websocket.handshake.ServerHandshake
+import org.json.JSONObject
+import java.lang.Exception
+import java.net.URI
 
 class StepCounterViewModel(application: Application) : AndroidViewModel(application) {
-    private val sensorManager = application.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val stepDetector = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
-    private val rotationVector = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+    private var isReconnecting = false
 
-    private val _steps = MutableLiveData(0)
-    val steps: LiveData<Int> = _steps
+    // WebSocket properties
+    private var webSocketClient: WebSocketClient? = null
+    private val _isConnected = MutableLiveData(false)
+    val isConnected: LiveData<Boolean> = _isConnected
 
-    private val _currentHeadingLive = MutableLiveData(0f)
-    val currentHeadingLive: LiveData<Float> = _currentHeadingLive
+    // WiFi position properties
+    private val _wifiPositionLive = MutableLiveData<Pair<Float, Float>?>(null)
+    val wifiPositionLive: LiveData<Pair<Float, Float>?> = _wifiPositionLive
 
-    private var currentHeading = 0f
-    private var currentPosition = Pair(0f, 0f)
-    private val stepLength = 0.7f  // Average step length in meters
+    private val _wifiConfidence = MutableLiveData(0.0f)
+    val wifiConfidence: LiveData<Float> = _wifiConfidence
 
+    // For visualization - path tracking with only WiFi positions
+    private val _pathPoints = MutableLiveData(listOf<Pair<Float, Float>>())
+    val pathPoints: LiveData<List<Pair<Float, Float>>> = _pathPoints
+
+    // Current position (only from WiFi)
     private val _currentPositionLive = MutableLiveData(Pair(0f, 0f))
     val currentPositionLive: LiveData<Pair<Float, Float>> = _currentPositionLive
 
-    private val _pathPoints = MutableLiveData(listOf(Pair(0f, 0f)))
-    val pathPoints: LiveData<List<Pair<Float, Float>>> = _pathPoints
+    // Position update time tracking
+    private var lastWifiUpdateTime = 0L
+    private val _lastWifiUpdateAgo = MutableLiveData("Never")
+    val lastWifiUpdateAgo: LiveData<String> = _lastWifiUpdateAgo
 
-    private val stepListener = object : SensorEventListener {
-        override fun onSensorChanged(event: SensorEvent) {
-            if (event.sensor.type == Sensor.TYPE_STEP_DETECTOR) {
-                _steps.postValue((_steps.value ?: 0) + 1)
-                Log.d("StepCounter", "Step detected $_steps.value")
-                updatePosition()
+    // Connection status
+    private val _connectionStatus = MutableLiveData("Disconnected")
+    val connectionStatus: LiveData<String> = _connectionStatus
+
+    private val _errorMessage = MutableLiveData<String?>(null)
+    val errorMessage: LiveData<String?> = _errorMessage
+
+    private var reconnectAttempts = 0
+    private val maxReconnectAttempts = 5
+
+    private var reconnectionJob: kotlinx.coroutines.Job? = null
+
+    // Start a timer to update the "last update" text
+    private val updateTimer = CoroutineScope(Dispatchers.Default)
+
+    init {
+        // Start timer to update "last update ago" text
+        updateTimer.launch {
+            while (isActive) {
+                updateLastUpdateText()
+                delay(1000)  // Update every second
             }
         }
-
-        override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
     }
 
-    private val rotationListener = object : SensorEventListener {
-        override fun onSensorChanged(event: SensorEvent) {
-            if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
-                val rotationMatrix = FloatArray(9)
-                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+    // WebSocket functions
+    fun initWebSocket() {
+        connectWebSocket()
+        startReconnectionTimer()
+    }
 
-                val orientationAngles = FloatArray(3)
-                SensorManager.getOrientation(rotationMatrix, orientationAngles)
+    private fun connectWebSocket() {
+        if (isReconnecting) return
+        isReconnecting = true
 
-                currentHeading = Math.toDegrees(orientationAngles[0].toDouble()).toFloat()
+        try {
+            webSocketClient?.close()
+            webSocketClient = null
+        } catch (e: Exception) {
+            // Ignore any exceptions during cleanup
+        }
 
-                if (currentHeading < 0) {
-                    currentHeading += 360f
+        val serverUri = URI("ws://192.168.205.205:8000/ws/position") // Update with Pi's IP
+
+        webSocketClient = object : WebSocketClient(serverUri) {
+            override fun onOpen(handshakedata: ServerHandshake?) {
+                reconnectAttempts = 0  // Reset counter on successful connection
+                _isConnected.postValue(true)
+                _connectionStatus.postValue("Connected to Raspberry Pi")
+                _errorMessage.postValue(null)
+                requestWifiPositionUpdates()
+
+                // Cancel reconnection timer since we're connected
+                reconnectionJob?.cancel()
+                reconnectionJob = null
+            }
+
+            override fun onMessage(message: String?) {
+                Log.d("WebSocket", "Message received: $message")
+                message?.let {
+                    try {
+                        val json = JSONObject(it)
+                        when (json.getString("type")) {
+                            "wifi_position" -> {
+                                val position = json.getJSONObject("position")
+                                val x = position.getDouble("x").toFloat()
+                                val y = position.getDouble("y").toFloat()
+
+                                // Optional: default confidence to 1.0 if not present
+                                val confidence = if (position.has("confidence")) {
+                                    position.getDouble("confidence").toFloat()
+                                } else {
+                                    1.0f
+                                }
+
+                                _wifiPositionLive.postValue(Pair(x, y))
+                                _wifiConfidence.postValue(confidence)
+                                lastWifiUpdateTime = System.currentTimeMillis()
+
+                                // Update current position with WiFi position
+                                _currentPositionLive.postValue(Pair(x, y))
+
+                                // Update path points with WiFi position
+                                val currentPath = _pathPoints.value ?: listOf()
+                                val updatedPath = currentPath + Pair(x, y)
+                                _pathPoints.postValue(updatedPath)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("WebSocket", "Error parsing message: ${e.message}", e)
+                        _errorMessage.postValue("Error parsing message: ${e.message}")
+                    }
+                }
+            }
+
+            override fun onClose(code: Int, reason: String?, remote: Boolean) {
+                _isConnected.postValue(false)
+                _connectionStatus.postValue("Disconnected: $reason")
+
+                // reconnect with exponential backoff
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++
                 }
 
-                _currentHeadingLive.postValue(currentHeading)
+                startReconnectionTimer()
+            }
+
+            override fun onError(ex: Exception?) {
+                _isConnected.postValue(false)
+                _errorMessage.postValue("WebSocket error: ${ex?.message}")
+                // Attempt reconnect after delay
+                CoroutineScope(Dispatchers.IO).launch {
+                    delay(5000)
+                    connectWebSocket()
+                }
             }
         }
 
-        override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
+        // connection timeout and handle reconnection
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                delay(10000)
+                if (webSocketClient != null && !_isConnected.value!!) {
+                    _connectionStatus.postValue("Connection timed out")
+                    _errorMessage.postValue("Failed to connect to server")
+                    webSocketClient?.close()
+                    webSocketClient = null
+                }
+            } finally {
+                isReconnecting = false
+            }
+        }
+
+        try {
+            webSocketClient?.connect()
+        } catch (e: Exception) {
+            _errorMessage.postValue("Connection error: ${e.message}")
+            isReconnecting = false
+        }
     }
 
-    private fun updatePosition() {
-        val adjustedHeading = (currentHeading + 90) % 360
-        val rad = Math.toRadians(adjustedHeading.toDouble())
+    private fun requestWifiPositionUpdates(intervalSeconds: Double = 1.0) {
+        val jsonObject = JSONObject()
+        jsonObject.put("type", "start_position_updates")
+        jsonObject.put("interval", intervalSeconds)
 
-        val deltaX = (stepLength * cos(rad)).toFloat()
-        val deltaY = (stepLength * sin(rad)).toFloat()
-
-        currentPosition = Pair(currentPosition.first + deltaX, currentPosition.second + deltaY)
-        _currentPositionLive.postValue(currentPosition)
-        Log.d("position updated ", "poisiton updated $currentPosition")
-        val updatedPath = _pathPoints.value.orEmpty() + currentPosition
-        _pathPoints.postValue(updatedPath)
+        webSocketClient?.let { client ->
+            if (client.isOpen) {
+                client.send(jsonObject.toString())
+            }
+        }
     }
 
+    fun requestSingleWifiUpdate() {
+        try {
+            val jsonObject = JSONObject()
+            jsonObject.put("type", "single_position_request")
+
+            webSocketClient?.let { client ->
+                if (client.isOpen) {
+                    client.send(jsonObject.toString())
+                }
+            }
+        } catch (e: Exception) {
+            _errorMessage.postValue("Error sending request: ${e.message}")
+        }
+    }
+
+    private fun updateLastUpdateText() {
+        if (lastWifiUpdateTime == 0L) {
+            _lastWifiUpdateAgo.postValue("Never")
+            return
+        }
+
+        val age = System.currentTimeMillis() - lastWifiUpdateTime
+        val text = when {
+            age < 1000 -> "Just now"
+            age < 60000 -> "${age / 1000} seconds ago"
+            else -> "${age / 60000} minutes ago"
+        }
+
+        _lastWifiUpdateAgo.postValue(text)
+    }
+
+    // Public functions for controlling the system
     fun startListening() {
-        sensorManager.registerListener(stepListener, stepDetector, SensorManager.SENSOR_DELAY_NORMAL)
-        Log.d("start listen","start listen ")
-
-        sensorManager.registerListener(rotationListener, rotationVector, SensorManager.SENSOR_DELAY_GAME)
+        // Only initialize WebSocket connection - no sensors
+        initWebSocket()
     }
 
     fun stopListening() {
-        sensorManager.unregisterListener(stepListener)
-        sensorManager.unregisterListener(rotationListener)
+        // Close WebSocket connection
+        webSocketClient?.close()
     }
 
     fun resetAll() {
-        _steps.value = 0
-        currentPosition = Pair(0f, 0f)
-        _currentPositionLive.value = currentPosition
-        _pathPoints.value = listOf(currentPosition)
+        // Clear path points
+        _pathPoints.value = listOf()
+
+        // Keep the last WiFi position but reset the path
+        val lastWifiPos = _wifiPositionLive.value ?: Pair(0f, 0f)
+        _currentPositionLive.value = lastWifiPos
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        reconnectionJob?.cancel()
+        webSocketClient?.close()
+        updateTimer.cancel()
+    }
+
+    private fun startReconnectionTimer() {
+        // Cancel any existing job first
+        reconnectionJob?.cancel()
+
+        // Start a new job that periodically attempts to reconnect
+        reconnectionJob = CoroutineScope(Dispatchers.IO).launch {
+            while (isActive && (!_isConnected.value!!)) {
+                // Calculate delay based on reconnect attempts
+                val delayMs = if (reconnectAttempts < maxReconnectAttempts) {
+                    1000L * (1 shl reconnectAttempts) // Exponential backoff
+                } else {
+                    30000L // Once every 30 seconds after max attempts
+                }
+
+                delay(delayMs)
+                if (!_isConnected.value!!) {
+                    _connectionStatus.postValue("Attempting to reconnect...")
+                    connectWebSocket()
+                }
+            }
+        }
     }
 }

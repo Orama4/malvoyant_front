@@ -5,8 +5,11 @@ import com.example.malvoayant.NavigationLogic.Models.Edge
 import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.data.models.RoomPolygon
 import com.example.malvoayant.data.models.Zone
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sin
 
 // Helper function to check if a point is inside a polygon
 fun isPointInPolygon(pointX: Float, pointY: Float, polygon: List<Point>): Boolean {
@@ -170,4 +173,87 @@ fun isPointInZone(point: Point, zone: Zone): Boolean {
     }
 
     return inside
+}
+
+
+fun lineIntersectsLine(
+    x1: Float, y1: Float, x2: Float, y2: Float,
+    wallX1: Float, wallY1: Float, wallX2: Float, wallY2: Float,
+    thickness: Float = 12f
+): Boolean {
+    // Convert wall to "thick" rectangle coordinates
+    val halfThickness = thickness / 2
+    val angle = atan2(wallY2 - wallY1, wallX2 - wallX1)
+    val dx = halfThickness * sin(angle).toFloat()
+    val dy = halfThickness * cos(angle).toFloat()
+
+    // Create rectangle vertices for the thick wall
+    val rect = listOf(
+        Point(wallX1 - dx, wallY1 + dy),
+        Point(wallX1 + dx, wallY1 - dy),
+        Point(wallX2 + dx, wallY2 - dy),
+        Point(wallX2 - dx, wallY2 + dy)
+    )
+
+    // Check if path segment intersects with the wall rectangle
+    return lineIntersectsPolygon(x1, y1, x2, y2, rect)
+}
+
+private fun lineIntersectsPolygon(
+    x1: Float, y1: Float, x2: Float, y2: Float,
+    polygon: List<Point>
+): Boolean {
+    // Check against all polygon edges
+    for (i in polygon.indices) {
+        val j = (i + 1) % polygon.size
+        if (lineSegmentsIntersect(
+                x1, y1, x2, y2,
+                polygon[i].x, polygon[i].y,
+                polygon[j].x, polygon[j].y
+            )
+        ) {
+            return true
+        }
+    }
+    return false
+}
+
+private fun lineSegmentsIntersect(
+    x1: Float, y1: Float, x2: Float, y2: Float,
+    x3: Float, y3: Float, x4: Float, y4: Float
+): Boolean {
+    // Calculate orientation values
+    fun orientation(px: Float, py: Float, qx: Float, qy: Float, rx: Float, ry: Float): Int {
+        val value = (qy - py) * (rx - qx) - (qx - px) * (ry - qy)
+        return when {
+            value > 0f -> 1   // Clockwise
+            value < 0f -> 2   // Counter-clockwise
+            else -> 0         // Collinear
+        }
+    }
+
+    val o1 = orientation(x1, y1, x2, y2, x3, y3)
+    val o2 = orientation(x1, y1, x2, y2, x4, y4)
+    val o3 = orientation(x3, y3, x4, y4, x1, y1)
+    val o4 = orientation(x3, y3, x4, y4, x2, y2)
+
+    // General case of non-collinear segments
+    if (o1 != o2 && o3 != o4) return true
+
+    // Special cases for collinear segments
+    if (o1 == 0 && isOnSegment(x1, y1, x3, y3, x2, y2)) return true
+    if (o2 == 0 && isOnSegment(x1, y1, x4, y4, x2, y2)) return true
+    if (o3 == 0 && isOnSegment(x3, y3, x1, y1, x4, y4)) return true
+    if (o4 == 0 && isOnSegment(x3, y3, x2, y2, x4, y4)) return true
+
+    return false
+}
+
+private fun isOnSegment(
+    px: Float, py: Float,
+    qx: Float, qy: Float,
+    rx: Float, ry: Float
+): Boolean {
+    return (qx <= maxOf(px, rx) && qx >= minOf(px, rx) &&
+            qy <= maxOf(py, ry) && qy >= minOf(py, ry))
 }

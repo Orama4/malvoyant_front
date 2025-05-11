@@ -1,14 +1,11 @@
 package com.example.malvoayant.ui.screens
 
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -26,13 +23,9 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.*
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.res.imageResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.malvoayant.R
 import com.example.malvoayant.data.models.DoorWindow
 import com.example.malvoayant.data.models.FloorPlanState
 import com.example.malvoayant.data.models.POI
@@ -49,18 +42,16 @@ import kotlin.random.Random
 fun FloorPlanCanvasView(
     floorPlanState: FloorPlanState,
     modifier: Modifier = Modifier,
-    viewModel: StepCounterViewModel = viewModel(),
+    stepCounterViewModel: StepCounterViewModel = viewModel(),
     navigationViewModel: NavigationViewModel
 ) {
     // Dans votre ViewModel ou classe de données :
 
-    val pathPoints by viewModel.pathPoints.observeAsState(listOf(Pair(0f, 0f)))
-    val currentPosition by viewModel.currentPositionLive.observeAsState(Pair(0f, 0f))
-    val currentHeading by viewModel.currentHeadingLive.observeAsState(0f)
+    val pathPoints by stepCounterViewModel.pathPoints.observeAsState(listOf())
 
     var scale by remember { mutableStateOf(floorPlanState.scale) }
     var offset by remember { mutableStateOf(Offset(floorPlanState.offset.x, floorPlanState.offset.y)) }
-
+    val wifiPosition by stepCounterViewModel.wifiPositionLive.observeAsState(null)
     LaunchedEffect(floorPlanState.scale, floorPlanState.offset) {
         scale = floorPlanState.scale
         offset = Offset(floorPlanState.offset.x, floorPlanState.offset.y)
@@ -162,9 +153,13 @@ fun FloorPlanCanvasView(
 
                     // Draw stylish POIs with category-specific icons
                     drawElegantPOIs(floorPlanState.pois)
-
+                    //wifi path
+                    wifiPosition?.let { position ->
+                        val wifiColor=Color(0xFF8E44AD)
+                        drawWiFiPath(floorPlanState.minPoint, pathPoints, position, wifiColor)
+                    }
                     // Draw elegant path with smooth gradients
-                    drawElegantPath(floorPlanState.minPoint, pathPoints, currentPosition, currentHeading, pathGradientColors)
+                    //drawElegantPath(floorPlanState.minPoint, pathPoints, currentPosition, currentHeading, pathGradientColors)
                     //draw the current path
                     navigationViewModel.currentPath?.let { path ->
                         val angle = if (path.size > 1) {
@@ -1534,7 +1529,57 @@ val pathStartColor = Color(0xFF3F51B5) // Indigo pour le début
         )
     }
 }*/
+private fun DrawScope.drawWiFiPath(
+    minPoint: Point,
+    pathPoints: List<Pair<Float, Float>>,
+    currentPosition: Pair<Float, Float>,
+    pathColor: Color
+) {
+    // Only draw path if there are points
+    if (pathPoints.isNotEmpty()) {
+        val path = Path()
 
+        // Start the path at the first point
+        if (pathPoints.size >= 1) {
+            path.moveTo(pathPoints[0].first * 50 + minPoint.x, pathPoints[0].second * 50 + minPoint.y)
+
+            // Draw lines connecting the path points
+            for (i in 1 until pathPoints.size) {
+                path.lineTo(
+                    pathPoints[i].first * 50 + minPoint.x,
+                    pathPoints[i].second * 50 + minPoint.y
+                )
+            }
+
+            // Draw the path with a gradient
+            drawPath(
+                path = path,
+                brush = Brush.linearGradient(
+                    start = Offset(pathPoints.first().first * 50 + minPoint.x, pathPoints.first().second * 50 + minPoint.y),
+                    end = Offset(pathPoints.last().first * 50 + minPoint.x, pathPoints.last().second * 50 + minPoint.y),
+                    colors = listOf(Color(0xFF4CAF50), Color(0xFFFFEB3B))
+                ),
+                style = Stroke(width = 5f)
+            )
+
+            // Draw dots at each position point
+            pathPoints.forEach { point ->
+                drawCircle(
+                    color = Color(0xFF2196F3),
+                    radius = 8f,
+                    center = Offset(point.first * 50 + minPoint.x, point.second * 50 + minPoint.y)
+                )
+            }
+        }
+
+        // Draw the current position as a larger red circle
+        drawCircle(
+            color = Color.Red,
+            radius = 12f,
+            center = Offset(currentPosition.first * 50 + minPoint.x, currentPosition.second * 50 + minPoint.y)
+        )
+    }
+}
 private fun DrawScope.drawAdvancedNavigationPath(
     path: List<Point>,
     currentPosition: Point,
