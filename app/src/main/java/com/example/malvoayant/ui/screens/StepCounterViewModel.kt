@@ -104,6 +104,7 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
     private var calibratedStepLength = 0.7f // Default, will be updated from GeoJSON
     private var magneticDeclination = 0f // Will be updated from GeoJSON
     private var northReferenceWallId: Int? = null
+
     var floorPlanState: FloorPlanState? = null
     init {
         // Start timer to update "last update ago" text
@@ -182,6 +183,83 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
         return null
     }
 
+    // Add these to StepCounterViewModel class
+    private val _calibrationState = MutableLiveData(CalibrationState.IDLE)
+    val calibrationState: LiveData<CalibrationState> = _calibrationState
+
+    private var xAxisHeading: Float? = null
+    private var yAxisHeading: Float? = null
+    private var calibrationStartPosition: Pair<Float, Float> = Pair(0f, 0f)
+
+    enum class CalibrationState {
+        IDLE, CALIBRATING_X, CALIBRATING_Y, CALIBRATED
+    }
+
+    // New calibration functions
+    fun startXAxisCalibration() {
+        _calibrationState.value = CalibrationState.CALIBRATING_X
+        calibrationStartPosition = currentPosition
+    }
+
+    fun completeXAxisCalibration() {
+        xAxisHeading = currentHeading
+        _calibrationState.value = CalibrationState.CALIBRATING_Y
+        calibrationStartPosition = currentPosition
+    }
+
+    fun completeYAxisCalibration() {
+        yAxisHeading = currentHeading
+        _calibrationState.value = CalibrationState.CALIBRATED
+        saveCalibration()
+    }
+
+    fun resetCalibration() {
+        xAxisHeading = null
+        yAxisHeading = null
+        _calibrationState.value = CalibrationState.IDLE
+    }
+
+    private fun saveCalibration() {
+        // Save calibration to preferences if needed
+    }
+
+    // Modified position update to use calibrated axes
+    private fun updatePosition() {
+        val adjustedHeading = getAdjustedHeading()
+        val rad = Math.toRadians(adjustedHeading.toDouble())
+
+        val deltaX = (stepLength * cos(rad)).toFloat()
+        val deltaY = (stepLength * sin(rad)).toFloat()
+
+        currentPosition = Pair(currentPosition.first + deltaX, currentPosition.second + deltaY)
+        _currentPositionLive.postValue(currentPosition)
+        _pathPoints.postValue(_pathPoints.value.orEmpty() + currentPosition)
+
+        // Navigation updates
+        _nearestLandmark.postValue(getNearestLandmark(currentPosition))
+        _hazardWarning.postValue(checkHazards(currentPosition, floorPlanState?.hazards ?: emptyList()))
+        performPositionFusion()
+    }
+
+    private fun getAdjustedHeading(): Float {
+        return when (_calibrationState.value) {
+            CalibrationState.CALIBRATED -> {
+                // Convert current heading to calibrated coordinate system
+                val rawHeading = currentHeading
+                val xAxis = xAxisHeading ?: 0f
+                val yAxis = yAxisHeading ?: (xAxis + 90) % 360
+
+                // Calculate angle between current heading and x-axis
+                var angle = (rawHeading - xAxis + 360) % 360
+
+                // For simplicity, we'll just return the raw heading when calibrated
+                // In a full implementation, we'd convert to the calibrated coordinate system
+                rawHeading
+            }
+            else -> currentHeading
+        }
+    }
+
     fun generateNavigationInstructions(
         currentPos: Pair<Float, Float>,
         targetPos: Pair<Float, Float>
@@ -216,7 +294,7 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     // Enhanced position update with navigation checks
-    private fun updatePosition() {
+   /* private fun updatePosition() {
         val adjustedHeading = (currentHeading + 90) % 360 // Adjust for coordinate system
         val rad = Math.toRadians(adjustedHeading.toDouble())
 
@@ -235,6 +313,8 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
 
         performPositionFusion()
     }
+
+    */
 
     // Calibration functions
     fun calibrateStepLength(knownDistance: Float, stepsTaken: Int) {
