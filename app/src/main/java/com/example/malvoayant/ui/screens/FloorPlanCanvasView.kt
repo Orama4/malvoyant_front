@@ -49,6 +49,9 @@ fun FloorPlanCanvasView(
     val pathEndColor = Color(0xFFF1C40F)  // Gold end
     val pathGradientColors = listOf(pathStartColor, pathEndColor)
 
+    // Heading indicator color
+    val headingColor = Color(0xFFE74C3C)  // Bright red for heading indicator
+
     // Elegant room color palette
     val roomColors = remember {
         mapOf(
@@ -108,12 +111,13 @@ fun FloorPlanCanvasView(
                     drawElegantPOIs(floorPlanState.pois)
 
                     // Draw elegant path with smooth gradients
-                    drawElegantPath(floorPlanState.minPoint, pathPoints, currentPosition, currentHeading, pathGradientColors)
+                    drawElegantPath(floorPlanState.minPoint, pathPoints, currentPosition, currentHeading, pathGradientColors, headingColor)
                 }
             }
         }
     }
 }
+
 private fun DrawScope.drawInfiniteGrid() {
     val gridSize = 50f // Size of each grid cell
     val gridColor = Color(0xFFE0E0E0) // Light gray color for the grid
@@ -153,14 +157,99 @@ private fun DrawScope.drawInfiniteGrid() {
     }
 }
 
-
 private fun DrawScope.drawElegantPath(
     minPoint: Point,
     pathPoints: List<Pair<Float, Float>>,
     currentPosition: Pair<Float, Float>,
     currentHeading: Float,
-    gradientColors: List<Color>
+    gradientColors: List<Color>,
+    headingColor: Color
 ) {
+    // Always draw the current position and heading indicator, even if no steps taken yet
+    val posX = currentPosition.first * 50 + minPoint.x
+    val posY = currentPosition.second * 50 + minPoint.y
+
+    // Draw current position with elegant styling
+    // Pulsating outer glow effect
+    for (i in 3 downTo 1) {
+        drawCircle(
+            color = headingColor.copy(alpha = 0.05f * i),
+            radius = 24f + (i * 3),
+            center = Offset(posX, posY)
+        )
+    }
+
+    // Main position indicator
+    drawCircle(
+        color = Color.White,
+        radius = 12f,
+        center = Offset(posX, posY)
+    )
+
+    drawCircle(
+        color = headingColor,
+        radius = 8f,
+        center = Offset(posX, posY)
+    )
+
+    // Draw elegant heading arrow - always show this regardless of movement
+    val headingRad = Math.toRadians(currentHeading.toDouble())
+    val arrowLength = 30.dp.toPx()  // Made longer for better visibility
+    val arrowEndX = posX + arrowLength * cos(headingRad).toFloat()
+    val arrowEndY = posY + arrowLength * sin(headingRad).toFloat()
+
+    // Arrow shaft with gradient and increased width for visibility
+    drawLine(
+        brush = Brush.linearGradient(
+            colors = listOf(headingColor, headingColor.copy(alpha = 0.7f)),
+            start = Offset(posX, posY),
+            end = Offset(arrowEndX, arrowEndY)
+        ),
+        start = Offset(posX, posY),
+        end = Offset(arrowEndX, arrowEndY),
+        strokeWidth = 3.5f  // Slightly thicker for better visibility
+    )
+
+    // Arrow head with enhanced size and visibility
+    val arrowHeadLength = 10.dp.toPx()  // Larger arrow head
+    val angle1 = headingRad + Math.PI * 3/4
+    val angle2 = headingRad - Math.PI * 3/4
+
+    val arrowHead1X = arrowEndX + arrowHeadLength * cos(angle1).toFloat()
+    val arrowHead1Y = arrowEndY + arrowHeadLength * sin(angle1).toFloat()
+
+    val arrowHead2X = arrowEndX + arrowHeadLength * cos(angle2).toFloat()
+    val arrowHead2Y = arrowEndY + arrowHeadLength * sin(angle2).toFloat()
+
+    // Draw arrow head with thicker stroke
+    drawLine(
+        color = headingColor,
+        start = Offset(arrowEndX, arrowEndY),
+        end = Offset(arrowHead1X, arrowHead1Y),
+        strokeWidth = 3.5f
+    )
+
+    drawLine(
+        color = headingColor,
+        start = Offset(arrowEndX, arrowEndY),
+        end = Offset(arrowHead2X, arrowHead2Y),
+        strokeWidth = 3.5f
+    )
+
+    // Add a small indicator showing heading angle as text
+    drawContext.canvas.nativeCanvas.drawText(
+        String.format("%.0f°", currentHeading),
+        arrowEndX + 5f,
+        arrowEndY + 5f,
+        android.graphics.Paint().apply {
+            color = android.graphics.Color.parseColor("#333333")
+            textSize = 14f
+            isFakeBoldText = true
+            setShadowLayer(1.5f, 0.5f, 0.5f, android.graphics.Color.WHITE)
+        }
+    )
+
+    // Only draw path if we have movement
     if (pathPoints.size > 1) {
         val path = Path()
         path.moveTo(pathPoints[0].first * 50 + minPoint.x, pathPoints[0].second * 50 + minPoint.y)
@@ -230,77 +319,6 @@ private fun DrawScope.drawElegantPath(
                 radius = if (isEndPoint) 5f else 3f,
                 center = Offset(centerX, centerY),
                 style = Fill
-            )
-        }
-
-        // Draw current position with elegant styling
-        if (pathPoints.isNotEmpty()) {
-            val posX = currentPosition.first * 50 + minPoint.x
-            val posY = currentPosition.second * 50 + minPoint.y
-
-            // Pulsating outer glow effect
-            for (i in 3 downTo 1) {
-                drawCircle(
-                    color = Color(0xFFE74C3C).copy(alpha = 0.05f * i),
-                    radius = 24f + (i * 3),
-                    center = Offset(posX, posY)
-                )
-            }
-
-            // Main position indicator
-            drawCircle(
-                color = Color.White,
-                radius = 12f,
-                center = Offset(posX, posY)
-            )
-
-            drawCircle(
-                color = Color(0xFFE74C3C),
-                radius = 8f,
-                center = Offset(posX, posY)
-            )
-
-            // Draw elegant heading arrow
-            val headingRad = Math.toRadians(currentHeading.toDouble())
-            val arrowLength = 24.dp.toPx()
-            val arrowEndX = posX + arrowLength * cos(headingRad).toFloat()
-            val arrowEndY = posY + arrowLength * sin(headingRad).toFloat()
-
-            // Arrow shaft with gradient
-            drawLine(
-                brush = Brush.linearGradient(
-                    colors = listOf(Color(0xFFE74C3C), Color(0xFFE74C3C).copy(alpha = 0.7f)),
-                    start = Offset(posX, posY),
-                    end = Offset(arrowEndX, arrowEndY)
-                ),
-                start = Offset(posX, posY),
-                end = Offset(arrowEndX, arrowEndY),
-                strokeWidth = 3f
-            )
-
-            // Arrow head
-            val arrowHeadLength = 8.dp.toPx()
-            val angle1 = headingRad + Math.PI * 3/4
-            val angle2 = headingRad - Math.PI * 3/4
-
-            val arrowHead1X = arrowEndX + arrowHeadLength * cos(angle1).toFloat()
-            val arrowHead1Y = arrowEndY + arrowHeadLength * sin(angle1).toFloat()
-
-            val arrowHead2X = arrowEndX + arrowHeadLength * cos(angle2).toFloat()
-            val arrowHead2Y = arrowEndY + arrowHeadLength * sin(angle2).toFloat()
-
-            drawLine(
-                color = Color(0xFFE74C3C),
-                start = Offset(arrowEndX, arrowEndY),
-                end = Offset(arrowHead1X, arrowHead1Y),
-                strokeWidth = 3f
-            )
-
-            drawLine(
-                color = Color(0xFFE74C3C),
-                start = Offset(arrowEndX, arrowEndY),
-                end = Offset(arrowHead2X, arrowHead2Y),
-                strokeWidth = 3f
             )
         }
     }
@@ -474,7 +492,6 @@ private fun DrawScope.drawElegantZones(zones: List<Zone>) {
         }
     }
 }
-
 
 private fun DrawScope.drawElegantRooms(room: Room, roomColors: Map<String, Color>) {
     room.polygons.forEach { polygon ->
