@@ -8,12 +8,12 @@
         "type": "LineString",
         "coordinates": [
           [
-            220,
-            120
+            260,
+            160
           ],
           [
-            940,
-            120
+            1160,
+            160
           ]
         ]
       },
@@ -22,7 +22,7 @@
         "thickness": 10,
         "wallId": 0,
         "type": "wall",
-        "length": 720
+        "length": 900
       }
     },
     {
@@ -32,12 +32,12 @@
         "type": "LineString",
         "coordinates": [
           [
-            220,
-            120
+            1160,
+            160
           ],
           [
-            220.00000000000003,
-            560
+            1160,
+            960
           ]
         ]
       },
@@ -46,7 +46,7 @@
         "thickness": 10,
         "wallId": 1,
         "type": "wall",
-        "length": 440
+        "length": 800
       }
     },
     {
@@ -56,12 +56,12 @@
         "type": "LineString",
         "coordinates": [
           [
-            220.00000000000003,
-            560
+            1160,
+            960
           ],
           [
-            960,
-            560
+            260,
+            960.0000000000001
           ]
         ]
       },
@@ -70,7 +70,7 @@
         "thickness": 10,
         "wallId": 2,
         "type": "wall",
-        "length": 740
+        "length": 900
       }
     },
     {
@@ -80,12 +80,12 @@
         "type": "LineString",
         "coordinates": [
           [
-            940,
-            120
+            260,
+            160
           ],
           [
-            959.979370804206,
-            559.5461576925319
+            260.00000000000006,
+            960
           ]
         ]
       },
@@ -94,55 +94,7 @@
         "thickness": 10,
         "wallId": 3,
         "type": "wall",
-        "length": 440.00000000000006
-      }
-    },
-    {
-      "type": "Feature",
-      "id": 5,
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            460,
-            120
-          ],
-          [
-            460,
-            560
-          ]
-        ]
-      },
-      "properties": {
-        "class_name": "wall",
-        "thickness": 6,
-        "wallId": 4,
-        "type": "partition",
-        "length": 440
-      }
-    },
-    {
-      "type": "Feature",
-      "id": 6,
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            720,
-            120
-          ],
-          [
-            720,
-            560
-          ]
-        ]
-      },
-      "properties": {
-        "class_name": "wall",
-        "thickness": 6,
-        "wallId": 5,
-        "type": "partition",
-        "length": 440
+        "length": 800
       }
     },
     {
@@ -151,25 +103,25 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          460,
-          292.8000030517578
+          416.73333740234375,
+          960.0000000000001
         ]
       },
       "properties": {
         "class_name": "door",
         "family": "inWall",
         "type": "doorSingle",
-        "angle": 270,
+        "angle": 180,
         "angleSign": 1,
         "hinge": "normal",
         "size": 60,
-        "thick": 6,
+        "thick": 10,
         "width": "1.00",
-        "height": "0.10",
-        "wallId": 4,
+        "height": "0.17",
+        "wallId": 2,
         "original_id": 0,
-        "paths": "[{\"path\":\"M-30,-3 L30,-3 L30,3 L-30,3 Z\",\"fill\":\"#9fb2e2\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 A54,54 0 0,1 0,54\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"5,5\",\"opacity\":0.6},{\"path\":\"M-30,0 L24,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
-        "wall_info": "{\"wallId\":4,\"thickness\":6,\"type\":\"partition\"}"
+        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#9fb2e2\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 A54,54 0 0,1 0,54\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"5,5\",\"opacity\":0.6},{\"path\":\"M-30,0 L24,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
+        "wall_info": "{\"wallId\":2,\"thickness\":10,\"type\":\"wall\"}"
       }
     },
     {
@@ -178,25 +130,106 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          720,
-          284.8000030517578
+          736.7333374023438,
+          960
         ]
       },
       "properties": {
         "class_name": "window",
         "family": "inWall",
         "type": "windowSingle",
-        "angle": 90,
+        "angle": 180,
         "angleSign": 1,
         "hinge": "normal",
         "size": 60,
-        "thick": 6,
+        "thick": 10,
         "width": "1.00",
-        "height": "0.10",
-        "wallId": 5,
+        "height": "0.17",
+        "wallId": 2,
         "original_id": 1,
-        "paths": "[{\"path\":\"M-30,-3 L30,-3 L30,3 L-30,3 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
-        "wall_info": "{\"wallId\":5,\"thickness\":6,\"type\":\"partition\"}"
+        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
+        "wall_info": "{\"wallId\":2,\"thickness\":10,\"type\":\"wall\"}"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "window-3",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          977.7333374023438,
+          960
+        ]
+      },
+      "properties": {
+        "class_name": "window",
+        "family": "inWall",
+        "type": "windowSingle",
+        "angle": 180,
+        "angleSign": 1,
+        "hinge": "normal",
+        "size": 60,
+        "thick": 10,
+        "width": "1.00",
+        "height": "0.17",
+        "wallId": 2,
+        "original_id": 2,
+        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
+        "wall_info": "{\"wallId\":2,\"thickness\":10,\"type\":\"wall\"}"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "window-4",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          970.7333374023438,
+          160
+        ]
+      },
+      "properties": {
+        "class_name": "window",
+        "family": "inWall",
+        "type": "windowSingle",
+        "angle": 180,
+        "angleSign": 1,
+        "hinge": "normal",
+        "size": 60,
+        "thick": 10,
+        "width": "1.00",
+        "height": "0.17",
+        "wallId": 0,
+        "original_id": 3,
+        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
+        "wall_info": "{\"wallId\":0,\"thickness\":10,\"type\":\"wall\"}"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "window-5",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          689.7333374023438,
+          160
+        ]
+      },
+      "properties": {
+        "class_name": "window",
+        "family": "inWall",
+        "type": "windowSingle",
+        "angle": 180,
+        "angleSign": 1,
+        "hinge": "normal",
+        "size": 60,
+        "thick": 10,
+        "width": "1.00",
+        "height": "0.17",
+        "wallId": 0,
+        "original_id": 4,
+        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
+        "wall_info": "{\"wallId\":0,\"thickness\":10,\"type\":\"wall\"}"
       }
     },
     {
@@ -207,40 +240,24 @@
         "coordinates": [
           [
             [
-              460,
-              120
+              260,
+              160
             ],
             [
-              220,
-              120
+              1160,
+              160
             ],
             [
-              220.00000000000003,
-              560
+              1160,
+              960
             ],
             [
-              460,
-              560
+              260,
+              960.0000000000001
             ],
             [
-              720,
-              560
-            ],
-            [
-              959.979370804206,
-              559.5461576925319
-            ],
-            [
-              940,
-              120
-            ],
-            [
-              720,
-              120
-            ],
-            [
-              460,
-              120
+              260,
+              160
             ]
           ]
         ]
@@ -248,193 +265,21 @@
       "properties": {
         "class_name": "room_polygon",
         "name": "Room 1",
-        "area": 32.11455389231038,
-        "pixelArea": 321145.5389231038,
+        "area": 72.00000000000001,
+        "pixelArea": 720000.0000000001,
         "type": "hallway",
         "color": "#f0daaf",
         "partitionCount": 0,
-        "regularCount": 8,
+        "regularCount": 4,
         "edgeKeys": [],
         "path": [
-          4,
           0,
           1,
-          5,
-          7,
-          3,
           2,
-          6,
-          4
+          3,
+          0
         ],
         "center": "{\"x\":0,\"y\":0}"
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "room-2",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              460,
-              120
-            ],
-            [
-              460,
-              560
-            ],
-            [
-              720,
-              560
-            ],
-            [
-              720,
-              120
-            ],
-            [
-              460,
-              120
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "class_name": "room_polygon",
-        "name": "Room 2",
-        "area": 11.44,
-        "pixelArea": 114400,
-        "type": "room",
-        "color": "#d3e4ff",
-        "partitionCount": 2,
-        "regularCount": 2,
-        "edgeKeys": [
-          "4-5",
-          "5-7",
-          "6-7",
-          "4-6",
-          "4-4"
-        ],
-        "path": [
-          4,
-          5,
-          7,
-          6,
-          4
-        ],
-        "center": "{\"x\":590,\"y\":340}"
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "room-3",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              460,
-              120
-            ],
-            [
-              460,
-              560
-            ],
-            [
-              220.00000000000003,
-              560
-            ],
-            [
-              220,
-              120
-            ],
-            [
-              460,
-              120
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "class_name": "room_polygon",
-        "name": "Room 3",
-        "area": 10.56,
-        "pixelArea": 105600,
-        "type": "room",
-        "color": "#e0f0d0",
-        "partitionCount": 1,
-        "regularCount": 3,
-        "edgeKeys": [
-          "4-5",
-          "1-5",
-          "0-1",
-          "0-4",
-          "4-4"
-        ],
-        "path": [
-          4,
-          5,
-          1,
-          0,
-          4
-        ],
-        "center": "{\"x\":340,\"y\":340}"
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "room-4",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              720,
-              120
-            ],
-            [
-              720,
-              560
-            ],
-            [
-              959.979370804206,
-              559.5461576925319
-            ],
-            [
-              940,
-              120
-            ],
-            [
-              720,
-              120
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "class_name": "room_polygon",
-        "name": "Room 4",
-        "area": 10.114553892310386,
-        "pixelArea": 101145.53892310386,
-        "type": "room",
-        "color": "#e0f0d0",
-        "partitionCount": 1,
-        "regularCount": 3,
-        "edgeKeys": [
-          "6-7",
-          "3-7",
-          "2-3",
-          "2-6",
-          "6-6"
-        ],
-        "path": [
-          6,
-          7,
-          3,
-          2,
-          6
-        ],
-        "center": "{\"x\":835.0482765668271,\"y\":343.07174663332717}"
       }
     },
     {
@@ -443,8 +288,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          220,
-          120
+          260,
+          160
         ]
       },
       "properties": {
@@ -452,10 +297,10 @@
         "bypass": 0,
         "segment": [
           0,
-          4
+          3
         ],
-        "links": "[{\"x\":220.00000000000003,\"y\":560,\"wallIndex\":0},{\"x\":460,\"y\":120,\"wallIndex\":4}]",
-        "child": "[{\"id\":1,\"wall\":0},{\"id\":4,\"wall\":4}]"
+        "links": "[{\"x\":1160,\"y\":160,\"wallIndex\":0},{\"x\":260.00000000000006,\"y\":960,\"wallIndex\":3}]",
+        "child": "[{\"id\":1,\"wall\":0},{\"id\":3,\"wall\":3}]"
       }
     },
     {
@@ -464,8 +309,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          220.00000000000003,
-          560
+          1160,
+          160
         ]
       },
       "properties": {
@@ -473,10 +318,10 @@
         "bypass": 0,
         "segment": [
           0,
-          5
+          1
         ],
-        "links": "[{\"x\":220,\"y\":120,\"wallIndex\":0},{\"x\":460,\"y\":560,\"wallIndex\":5}]",
-        "child": "[{\"id\":0,\"wall\":0},{\"id\":5,\"wall\":5}]"
+        "links": "[{\"x\":260,\"y\":160,\"wallIndex\":0},{\"x\":1160,\"y\":960,\"wallIndex\":1}]",
+        "child": "[{\"id\":0,\"wall\":0},{\"id\":2,\"wall\":1}]"
       }
     },
     {
@@ -485,8 +330,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          940,
-          120
+          1160,
+          960
         ]
       },
       "properties": {
@@ -494,10 +339,10 @@
         "bypass": 0,
         "segment": [
           1,
-          7
+          2
         ],
-        "links": "[{\"x\":959.979370804206,\"y\":559.5461576925319,\"wallIndex\":1},{\"x\":720,\"y\":120,\"wallIndex\":7}]",
-        "child": "[{\"id\":3,\"wall\":1},{\"id\":6,\"wall\":7}]"
+        "links": "[{\"x\":1160,\"y\":160,\"wallIndex\":1},{\"x\":260,\"y\":960.0000000000001,\"wallIndex\":2}]",
+        "child": "[{\"id\":1,\"wall\":1},{\"id\":3,\"wall\":2}]"
       }
     },
     {
@@ -506,29 +351,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          959.979370804206,
-          559.5461576925319
-        ]
-      },
-      "properties": {
-        "class_name": "room_vertex",
-        "bypass": 0,
-        "segment": [
-          1,
-          9
-        ],
-        "links": "[{\"x\":940,\"y\":120,\"wallIndex\":1},{\"x\":720,\"y\":560,\"wallIndex\":9}]",
-        "child": "[{\"id\":2,\"wall\":1},{\"id\":7,\"wall\":9}]"
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "vertex-5",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          460,
-          120
+          260,
+          960.0000000000001
         ]
       },
       "properties": {
@@ -536,77 +360,10 @@
         "bypass": 0,
         "segment": [
           2,
-          4,
-          6
+          3
         ],
-        "links": "[{\"x\":460,\"y\":560,\"wallIndex\":2},{\"x\":220,\"y\":120,\"wallIndex\":4},{\"x\":720,\"y\":120,\"wallIndex\":6}]",
-        "child": "[{\"id\":5,\"wall\":2},{\"id\":0,\"wall\":4},{\"id\":6,\"wall\":6}]"
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "vertex-6",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          460,
-          560
-        ]
-      },
-      "properties": {
-        "class_name": "room_vertex",
-        "bypass": 0,
-        "segment": [
-          2,
-          5,
-          8
-        ],
-        "links": "[{\"x\":460,\"y\":120,\"wallIndex\":2},{\"x\":220.00000000000003,\"y\":560,\"wallIndex\":5},{\"x\":720,\"y\":560,\"wallIndex\":8}]",
-        "child": "[{\"id\":4,\"wall\":2},{\"id\":1,\"wall\":5},{\"id\":7,\"wall\":8}]"
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "vertex-7",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          720,
-          120
-        ]
-      },
-      "properties": {
-        "class_name": "room_vertex",
-        "bypass": 0,
-        "segment": [
-          3,
-          6,
-          7
-        ],
-        "links": "[{\"x\":720,\"y\":560,\"wallIndex\":3},{\"x\":460,\"y\":120,\"wallIndex\":6},{\"x\":940,\"y\":120,\"wallIndex\":7}]",
-        "child": "[{\"id\":7,\"wall\":3},{\"id\":4,\"wall\":6},{\"id\":2,\"wall\":7}]"
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "vertex-8",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          720,
-          560
-        ]
-      },
-      "properties": {
-        "class_name": "room_vertex",
-        "bypass": 0,
-        "segment": [
-          3,
-          8,
-          9
-        ],
-        "links": "[{\"x\":720,\"y\":120,\"wallIndex\":3},{\"x\":460,\"y\":560,\"wallIndex\":8},{\"x\":960,\"y\":560,\"wallIndex\":9}]",
-        "child": "[{\"id\":6,\"wall\":3},{\"id\":5,\"wall\":8},{\"id\":3,\"wall\":9}]"
+        "links": "[{\"x\":1160,\"y\":960,\"wallIndex\":2},{\"x\":260,\"y\":160,\"wallIndex\":3}]",
+        "child": "[{\"id\":2,\"wall\":2},{\"id\":0,\"wall\":3}]"
       }
     },
     {
@@ -615,19 +372,19 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          567.7333374023438,
-          404.3333282470703
+          357.73333740234375,
+          278.8000030517578
         ]
       },
       "properties": {
         "class_name": "poi",
-        "name": "poi1",
+        "name": "bureau",
         "type": "furniture",
         "description": "",
         "icon": "/admin/bur.svg",
         "width": 50,
         "height": 50,
-        "original_id": 1746876566831
+        "original_id": 1747101544912
       }
     },
     {
@@ -636,19 +393,19 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          552.7333374023438,
-          229.73333740234375
+          482,
+          548
         ]
       },
       "properties": {
         "class_name": "poi",
-        "name": "poi2",
-        "type": "electronics",
+        "name": "POI 2",
+        "type": "furniture",
         "description": "",
-        "icon": "/admin/hh.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1746876615526
+        "icon": "/admin/bur.svg",
+        "width": 85,
+        "height": 101,
+        "original_id": 1747101593936
       }
     },
     {
@@ -657,109 +414,271 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          825.7333374023438,
-          237.73333740234375
+          615.7333374023438,
+          282.8000030517578
         ]
       },
       "properties": {
         "class_name": "poi",
-        "name": "poi3",
+        "name": "h",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1747101639056
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-4",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          627.7333374023438,
+          543.6000061035156
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "jk",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1747101651756
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-5",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          631.7333374023438,
+          843.7999877929688
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "jh",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1747101668399
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-6",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          740.7333374023438,
+          281.8000030517578
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "kjjk",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1747101687996
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-7",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          861.7333374023438,
+          280.8000030517578
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "jhghj",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1747101716733
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-8",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          978.7333374023438,
+          283.8000030517578
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "nbvhv",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1747101730535
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-9",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          750.7333374023438,
+          537.8000030517578
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "nb",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1747101748468
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-10",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          873.7333374023438,
+          534
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "kjb",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1747101760418
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-11",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          998.7333374023438,
+          530.8000030517578
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "jh",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1747101778029
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-12",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          762.7333374023438,
+          843.2000122070312
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "jj",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1747101791558
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-13",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          886.7333374023438,
+          841
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "hgfhgg",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1747101848237
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-14",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1007.7333374023438,
+          844.8000030517578
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": ",n",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1747101859046
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-15",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          343.73333740234375,
+          850
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "hgh",
         "type": "plant",
         "description": "",
         "icon": "/admin/stair.svg",
         "width": 50,
         "height": 50,
-        "original_id": 1746876625179
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "zone-1",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              267,
-              157
-            ],
-            [
-              401,
-              157
-            ],
-            [
-              401,
-              215
-            ],
-            [
-              267,
-              215
-            ],
-            [
-              267,
-              157
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "class_name": "zone",
-        "name": "Zone 1",
-        "zone_type": "danger",
-        "type": "rectangle",
-        "fill": "rgba(255, 111, 0, 0.4)",
-        "stroke": "#4B9CD3",
-        "strokeWidth": 2,
-        "left": 267,
-        "top": 157,
-        "width": 134,
-        "height": 57.99999999999999,
-        "area": 7771.999999999999
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "zone-2",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              283,
-              358
-            ],
-            [
-              378,
-              358
-            ],
-            [
-              378,
-              418
-            ],
-            [
-              283,
-              418
-            ],
-            [
-              283,
-              358
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "class_name": "zone",
-        "name": "Zone 2",
-        "zone_type": "default",
-        "type": "rectangle",
-        "fill": "rgba(255, 111, 0, 0.4)",
-        "stroke": "#4B9CD3",
-        "strokeWidth": 2,
-        "left": 283,
-        "top": 358,
-        "width": 95,
-        "height": 60,
-        "area": 5700
+        "original_id": 1747101881861
       }
     }
   ],
