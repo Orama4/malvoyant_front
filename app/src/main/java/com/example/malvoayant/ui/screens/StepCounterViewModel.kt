@@ -63,17 +63,11 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
                     currentHeading += 360f
                 }
 
-                // ✅ Nouvelle version : initialiser initialHeading dès que possible
                 if (initialHeading == null) {
                     initialHeading = currentHeading
                 }
 
-                // ❌ Ancienne version (trop tardive)
-                // if (initialHeading == null && _steps.value!! > 0) {
-                //     initialHeading = currentHeading
-                // }
 
-                // ✅ Relative heading bien calculée en [0, 360[
                 val relativeHeading = if (initialHeading != null) {
                     ((currentHeading - initialHeading!! + 360) % 360)
                 } else {
