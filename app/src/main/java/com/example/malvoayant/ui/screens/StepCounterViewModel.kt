@@ -63,14 +63,19 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
                     currentHeading += 360f
                 }
 
-                // Set initial heading if not set
-                if (initialHeading == null && _steps.value!! > 0) {
+                // ✅ Nouvelle version : initialiser initialHeading dès que possible
+                if (initialHeading == null) {
                     initialHeading = currentHeading
                 }
 
-                // Calculate relative heading based on initial direction
+                // ❌ Ancienne version (trop tardive)
+                // if (initialHeading == null && _steps.value!! > 0) {
+                //     initialHeading = currentHeading
+                // }
+
+                // ✅ Relative heading bien calculée en [0, 360[
                 val relativeHeading = if (initialHeading != null) {
-                    (currentHeading - initialHeading!!) % 360
+                    ((currentHeading - initialHeading!! + 360) % 360)
                 } else {
                     currentHeading
                 }
@@ -83,16 +88,18 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     private fun updatePosition() {
-        // If this is the first step, don't update position yet
-        if (initialHeading == null) {
-            initialHeading = currentHeading
-            return
-        }
+        // ❌ Ancienne version : bloque le premier pas
+        // if (initialHeading == null) {
+        //     initialHeading = currentHeading
+        //     return
+        // }
 
-        // Calculate relative heading based on initial direction
-        val relativeHeading = (currentHeading - initialHeading!!) % 360
+        // ✅ Nouvelle version : on suppose que initialHeading est bien initialisé au préalable
 
-        // Convert heading to radians and adjust for coordinate system
+        // ✅ Relative heading toujours positif [0, 360)
+        val relativeHeading = ((currentHeading - initialHeading!! + 360) % 360)
+
+        // Convert heading to radians
         val rad = Math.toRadians(relativeHeading.toDouble())
 
         // Calculate position changes
