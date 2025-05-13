@@ -88,15 +88,7 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     private fun updatePosition() {
-        // ❌ Ancienne version : bloque le premier pas
-        // if (initialHeading == null) {
-        //     initialHeading = currentHeading
-        //     return
-        // }
 
-        // ✅ Nouvelle version : on suppose que initialHeading est bien initialisé au préalable
-
-        // ✅ Relative heading toujours positif [0, 360)
         val relativeHeading = ((currentHeading - initialHeading!! + 360) % 360)
 
         // Convert heading to radians
