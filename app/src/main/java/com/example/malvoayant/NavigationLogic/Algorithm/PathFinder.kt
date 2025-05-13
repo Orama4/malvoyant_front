@@ -77,68 +77,90 @@ class PathFinder {
     }
     private fun smoothPathWithCorners(path: List<Point>, graph: NavigationGraph): List<Point> {
         if (path.size < 2) return path
-
         val orthogonalPath = mutableListOf<Point>()
         orthogonalPath.add(path[0])
 
-        // Étape 1: Créer un chemin orthogonal strict
         for (i in 0 until path.size - 1) {
             val current = path[i]
             val next = path[i + 1]
-            var nodeNext= graph.nodes.find { it.x == next.x && it.y == next.y }
-            // Ajouter un point intermédiaire pour forcer l'angle droit
+
             if (current.x != next.x && current.y != next.y) {
-                // Choix basé sur la plus grande différence
-                if (abs(current.x - next.x) > abs(current.y - next.y)) {
-                    if (nodeNext != null) {
-                        if ( nodeNext.type == NODE_TYPE_WINDOW||nodeNext.type == NODE_TYPE_DOOR){
-                            orthogonalPath.add(Point(next.x-20, current.y))
-                            orthogonalPath.add(Point(next.x-20, next.y))}
-                        else
-                            orthogonalPath.add(Point(next.x, current.y))
-                    }
-                } else {
-                    if (nodeNext != null) {
-                        if ( nodeNext.type == NODE_TYPE_WINDOW||nodeNext.type == NODE_TYPE_DOOR) {
-                            orthogonalPath.add(Point(current.x, next.y - 20))
-                            orthogonalPath.add(Point(next.x, next.y - 20))
-                        }
-                        else
-                            orthogonalPath.add(Point(current.x, next.y))
+                val horizontalIntermediate = Point(next.x, current.y)
+                val verticalIntermediate = Point(current.x, next.y)
+
+                val horizontalClear = isSegmentClear(current, horizontalIntermediate, graph) &&
+                        isSegmentClear(horizontalIntermediate, next, graph)
+
+                val verticalClear = isSegmentClear(current, verticalIntermediate, graph) &&
+                        isSegmentClear(verticalIntermediate, next, graph)
+
+                when {
+                    horizontalClear -> orthogonalPath.add(horizontalIntermediate)
+                    verticalClear -> orthogonalPath.add(verticalIntermediate)
+                    else -> {
+                        // Find alternative path around obstacles
+                        val detour = findDetour(current, next, graph)
+                        orthogonalPath.addAll(detour)
                     }
                 }
             }
             orthogonalPath.add(next)
         }
 
-        // Étape 2: Simplifier le chemin
-        val simplifiedPath = simplifyPath(orthogonalPath)
-
-        // Étape 3: Arrondir tous les angles
-        return addRoundedCorners(simplifiedPath)
+        return simplifyPath(orthogonalPath)
     }
+    private fun findDetour(start: Point, end: Point, graph: NavigationGraph): List<Point> {
+        // Try to find the nearest navigable node that can bypass the obstacle
+        val midX = (start.x + end.x) / 2
+        val midY = (start.y + end.y) / 2
+        val potentialNodes = graph.nodes.filter { node ->
+            node.type == NODE_TYPE_ROOM
+        }.sortedBy { calculateDistance(Point(it.x,it.y), Point(midX, midY)) }
 
+        potentialNodes.forEach { node ->
+            val detourPoint = Point(node.x, node.y)
+            if (isSegmentClear(start, detourPoint, graph) &&
+                isSegmentClear(detourPoint, end, graph)) {
+                return listOf(detourPoint)
+            }
+        }
+
+        // Fallback: Create a small offset around the obstacle
+        return listOf(
+            Point(start.x + 50, start.y), // Right
+            Point(start.x + 50, end.y),   // Down
+            end
+        )
+    }
     private fun simplifyPath(path: List<Point>): List<Point> {
         val simplified = mutableListOf<Point>()
         var lastDirection: Direction? = null
 
-        for (i in 0 until path.size - 1) {
-            val current = path[i]
-            val next = path[i + 1]
-
-            val newDirection = when {
-                current.x == next.x -> Direction.VERTICAL
-                current.y == next.y -> Direction.HORIZONTAL
-                else -> null
+        path.forEachIndexed { i, current ->
+            if (i == 0 || i == path.lastIndex) {
+                simplified.add(current)
+                return@forEachIndexed
             }
+
+            val prev = path[i-1]
+            val next = path[i+1]
+            val newDirection = getDirection(prev, current, next)
 
             if (newDirection != lastDirection) {
                 simplified.add(current)
                 lastDirection = newDirection
             }
         }
-        simplified.add(path.last())
+
         return simplified
+    }
+
+    private fun getDirection(prev: Point, current: Point, next: Point): Direction? {
+        return when {
+            prev.x == current.x && current.y == next.y -> Direction.VERTICAL
+            prev.y == current.y && current.x == next.x -> Direction.HORIZONTAL
+            else -> null
+        }
     }
 
     private fun addRoundedCorners(path: List<Point>): List<Point> {
@@ -247,7 +269,11 @@ class PathFinder {
         val tempNode = Node("temp_${prefix}_${point.x}_${point.y}", point.x, point.y, NODE_TYPE_TEMP)
         graph.nodes.add(tempNode)
 
-        floorPlan.rooms.polygons.find { isPointInPolygon(point.x, point.y, it.coords) }?.let { room ->
+        floorPlan.rooms.polygons.find {
+            isPointInPolygon(point.x, point.y, it.coords) &&
+                    it.name != "Room 1" // Exclude "Room 1"
+        }?.let { room ->
+            Log.d("bro here","broooo")
             connectTempNodeToRoomElements(tempNode, room, floorPlan, graph)
         } ?: graph.connectToNearest(tempNode, floorPlan)
 
@@ -261,6 +287,7 @@ class PathFinder {
     ) {
         // 1. Trouver le nœud de la pièce
         val roomNode = graph.nodes.find { it.type == NODE_TYPE_ROOM && it.id == "room_${room.name}" }
+        Log.d("bro here","room_${room.name}")
 
         // 2. Trouver tous les éléments de la pièce (POIs, fenêtres, portes)
         val roomElements = graph.nodes.filter { node ->
@@ -318,6 +345,22 @@ class PathFinder {
                 // Logs pour débogage
                 println("Connecté ${tempNode.id} à ${nearestNode.id} (distance=$weight)")
             }
+    }
+    private fun isSegmentClear(start: Point, end: Point, graph: NavigationGraph): Boolean {
+        val obstacles = graph.nodes.filter {
+            it.type in listOf(NODE_TYPE_POI, NODE_TYPE_DOOR, NODE_TYPE_WINDOW)
+        }
+        return obstacles.none { obstacle ->
+            isPointOnSegment(obstacle.x, obstacle.y, start.x, start.y, end.x, end.y)
+        }
+    }
+
+    private fun isPointOnSegment(px: Float, py: Float, x1: Float, y1: Float, x2: Float, y2: Float): Boolean {
+        val withinX = px in minOf(x1, x2)..maxOf(x1, x2)
+        val withinY = py in minOf(y1, y2)..maxOf(y1, y2)
+        if (!withinX || !withinY) return false
+        val crossProduct = (py - y1) * (x2 - x1) - (px - x1) * (y2 - y1)
+        return abs(crossProduct) < 1e-6
     }
 
 

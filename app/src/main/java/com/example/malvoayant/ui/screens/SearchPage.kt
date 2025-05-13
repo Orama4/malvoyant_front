@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.malvoayant.R
+import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
 import com.example.malvoayant.data.viewmodels.NavigationViewModel
 import com.example.malvoayant.data.viewmodels.StepCounterViewModel
@@ -119,7 +120,7 @@ fun SearchScreen(
     // Calcul initial
     LaunchedEffect(floorPlan.pois) {
         if (floorPlan.pois.size >= 3 && !isLoading) {
-            val start = floorPlan.pois[0]
+            val start = Point(310.0f,310.0f)
             val destination = floorPlan.pois[2]
 
             navigationViewModel.calculatePath(start, destination)
