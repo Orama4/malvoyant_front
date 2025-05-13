@@ -34,11 +34,13 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
     private val _pathPoints = MutableLiveData(listOf(Pair(0f, 0f)))
     val pathPoints: LiveData<List<Pair<Float, Float>>> = _pathPoints
 
+    // Initial reference heading when the user starts walking
+    private var initialHeading: Float? = null
+
     private val stepListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent) {
             if (event.sensor.type == Sensor.TYPE_STEP_DETECTOR) {
                 _steps.postValue((_steps.value ?: 0) + 1)
-                Log.d("StepCounter", "Step detected $_steps.value")
                 updatePosition()
             }
         }
@@ -55,13 +57,25 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
                 val orientationAngles = FloatArray(3)
                 SensorManager.getOrientation(rotationMatrix, orientationAngles)
 
+                // Convert to degrees and normalize to 0-360
                 currentHeading = Math.toDegrees(orientationAngles[0].toDouble()).toFloat()
-
                 if (currentHeading < 0) {
                     currentHeading += 360f
                 }
 
-                _currentHeadingLive.postValue(currentHeading)
+                // Set initial heading if not set
+                if (initialHeading == null && _steps.value!! > 0) {
+                    initialHeading = currentHeading
+                }
+
+                // Calculate relative heading based on initial direction
+                val relativeHeading = if (initialHeading != null) {
+                    (currentHeading - initialHeading!!) % 360
+                } else {
+                    currentHeading
+                }
+
+                _currentHeadingLive.postValue(relativeHeading)
             }
         }
 
@@ -69,29 +83,46 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     private fun updatePosition() {
-        val adjustedHeading = (currentHeading + 90) % 360
-        val rad = Math.toRadians(adjustedHeading.toDouble())
+        // If this is the first step, don't update position yet
+        if (initialHeading == null) {
+            initialHeading = currentHeading
+            return
+        }
 
+        // Calculate relative heading based on initial direction
+        val relativeHeading = (currentHeading - initialHeading!!) % 360
+
+        // Convert heading to radians and adjust for coordinate system
+        val rad = Math.toRadians(relativeHeading.toDouble())
+
+        // Calculate position changes
         val deltaX = (stepLength * cos(rad)).toFloat()
         val deltaY = (stepLength * sin(rad)).toFloat()
 
-        currentPosition = Pair(currentPosition.first + deltaX, currentPosition.second + deltaY)
+        // Update position using floor plan coordinate system
+        currentPosition = Pair(
+            currentPosition.first + deltaX,
+            currentPosition.second + deltaY
+        )
+
         _currentPositionLive.postValue(currentPosition)
-        Log.d("position updated ", "poisiton updated $currentPosition")
+
         val updatedPath = _pathPoints.value.orEmpty() + currentPosition
         _pathPoints.postValue(updatedPath)
+
+        Log.d("Navigation", "Step taken: heading=$relativeHeading°, position=$currentPosition")
     }
 
     fun startListening() {
         sensorManager.registerListener(stepListener, stepDetector, SensorManager.SENSOR_DELAY_NORMAL)
-        Log.d("start listen","start listen ")
-
         sensorManager.registerListener(rotationListener, rotationVector, SensorManager.SENSOR_DELAY_GAME)
+        Log.d("Navigation", "Started listening for steps and orientation")
     }
 
     fun stopListening() {
         sensorManager.unregisterListener(stepListener)
         sensorManager.unregisterListener(rotationListener)
+        Log.d("Navigation", "Stopped listening for sensors")
     }
 
     fun resetAll() {
@@ -99,5 +130,7 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
         currentPosition = Pair(0f, 0f)
         _currentPositionLive.value = currentPosition
         _pathPoints.value = listOf(currentPosition)
+        initialHeading = null
+        Log.d("Navigation", "Reset all navigation data")
     }
 }
