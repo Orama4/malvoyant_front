@@ -1,3 +1,4 @@
+
 package com.example.malvoayant.ui.screens
 
 import android.app.Application
@@ -12,7 +13,6 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import kotlin.math.cos
 import kotlin.math.sin
-
 class StepCounterViewModel(application: Application) : AndroidViewModel(application) {
     private val sensorManager = application.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val stepDetector = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
@@ -34,8 +34,11 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
     private val _pathPoints = MutableLiveData(listOf(Pair(0f, 0f)))
     val pathPoints: LiveData<List<Pair<Float, Float>>> = _pathPoints
 
-    // Initial reference heading when the user starts walking
-    private var initialHeading: Float? = null
+    // Environment reference angles (map coordinate system)
+    private var environmentNorth = 0f
+
+    // Flag to know if environment directions are calibrated
+    private var isCalibrated = false
 
     private val stepListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent) {
@@ -58,35 +61,39 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
                 SensorManager.getOrientation(rotationMatrix, orientationAngles)
 
                 // Convert to degrees and normalize to 0-360
-                currentHeading = Math.toDegrees(orientationAngles[0].toDouble()).toFloat()
+                currentHeading = Math.toDegrees(orientationAngles[0].toDouble()).toFloat()-50
                 if (currentHeading < 0) {
                     currentHeading += 360f
                 }
 
-                if (initialHeading == null) {
-                    initialHeading = currentHeading
-                }
-
-
-                val relativeHeading = if (initialHeading != null) {
-                    ((currentHeading - initialHeading!! + 360) % 360)
-                } else {
-                    currentHeading
-                }
-
-                _currentHeadingLive.postValue(relativeHeading)
+                // Calculate heading relative to environment
+                val envHeading = calculateEnvironmentHeading(currentHeading)
+                _currentHeadingLive.postValue(envHeading)
             }
         }
 
         override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
     }
 
-    private fun updatePosition() {
+    /**
+     * Calculates heading relative to the environment coordinate system
+     */
+    private fun calculateEnvironmentHeading(deviceHeading: Float): Float {
+        return if (isCalibrated) {
+            // Calculate heading relative to calibrated environment North
+            ((deviceHeading - environmentNorth + 360) % 360)
+        } else {
+            // If not calibrated, just return device heading
+            deviceHeading
+        }
+    }
 
-        val relativeHeading = ((currentHeading - initialHeading!! + 360) % 360)
+    private fun updatePosition() {
+        // Use the environment-relative heading for movement
+        val envHeading = calculateEnvironmentHeading(currentHeading)
 
         // Convert heading to radians
-        val rad = Math.toRadians(relativeHeading.toDouble())
+        val rad = Math.toRadians(envHeading.toDouble())
 
         // Calculate position changes
         val deltaX = (stepLength * cos(rad)).toFloat()
@@ -103,7 +110,29 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
         val updatedPath = _pathPoints.value.orEmpty() + currentPosition
         _pathPoints.postValue(updatedPath)
 
-        Log.d("Navigation", "Step taken: heading=$relativeHeading°, position=$currentPosition")
+        Log.d("Navigation", "Step taken: heading=$envHeading°, position=$currentPosition")
+    }
+
+    /**
+     * Calibrate the environment coordinate system.
+     * Call this when user is facing a known direction in your floor plan.
+     *
+     * @param environmentAngle The angle in your floor plan coordinate system that user is facing
+     */
+    fun calibrateEnvironment(environmentAngle: Float) {
+        // Current device heading represents the provided environment angle
+        environmentNorth = (currentHeading - environmentAngle + 360) % 360
+        isCalibrated = true
+        Log.d("Navigation", "Calibrated: Device $currentHeading° = Environment $environmentAngle°, North at $environmentNorth°")
+    }
+
+    /**
+     * Reset calibration to use raw device orientation
+     */
+    fun resetCalibration() {
+        isCalibrated = false
+        environmentNorth = 0f
+        Log.d("Navigation", "Environment calibration reset")
     }
 
     fun startListening() {
@@ -123,7 +152,8 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
         currentPosition = Pair(0f, 0f)
         _currentPositionLive.value = currentPosition
         _pathPoints.value = listOf(currentPosition)
-        initialHeading = null
+        resetCalibration()
         Log.d("Navigation", "Reset all navigation data")
     }
 }
+
