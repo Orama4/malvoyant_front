@@ -44,7 +44,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
 
     // Use an IP that's correct for your network
     private val webSocketClient = CameraWebSocketClient(
-        URI("ws://192.168.250.205:8765"),
+        URI("ws://192.168.238.205:8765"),
         frameChannel
     )
 
