@@ -1,5 +1,4 @@
 package com.example.malvoayant.ui.screens
-
 import android.app.Application
 import android.content.Context
 import android.hardware.Sensor
@@ -7,6 +6,9 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -15,9 +17,10 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.math.abs
 
-class StepCounterViewModel(application: Application) : AndroidViewModel(application) {
+class StepCounterViewModel(application: Application,   var floorPlanState: FloorPlanState,) : AndroidViewModel(application) {
 
     private val sensorManager = application.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+
 
     // Use accelerometer for more reliable step detection
     private val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
@@ -32,7 +35,7 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
 
     private var currentHeading = 0f
     private var currentPosition = Pair(0f, 0f)
-    private val stepLength = 0.7f
+    private val stepLength = 1f
 
     private val _currentPositionLive = MutableLiveData(Pair(0f, 0f))
     val currentPositionLive: LiveData<Pair<Float, Float>> = _currentPositionLive
@@ -130,7 +133,6 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
         if (currentTime - lastStepTime > maxStepInterval) {
             consecutiveNoSteps++
             if (consecutiveNoSteps > maxConsecutiveNoSteps) {
-                Log.d("StepCounter", "Walking appears to have stopped")
             }
         }
     }
@@ -187,26 +189,100 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
             deviceHeading
         }
     }
+    fun getOuterWallPolygon(floorPlanState: FloorPlanState): List<Pair<Float, Float>> {
+
+        val polygon = mutableListOf<Pair<Float, Float>>()
+
+        for (wall in floorPlanState.walls) {
+            val start = Pair(wall.start.x, wall.start.y)
+            val end = Pair(wall.end.x, wall.end.y)
+            if (polygon.contains(start)) {
+                // Si start existe déjà, on ajoute end
+                polygon.add(end)
+            } else {
+                // Sinon, on ajoute start
+                polygon.add(start)
+            }
+        }
+
+        return polygon
+    }
+
+    fun isPointInPolygon(point: Pair<Float, Float>, polygon: List<Pair<Float, Float>>): Boolean {
+        var (x, y) = point
+        x=x*50+floorPlanState.minPoint.x
+        y=y*50+floorPlanState.minPoint.y
+
+        var inside = false
+        val n = polygon.size
+        Log.d("PolygonCheck", "Checking if point ($x, $y) is inside polygon with $n vertices.")
+
+        var j = n - 1
+        for (i in 0 until n) {
+            val xi = polygon[i].first
+            val yi = polygon[i].second
+            val xj = polygon[j].first
+            val yj = polygon[j].second
+
+            Log.d("PolygonCheck", "Edge from ($xi, $yi) to ($xj, $yj)")
+
+            if (((yi > y) != (yj > y)) &&
+                (x < (xj - xi) * (y - yi) / (yj - yi + 0.0000001f) + xi)) {
+                inside = !inside
+                Log.d("PolygonCheck", "Point crosses edge from ($xi, $yi) to ($xj, $yj). Inside status: $inside")
+            }
+
+            j = i
+        }
+
+        Log.d("PolygonCheck", "Point ($x, $y) is inside polygon: $inside")
+        return inside
+    }
+
 
     private fun updatePosition() {
         val envHeading = calculateEnvironmentHeading(currentHeading)
         val rad = Math.toRadians(envHeading.toDouble())
 
-        val deltaX = (stepLength * cos(rad)).toFloat()
-        val deltaY = (stepLength * sin(rad)).toFloat()
+        var deltaX = (stepLength * cos(rad)).toFloat()
+        var deltaY = (stepLength * sin(rad)).toFloat()
 
-        currentPosition = Pair(
+        // Initial step length
+        var currentStepLength = stepLength
+
+        // Minimum step length threshold
+        val minStepLength = 0.2f
+
+        var nextPosition = Pair(
             currentPosition.first + deltaX,
             currentPosition.second + deltaY
         )
 
-        _currentPositionLive.postValue(currentPosition)
+        val outerPolygon: List<Pair<Float, Float>> = getOuterWallPolygon(floorPlanState)
 
-        val updatedPath = _pathPoints.value.orEmpty() + currentPosition
-        _pathPoints.postValue(updatedPath)
+        // Reduce step length until the next position is inside the polygon or step length is too small
+        while (!isPointInPolygon(nextPosition, outerPolygon) && currentStepLength > minStepLength) {
+            currentStepLength -= 0.1f
+            deltaX = (currentStepLength * cos(rad)).toFloat()
+            deltaY = (currentStepLength * sin(rad)).toFloat()
+            nextPosition = Pair(
+                currentPosition.first + deltaX,
+                currentPosition.second + deltaY
+            )
+        }
 
-        Log.d("Navigation", "Step taken: heading=$envHeading°, position=$currentPosition")
+        // Check if the final position is inside the polygon
+        if (isPointInPolygon(nextPosition, outerPolygon)) {
+            currentPosition = nextPosition
+            _currentPositionLive.postValue(currentPosition)
+            val updatedPath = _pathPoints.value.orEmpty() + currentPosition
+            _pathPoints.postValue(updatedPath)
+            Log.d("Navigation", "Step taken: heading=$envHeading°, position=$currentPosition")
+        } else {
+            Log.d("Navigation", "Step ignored: next position is outside the walls!")
+        }
     }
+
 
     fun startListening() {
         // Register both accelerometer and step detector for redundancy
@@ -236,4 +312,5 @@ class StepCounterViewModel(application: Application) : AndroidViewModel(applicat
         super.onCleared()
         stopListening()
     }
+
 }

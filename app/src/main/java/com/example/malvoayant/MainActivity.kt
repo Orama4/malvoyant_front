@@ -13,7 +13,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.malvoayant.navigation.NavigationController
+import com.example.malvoayant.ui.screens.FloorPlanViewModel
 import com.example.malvoayant.ui.screens.StepCounterViewModel
 
 import com.example.malvoayant.ui.theme.MalvoayantTheme
@@ -24,7 +26,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            viewModel = StepCounterViewModel(application)
+            val floorPlanViewModel: FloorPlanViewModel = viewModel()
+
+
+            viewModel = StepCounterViewModel(application,floorPlanViewModel.floorPlanState)
             viewModel.startListening()
             NavigationController(viewModel)        }
     }
