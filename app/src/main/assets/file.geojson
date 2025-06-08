@@ -8,12 +8,12 @@
         "type": "LineString",
         "coordinates": [
           [
-            260,
-            160
+            280,
+            140
           ],
           [
-            1160,
-            160
+            280,
+            490
           ]
         ]
       },
@@ -22,7 +22,7 @@
         "thickness": 10,
         "wallId": 0,
         "type": "wall",
-        "length": 900
+        "length": 350
       }
     },
     {
@@ -32,12 +32,12 @@
         "type": "LineString",
         "coordinates": [
           [
-            1160,
-            160
+            280,
+            140
           ],
           [
-            1160,
-            960
+            630,
+            140
           ]
         ]
       },
@@ -46,7 +46,7 @@
         "thickness": 10,
         "wallId": 1,
         "type": "wall",
-        "length": 800
+        "length": 350
       }
     },
     {
@@ -56,12 +56,12 @@
         "type": "LineString",
         "coordinates": [
           [
-            1160,
-            960
+            630,
+            140
           ],
           [
-            260,
-            960.0000000000001
+            640.2896680606624,
+            489.8487140625236
           ]
         ]
       },
@@ -70,7 +70,7 @@
         "thickness": 10,
         "wallId": 2,
         "type": "wall",
-        "length": 900
+        "length": 350
       }
     },
     {
@@ -80,12 +80,12 @@
         "type": "LineString",
         "coordinates": [
           [
-            260,
-            160
+            640.2896680606624,
+            489.8487140625236
           ],
           [
-            260.00000000000006,
-            960
+            290.28969891608483,
+            489.99567934669
           ]
         ]
       },
@@ -94,192 +94,7 @@
         "thickness": 10,
         "wallId": 3,
         "type": "wall",
-        "length": 800
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "door-1",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          416.73333740234375,
-          960.0000000000001
-        ]
-      },
-      "properties": {
-        "class_name": "door",
-        "family": "inWall",
-        "type": "doorSingle",
-        "angle": 180,
-        "angleSign": 1,
-        "hinge": "normal",
-        "size": 60,
-        "thick": 10,
-        "width": "1.00",
-        "height": "0.17",
-        "wallId": 2,
-        "original_id": 0,
-        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#9fb2e2\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 A54,54 0 0,1 0,54\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"5,5\",\"opacity\":0.6},{\"path\":\"M-30,0 L24,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
-        "wall_info": "{\"wallId\":2,\"thickness\":10,\"type\":\"wall\"}"
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "window-2",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          736.7333374023438,
-          960
-        ]
-      },
-      "properties": {
-        "class_name": "window",
-        "family": "inWall",
-        "type": "windowSingle",
-        "angle": 180,
-        "angleSign": 1,
-        "hinge": "normal",
-        "size": 60,
-        "thick": 10,
-        "width": "1.00",
-        "height": "0.17",
-        "wallId": 2,
-        "original_id": 1,
-        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
-        "wall_info": "{\"wallId\":2,\"thickness\":10,\"type\":\"wall\"}"
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "window-3",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          977.7333374023438,
-          960
-        ]
-      },
-      "properties": {
-        "class_name": "window",
-        "family": "inWall",
-        "type": "windowSingle",
-        "angle": 180,
-        "angleSign": 1,
-        "hinge": "normal",
-        "size": 60,
-        "thick": 10,
-        "width": "1.00",
-        "height": "0.17",
-        "wallId": 2,
-        "original_id": 2,
-        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
-        "wall_info": "{\"wallId\":2,\"thickness\":10,\"type\":\"wall\"}"
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "window-4",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          970.7333374023438,
-          160
-        ]
-      },
-      "properties": {
-        "class_name": "window",
-        "family": "inWall",
-        "type": "windowSingle",
-        "angle": 180,
-        "angleSign": 1,
-        "hinge": "normal",
-        "size": 60,
-        "thick": 10,
-        "width": "1.00",
-        "height": "0.17",
-        "wallId": 0,
-        "original_id": 3,
-        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
-        "wall_info": "{\"wallId\":0,\"thickness\":10,\"type\":\"wall\"}"
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "window-5",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          689.7333374023438,
-          160
-        ]
-      },
-      "properties": {
-        "class_name": "window",
-        "family": "inWall",
-        "type": "windowSingle",
-        "angle": 180,
-        "angleSign": 1,
-        "hinge": "normal",
-        "size": 60,
-        "thick": 10,
-        "width": "1.00",
-        "height": "0.17",
-        "wallId": 0,
-        "original_id": 4,
-        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
-        "wall_info": "{\"wallId\":0,\"thickness\":10,\"type\":\"wall\"}"
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "room-1",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              260,
-              160
-            ],
-            [
-              1160,
-              160
-            ],
-            [
-              1160,
-              960
-            ],
-            [
-              260,
-              960.0000000000001
-            ],
-            [
-              260,
-              160
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "class_name": "room_polygon",
-        "name": "Room 1",
-        "area": 72.00000000000001,
-        "pixelArea": 720000.0000000001,
-        "type": "hallway",
-        "color": "#f0daaf",
-        "partitionCount": 0,
-        "regularCount": 4,
-        "edgeKeys": [],
-        "path": [
-          0,
-          1,
-          2,
-          3,
-          0
-        ],
-        "center": "{\"x\":0,\"y\":0}"
+        "length": 350
       }
     },
     {
@@ -288,29 +103,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          260,
-          160
-        ]
-      },
-      "properties": {
-        "class_name": "room_vertex",
-        "bypass": 0,
-        "segment": [
-          0,
-          3
-        ],
-        "links": "[{\"x\":1160,\"y\":160,\"wallIndex\":0},{\"x\":260.00000000000006,\"y\":960,\"wallIndex\":3}]",
-        "child": "[{\"id\":1,\"wall\":0},{\"id\":3,\"wall\":3}]"
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "vertex-2",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          1160,
-          160
+          280,
+          140
         ]
       },
       "properties": {
@@ -320,8 +114,28 @@
           0,
           1
         ],
-        "links": "[{\"x\":260,\"y\":160,\"wallIndex\":0},{\"x\":1160,\"y\":960,\"wallIndex\":1}]",
-        "child": "[{\"id\":0,\"wall\":0},{\"id\":2,\"wall\":1}]"
+        "links": "[{\"x\":280,\"y\":490,\"wallIndex\":0},{\"x\":630,\"y\":140,\"wallIndex\":1}]",
+        "child": "[{\"id\":1,\"wall\":0},{\"id\":2,\"wall\":1}]"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "vertex-2",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          280,
+          490
+        ]
+      },
+      "properties": {
+        "class_name": "room_vertex",
+        "bypass": 0,
+        "segment": [
+          0
+        ],
+        "links": "[{\"x\":280,\"y\":140,\"wallIndex\":0}]",
+        "child": "[{\"id\":0,\"wall\":0}]"
       }
     },
     {
@@ -330,8 +144,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          1160,
-          960
+          630,
+          140
         ]
       },
       "properties": {
@@ -341,8 +155,8 @@
           1,
           2
         ],
-        "links": "[{\"x\":1160,\"y\":160,\"wallIndex\":1},{\"x\":260,\"y\":960.0000000000001,\"wallIndex\":2}]",
-        "child": "[{\"id\":1,\"wall\":1},{\"id\":3,\"wall\":2}]"
+        "links": "[{\"x\":280,\"y\":140,\"wallIndex\":1},{\"x\":640.2896680606624,\"y\":489.8487140625236,\"wallIndex\":2}]",
+        "child": "[{\"id\":0,\"wall\":1},{\"id\":3,\"wall\":2}]"
       }
     },
     {
@@ -351,8 +165,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          260,
-          960.0000000000001
+          640.2896680606624,
+          489.8487140625236
         ]
       },
       "properties": {
@@ -362,323 +176,28 @@
           2,
           3
         ],
-        "links": "[{\"x\":1160,\"y\":960,\"wallIndex\":2},{\"x\":260,\"y\":160,\"wallIndex\":3}]",
-        "child": "[{\"id\":2,\"wall\":2},{\"id\":0,\"wall\":3}]"
+        "links": "[{\"x\":630,\"y\":140,\"wallIndex\":2},{\"x\":290.28969891608483,\"y\":489.99567934669,\"wallIndex\":3}]",
+        "child": "[{\"id\":2,\"wall\":2},{\"id\":4,\"wall\":3}]"
       }
     },
     {
       "type": "Feature",
-      "id": "poi-1",
+      "id": "vertex-5",
       "geometry": {
         "type": "Point",
         "coordinates": [
-          357.73333740234375,
-          278.8000030517578
+          290.28969891608483,
+          489.99567934669
         ]
       },
       "properties": {
-        "class_name": "poi",
-        "name": "bureau",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101544912
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-2",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          482,
-          548
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": "POI 2",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 85,
-        "height": 101,
-        "original_id": 1747101593936
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-3",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          615.7333374023438,
-          282.8000030517578
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": "h",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101639056
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-4",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          627.7333374023438,
-          543.6000061035156
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": "jk",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101651756
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-5",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          631.7333374023438,
-          843.7999877929688
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": "jh",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101668399
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-6",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          740.7333374023438,
-          281.8000030517578
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": "kjjk",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101687996
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-7",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          861.7333374023438,
-          280.8000030517578
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": "jhghj",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101716733
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-8",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          978.7333374023438,
-          283.8000030517578
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": "nbvhv",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101730535
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-9",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          750.7333374023438,
-          537.8000030517578
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": "nb",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101748468
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-10",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          873.7333374023438,
-          534
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": "kjb",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101760418
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-11",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          998.7333374023438,
-          530.8000030517578
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": "jh",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101778029
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-12",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          762.7333374023438,
-          843.2000122070312
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": "jj",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101791558
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-13",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          886.7333374023438,
-          841
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": "hgfhgg",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101848237
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-14",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          1007.7333374023438,
-          844.8000030517578
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": ",n",
-        "type": "furniture",
-        "description": "",
-        "icon": "/admin/bur.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101859046
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "poi-15",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          343.73333740234375,
-          850
-        ]
-      },
-      "properties": {
-        "class_name": "poi",
-        "name": "hgh",
-        "type": "plant",
-        "description": "",
-        "icon": "/admin/stair.svg",
-        "width": 50,
-        "height": 50,
-        "original_id": 1747101881861
+        "class_name": "room_vertex",
+        "bypass": 0,
+        "segment": [
+          3
+        ],
+        "links": "[{\"x\":640.2896680606624,\"y\":489.8487140625236,\"wallIndex\":3}]",
+        "child": "[{\"id\":3,\"wall\":3}]"
       }
     }
   ],
