@@ -7,6 +7,7 @@ import com.example.malvoayant.NavigationLogic.utils.calculateDistance
 import com.example.malvoayant.NavigationLogic.utils.isPointInPolygon
 import com.example.malvoayant.data.models.FloorPlanState
 import com.example.malvoayant.data.models.*
+import com.example.malvoayant.exceptions.PathfindingException
 import kotlin.math.abs
 
 
@@ -30,7 +31,7 @@ class PathFinder {
                 ?: throw IllegalArgumentException("POI de départ introuvable")
 
             is Point -> createTempNode(start, "start", floorPlan, graph)
-            else -> throw IllegalArgumentException("Type de départ non supporté")
+            else -> throw PathfindingException("Type de départ non supporté: ${start.javaClass.simpleName}")
         }
         // Gestion du point d'arrivée
         val (destNode, isTempDest) = when (destination) {
@@ -52,8 +53,6 @@ class PathFinder {
             is Point -> createTempNode(destination, "end", floorPlan, graph) to true
             else -> throw IllegalArgumentException("Type de destination non supporté")
         } ?: throw IllegalStateException("Destination introuvable dans le graphe")
-
-
         // Exécution de Dijkstra
         val path = destNode?.let {
             // log des edges

@@ -174,7 +174,7 @@
     },
     {
       "type": "Feature",
-      "id": "window-2",
+      "id": "door-2",
       "geometry": {
         "type": "Point",
         "coordinates": [
@@ -183,9 +183,9 @@
         ]
       },
       "properties": {
-        "class_name": "window",
+        "class_name": "door",
         "family": "inWall",
-        "type": "windowSingle",
+        "type": "doorSingle",
         "angle": 90,
         "angleSign": 1,
         "hinge": "normal",

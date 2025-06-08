@@ -2,6 +2,7 @@ package com.example.malvoayant.ui.screens
 
 import android.content.Context
 import android.net.Uri
+import androidx.compose.foundation.lazy.items
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -9,6 +10,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,8 +33,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
 import com.example.malvoayant.R
+import com.example.malvoayant.data.models.POI
 import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
 import com.example.malvoayant.data.viewmodels.NavigationViewModel
@@ -64,6 +68,16 @@ fun SearchScreen(
     val wifiPosition by stepCounterViewModel.wifiPositionLive.observeAsState(null)
     val lastWifiUpdateAgo by stepCounterViewModel.lastWifiUpdateAgo.observeAsState("Never")
     val wifiConfidence by stepCounterViewModel.wifiConfidence.observeAsState(0f)
+    val errorMessage = navigationViewModel.errorMessage
+    // Nouveaux états pour la sélection
+    var startPoint by remember { mutableStateOf<POI?>(null) }
+    var endPoint by remember { mutableStateOf<POI?>(null) }
+    var showStartSelection by remember { mutableStateOf(false) }
+    var showEndSelection by remember { mutableStateOf(false) }
+    // Position actuelle (à remplacer par votre logique réelle)
+    val currentPosition = remember { POI(x=310f, y=310f, name = "current") }
+
+
 
     // Remember the launcher for file picking
     val launcher = rememberLauncherForActivityResult(
@@ -73,13 +87,38 @@ fun SearchScreen(
             floorPlanViewModel.importFromGeoJSONUri(context, it)
         }
     }
-
+    // Afficher l'erreur
+    if (!errorMessage.isNullOrEmpty()) {
+        AlertDialog(
+            onDismissRequest = { navigationViewModel.clearError() },
+            title = {
+                Text(
+                    text = "Erreur de navigation",
+                    fontFamily = PlusJakartaSans,
+                )
+            },
+            text = {
+                Text(
+                    text = errorMessage ?: "Erreur inconnue", // Le "?:" fournit une valeur par défaut
+                    fontFamily = PlusJakartaSans,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { navigationViewModel.clearError() }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
     val scope = rememberCoroutineScope()
     val pendingSpeechJob = remember { mutableStateOf<Job?>(null) }
     val speechHelper = remember { SpeechHelper(context) }
     // Accès correct avec .value quand pas de delegate
     val currentPath = navigationViewModel.currentPath
     val isLoading = navigationViewModel.isLoading
+
     // Animation states
     val pulsateAnimation = rememberInfiniteTransition(label = "pulsate")
     val scale = pulsateAnimation.animateFloat(
@@ -117,13 +156,29 @@ fun SearchScreen(
         floorPlanViewModel.setPois(filteredPois)
 
     }
-    // Calcul initial
-    LaunchedEffect(floorPlan.pois) {
-        if (floorPlan.pois.size >= 3 && !isLoading) {
-            val start = Point(310.0f,310.0f)
-            val destination = floorPlan.pois[2]
-
-            navigationViewModel.calculatePath(start, destination)
+    /*LaunchedEffect(floorPlan.pois) {
+        if (floorPlan.pois.size >= 3 && !navigationViewModel.isLoading) {
+            navigationViewModel.calculatePath(
+                start = Point(310.0f, 310.0f),
+                destination = floorPlan.pois[2]
+                    ?: return@LaunchedEffect
+            )
+        }
+    }*/
+    // Calculer le chemin quand les points changent
+    LaunchedEffect(startPoint, endPoint) {
+        if (startPoint != null && endPoint != null) {
+            if (startPoint!!.name == "current") {
+                navigationViewModel.calculatePath(
+                    start =Point(x= startPoint!!.x, y= startPoint!!.y),
+                    destination = endPoint!!
+                )
+            }else{
+            navigationViewModel.calculatePath(
+                start = startPoint!!,
+                destination = endPoint!!
+            )
+            }
         }
     }
     /*if (isLoading) {
@@ -158,9 +213,12 @@ fun SearchScreen(
                 speechHelper = speechHelper
             )
 
-            // Search box
-            SearchBox(
-                searchText = searchText,
+            // Nouveau: Sélecteurs de points
+            PointSelectors(
+                startPoint = startPoint,
+                endPoint = endPoint,
+                onStartClick = { showStartSelection = true },
+                onEndClick = { showEndSelection = true },
                 speechHelper = speechHelper
             )
 
@@ -193,6 +251,33 @@ fun SearchScreen(
                 pendingSpeechJob = pendingSpeechJob,
                 speechHelper = speechHelper,
                 scope = scope
+            )
+        }
+        // Liste de sélection pour le départ
+        if (showStartSelection) {
+            PointSelectionDialog(
+                title = "Choose starting point",
+                points = listOf(currentPosition) + filteredPois,
+                onSelect = {
+                    startPoint = it
+                    showStartSelection = false
+                },
+                onDismiss = { showStartSelection = false },
+                speechHelper = speechHelper
+            )
+        }
+
+        // Liste de sélection pour l'arrivée
+        if (showEndSelection) {
+            PointSelectionDialog(
+                title = "Choose destination point",
+                points = filteredPois,
+                onSelect = {
+                    endPoint = it
+                    showEndSelection = false
+                },
+                onDismiss = { showEndSelection = false },
+                speechHelper = speechHelper
             )
         }
     }
@@ -577,5 +662,186 @@ private fun AnimatedActionButton(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun PointSelectors(
+    startPoint: POI?,
+    endPoint: POI?,
+    onStartClick: () -> Unit,
+    onEndClick: () -> Unit,
+    speechHelper: SpeechHelper
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        // Sélecteur de départ
+        PointSelector(
+            label = "Start",
+            selectedPoint = startPoint?.name ?: "Select...",
+            onClick = {
+                speechHelper.speak("Choosing starting point")
+                onStartClick()
+            },
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        // Sélecteur d'arrivée
+        PointSelector(
+            label = "Destination",
+            selectedPoint = endPoint?.name ?: "Select...",
+            onClick = {
+                speechHelper.speak("Choosing destination point")
+                onEndClick()
+            }
+        )
+    }
+}
+
+@Composable
+fun PointSelector(
+    label: String,
+    selectedPoint: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(60.dp)
+            .shadow(elevation = 4.dp, shape = RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(AppColors.darkBlue.copy(alpha = 0.9f))
+            .clickable { onClick() },
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = label,
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 14.sp,
+                    fontFamily = PlusJakartaSans
+                )
+                Text(
+                    text = selectedPoint,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontFamily = PlusJakartaSans,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Icon(
+                painter = painterResource(R.drawable.ic_arrow_down),
+                contentDescription = "Select",
+                tint = Color.White,
+                modifier = Modifier.size(16.dp) // Taille "small"
+            )
+
+        }
+    }
+}
+
+@Composable
+fun PointSelectionDialog(
+    title: String,
+    points: List<POI>,
+    onSelect: (POI) -> Unit,
+    onDismiss: () -> Unit,
+    speechHelper: SpeechHelper
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 300.dp, max = 500.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White
+        ) {
+            Column {
+                // En-tête
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(AppColors.darkBlue)
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = title,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontFamily = PlusJakartaSans,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Liste des points
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    items(points) { point ->
+                        PointListItem(
+                            point = point,
+                            onClick = {
+                                speechHelper.speak("selected: ${point.name}")
+                                onSelect(point)
+                            }
+                        )
+                    }
+                }
+
+                // Bouton fermer
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AppColors.primary
+                    )
+                ) {
+                    Text("Fermer")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PointListItem(
+    point: POI,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(
+                if (point.name == "current") R.drawable.ic_location
+                else R.drawable.ic_location
+            ),
+            contentDescription = null,
+            tint = if (point.name == "current") AppColors.primary else Color.Gray
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = point.name,
+            fontSize = 16.sp,
+            fontFamily = PlusJakartaSans,
+            fontWeight = if (point.name == "current") FontWeight.Bold else FontWeight.Normal
+        )
     }
 }
