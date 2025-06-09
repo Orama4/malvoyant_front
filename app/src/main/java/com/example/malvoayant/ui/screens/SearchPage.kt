@@ -75,7 +75,7 @@ fun SearchScreen(
     var showStartSelection by remember { mutableStateOf(false) }
     var showEndSelection by remember { mutableStateOf(false) }
     // Position actuelle (à remplacer par votre logique réelle)
-    val currentPosition = remember { POI(x=310f, y=310f, name = "current") }
+    val currentPosition = remember { POI(x=1654.5765f, y=548.2973F, name = "current") }
 
 
 

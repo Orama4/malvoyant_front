@@ -31,13 +31,25 @@ class NavigationGraph {
             nodes.add(Node("window_${window.x}_${window.y}", window.x, window.y,"window"))
         }
 
-        // Ajouter les centroïdes des pièces comme nœuds
-        floorPlan.rooms.polygons.forEach { room ->
-            if (room.name != "Room 1") { // Exclude Room 1
-                val center = room.center // Utilise le centre prédéfini ou calcule-le
+
+        val rooms = floorPlan.rooms.polygons
+
+// Vérifie s'il y a plus d'une salle
+        if (rooms.size > 1) {
+            rooms.forEach { room ->
+                if (room.name != "Room 1") {
+                    val center = room.center
+                    nodes.add(Node("room_${room.name}", center.x, center.y, "room"))
+                }
+            }
+        } else {
+            // Il n'y a qu'une seule salle, inclure même si c'est "Room 1"
+            rooms.forEach { room ->
+                val center = room.center
                 nodes.add(Node("room_${room.name}", center.x, center.y, "room"))
             }
         }
+
 
         // Ajouter les centroïdes des zones comme nœuds
         floorPlan.zones.forEach { zone ->

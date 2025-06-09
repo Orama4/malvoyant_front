@@ -7,11 +7,13 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.malvoayant.NavigationLogic.Algorithm.PathFinder
-import com.example.malvoayant.data.models.FloorPlanState
+import com.example.malvoayant.NavigationLogic.Models.StaticInstruction
 import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.exceptions.PathfindingException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 class NavigationViewModel(
     private val floorPlanViewModel: FloorPlanViewModel
@@ -20,7 +22,8 @@ class NavigationViewModel(
 
     var currentPath by mutableStateOf<List<Point>?>(null)
         private set
-
+    var instructions by mutableStateOf<List<StaticInstruction>>(emptyList())
+        private set
     var isLoading by mutableStateOf(false)
         private set
 
@@ -40,7 +43,51 @@ class NavigationViewModel(
             try {
                 val floorPlan = floorPlanViewModel.floorPlanState
                 currentPath = pathFinder.findPath(start, destination, floorPlan)
+                instructions = emptyList()
+                //crate instructions based on the path
+
+                for (i in 0 until currentPath!!.size - 1) {
+                    instructions=instructions+ StaticInstruction(
+                        instruction = "Go straight",
+                        distance = sqrt((currentPath!![i+1].x - currentPath!![i].x).pow(2) +
+                                (currentPath!![i+1].y - currentPath!![i].y).pow(2) ),
+                    )
+                    // checking if i+1 is on the right or left of i to add turning instruction
+                    if (i < currentPath!!.size - 2) {
+                        val nextPoint = currentPath!![i + 2]
+                        val currentPoint = currentPath!![i + 1]
+                        val startPoint = currentPath!![i]
+
+                        // Calculate the direction of the turn
+                        val dx1 = currentPoint.x - startPoint.x
+                        val dy1 = currentPoint.y - startPoint.y
+                        val dx2 = nextPoint.x - currentPoint.x
+                        val dy2 = nextPoint.y - currentPoint.y
+
+                        // Calculate the angle between the two segments
+                        val angle = Math.toDegrees(
+                            Math.atan2(dy2.toDouble(), dx2.toDouble()) - Math.atan2(dy1.toDouble(),
+                                dx1.toDouble()
+                            )
+                        ).toFloat()
+                        if (currentPoint.x<nextPoint.x || currentPoint.y>nextPoint.y) {
+                            instructions += StaticInstruction(
+                                instruction = "Turn right",
+                                distance = null,
+                                type = "Turning"
+                            )
+                        } else {
+                            instructions += StaticInstruction(
+                                instruction = "Turn left",
+                                distance = null,
+                                type = "Turning"
+                            )
+                        }
+                    }
+                }
+                Log.d("NavigationVM","Instructions created with ${instructions} steps")
                 Log.d("NavigationVM", "Path calculated with ${currentPath?.size ?: 0} points")
+                Log.d("NavigationVM", "Path calculated with ${currentPath}")
             } catch (e: PathfindingException) {
                 errorMessage = "Navigation error: ${e.message}"
                 Log.e("NavigationVM", "Pathfinding failed", e)

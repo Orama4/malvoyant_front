@@ -39,7 +39,7 @@ class FloorPlanViewModel : ViewModel() {
     fun loadGeoJSONFromAssets(context: Context) {
         viewModelScope.launch {
             try {
-                val inputStream: InputStream = context.assets.open("file.geojson")
+                val inputStream: InputStream = context.assets.open("file2.geojson")
                 val jsonString = inputStream.bufferedReader().use { it.readText() }
                 importFromGeoJSON(jsonString)
             } catch (e: Exception) {

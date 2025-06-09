@@ -9,6 +9,7 @@ import com.example.malvoayant.data.models.FloorPlanState
 import com.example.malvoayant.data.models.*
 import com.example.malvoayant.exceptions.PathfindingException
 import kotlin.math.abs
+import kotlin.math.hypot
 
 
 class PathFinder {
@@ -74,40 +75,278 @@ class PathFinder {
 
         return emptyList()
     }
+//    private fun smoothPathWithCorners(path: List<Point>, graph: NavigationGraph): List<Point> {
+//        if (path.size < 2) return path
+//        val orthogonalPath = mutableListOf<Point>()
+//        orthogonalPath.add(path[0])
+//
+//        for (i in 0 until path.size - 1) {
+//            val current = path[i]
+//            val next = path[i + 1]
+//
+//            val threshold = 5
+//            if (abs(current.x - next.x) > threshold && abs(current.y - next.y) > threshold) {
+//                Log.d("PathFinder", "Segmentttt bloqué: $current -> $next")
+//                val horizontalIntermediate = Point(next.x, current.y)
+//                val verticalIntermediate = Point(current.x, next.y)
+//                //verifying if horizontalIntermediate is not a pre existing node
+//                var horiz=true;
+//                var vert=true;
+//                if (!graph.nodes.any {
+//                        abs(it.x - horizontalIntermediate.x) <= threshold &&
+//                                abs(it.y - horizontalIntermediate.y) <= threshold
+//                    } ) {
+//
+//                    val horizontalClear = isSegmentClear(current, horizontalIntermediate, graph,"end") &&
+//                            isSegmentClear(horizontalIntermediate, next, graph,"start")
+//                    if (horizontalClear) {
+//                        orthogonalPath.add(horizontalIntermediate)
+//                    } else{
+//                        horiz=false;
+//                    }
+//                }
+//
+//                if (!graph.nodes.any {
+//                        abs(it.x - verticalIntermediate.x) <= threshold &&
+//                                abs(it.y - verticalIntermediate.y) <= threshold
+//                    } && !horiz) {
+//
+//                    val verticalClear =
+//                        isSegmentClear(current, verticalIntermediate, graph, "end") &&
+//                                isSegmentClear(verticalIntermediate, next, graph, "start")
+//                    if (verticalClear) {
+//                        Log.d("PathFinder", "Segment bloqué: $current -> $verticalIntermediate")
+//                        orthogonalPath.add(verticalIntermediate)
+//                    } else {
+//                        vert = false;
+//                    }
+//                }
+//                if( !horiz && !vert) {
+//                    Log.d("PathFinder", "Segment bloqué: $current -> $next")
+//                    // Si les deux segments sont bloqués, on cherche un détour
+//                    val detour = findDetour(current, next, graph)
+//                    orthogonalPath.addAll(detour)
+//                }
+//
+//            }
+//            orthogonalPath.add(next)
+//        }
+//
+//        return simplifyPath(orthogonalPath)
+//    }
+
     private fun smoothPathWithCorners(path: List<Point>, graph: NavigationGraph): List<Point> {
         if (path.size < 2) return path
         val orthogonalPath = mutableListOf<Point>()
         orthogonalPath.add(path[0])
 
+        val threshold = 6f // Utiliser un float pour la cohérence avec isPointOnSegment
+
         for (i in 0 until path.size - 1) {
             val current = path[i]
             val next = path[i + 1]
 
-            if (current.x != next.x && current.y != next.y) {
+            // Vérifier si le segment est orthogonal (même x ou même y)
+            if (abs(current.x - next.x) <= threshold || abs(current.y - next.y) <= threshold) {
+                val obstacles = findObstaclesOnSegment(current, next, graph, threshold)
+                Log.d("PathFinder", "Obstacles: $obstacles")
+
+                if (obstacles.isNotEmpty()) {
+                    // Contourner chaque obstacle sur le segment orthogonal
+                    val detourPoints = mutableListOf<Point>()
+                    var lastPoint = current
+
+                    for (obstacle in obstacles) {
+                        val obstaclePoint = Point(obstacle.x, obstacle.y)
+                        val contourPoints = createContourPoints(lastPoint, obstaclePoint, next, threshold)
+                        detourPoints.addAll(contourPoints)
+                        lastPoint = contourPoints.last()
+                    }
+
+                    // Ajouter le segment final après le dernier obstacle
+                    if (isSegmentClear(lastPoint, next, graph, threshold.toString())) {
+                        detourPoints.add(next)
+                    }
+
+                    orthogonalPath.addAll(detourPoints)
+                } else {
+                    // Aucun obstacle - ajouter directement
+                    orthogonalPath.add(next)
+                }
+            } else {
+                // Segment diagonal - essayer les points intermédiaires
                 val horizontalIntermediate = Point(next.x, current.y)
                 val verticalIntermediate = Point(current.x, next.y)
+                var addedIntermediate = false
 
-                val horizontalClear = isSegmentClear(current, horizontalIntermediate, graph) &&
-                        isSegmentClear(horizontalIntermediate, next, graph)
+                // Essayer le point horizontal
+                if (!isPointOnObstacle(horizontalIntermediate, graph, threshold)) {
+                    val obstaclesToHorizontal = findObstaclesOnSegment(current, horizontalIntermediate, graph, threshold)
+                    val obstaclesToNext = findObstaclesOnSegment(horizontalIntermediate, next, graph, threshold)
 
-                val verticalClear = isSegmentClear(current, verticalIntermediate, graph) &&
-                        isSegmentClear(verticalIntermediate, next, graph)
-
-                when {
-                    horizontalClear -> orthogonalPath.add(horizontalIntermediate)
-                    verticalClear -> orthogonalPath.add(verticalIntermediate)
-                    else -> {
-                        // Find alternative path around obstacles
-                        val detour = findDetour(current, next, graph)
-                        orthogonalPath.addAll(detour)
+                    if (obstaclesToHorizontal.isEmpty() && obstaclesToNext.isEmpty()) {
+                        orthogonalPath.add(horizontalIntermediate)
+                        orthogonalPath.add(next)
+                        addedIntermediate = true
+                    } else {
+                        // Contourner les obstacles sur les segments
+                        orthogonalPath.addAll(handleObstaclesOnDiagonal(
+                            current,
+                            horizontalIntermediate,
+                            next,
+                            obstaclesToHorizontal + obstaclesToNext,
+                            graph,
+                            threshold
+                        ))
+                        addedIntermediate = true
                     }
                 }
+
+                // Essayer le point vertical si horizontal échoue
+                if (!addedIntermediate && !isPointOnObstacle(verticalIntermediate, graph, threshold)) {
+                    val obstaclesToVertical = findObstaclesOnSegment(current, verticalIntermediate, graph, threshold)
+                    val obstaclesToNext = findObstaclesOnSegment(verticalIntermediate, next, graph, threshold)
+
+                    if (obstaclesToVertical.isEmpty() && obstaclesToNext.isEmpty()) {
+                        orthogonalPath.add(verticalIntermediate)
+                        orthogonalPath.add(next)
+                        addedIntermediate = true
+                    } else {
+                        orthogonalPath.addAll(handleObstaclesOnDiagonal(
+                            current,
+                            verticalIntermediate,
+                            next,
+                            obstaclesToVertical + obstaclesToNext,
+                            graph,
+                            threshold
+                        ))
+                        addedIntermediate = true
+                    }
+                }
+
+                // Si les deux échouent, chercher un point médian
+                if (!addedIntermediate) {
+                    val midPoint = Point((current.x + next.x) / 2, (current.y + next.y) / 2)
+                    orthogonalPath.addAll(handleMidPoint(current, midPoint, next, graph, threshold))
+                }
             }
-            orthogonalPath.add(next)
         }
 
         return simplifyPath(orthogonalPath)
     }
+
+//--- Fonctions auxiliaires ---//
+
+    private fun findObstaclesOnSegment(start: Point, end: Point, graph: NavigationGraph, threshold: Float): List<Node> {
+        return graph.nodes.filter { node ->
+            node.type in listOf(NODE_TYPE_POI, NODE_TYPE_DOOR, NODE_TYPE_WINDOW) &&
+                    !(abs(node.x - start.x) <= threshold && abs(node.y - start.y) <= threshold) &&
+                    !(abs(node.x - end.x) <= threshold && abs(node.y - end.y) <= threshold) &&
+                    isPointOnSegment(node.x,node.y, start.x,start.y, end.x,end.y, threshold)
+        }
+    }
+
+    private fun isPointOnObstacle(point: Point, graph: NavigationGraph, threshold: Float): Boolean {
+        return graph.nodes.any {
+            it.type in listOf(NODE_TYPE_POI, NODE_TYPE_DOOR, NODE_TYPE_WINDOW) &&
+                    abs(it.x - point.x) <= threshold &&
+                    abs(it.y - point.y) <= threshold
+        }
+    }
+
+    private fun createContourPoints(
+        start: Point,
+        obstacle: Point,
+        end: Point,
+        threshold: Float
+    ): List<Point> {
+        val contourDistance =50 // Distance de contournement
+        val points = mutableListOf<Point>()
+
+        // Déterminer la direction principale du segment
+        val isHorizontal = abs(start.y - end.y) < threshold
+
+        // Calculer les points de contournement
+        if (isHorizontal) {
+            // Contournement vertical
+            Log.d("PathFinder", "Contournement vertical")
+            val direction = if (obstacle.y > start.y) -1 else 1
+            val directionX = if (obstacle.x > start.x) 1 else -1
+            points.add(Point(obstacle.x - contourDistance*directionX, start.y))
+            points.add(Point(obstacle.x - contourDistance*directionX, obstacle.y + direction * contourDistance))
+            points.add(Point(obstacle.x + contourDistance*directionX, obstacle.y + direction * contourDistance))
+            points.add(Point(obstacle.x + contourDistance*directionX, obstacle.y))
+        } else {
+            // Contournement horizontal
+            Log.d("PathFinder", "Contournement horizontal")
+            val direction = if (obstacle.x > start.x) -1 else 1
+            val directionY = if (obstacle.y > start.y) 1 else -1
+            points.add(Point(start.x, obstacle.y - contourDistance*directionY))
+            points.add(Point(obstacle.x + direction * contourDistance, obstacle.y - contourDistance*directionY))
+            points.add(Point(obstacle.x + direction * contourDistance, obstacle.y + contourDistance*directionY))
+            points.add(Point(obstacle.x, obstacle.y + contourDistance*directionY))
+        }
+        Log.d("PathFinder", "Points de contournement créés: $points")
+
+        return points
+    }
+
+    private fun handleObstaclesOnDiagonal(
+        start: Point,
+        intermediate: Point,
+        end: Point,
+        obstacles: List<Node>,
+        graph: NavigationGraph,
+        threshold: Float
+    ): List<Point> {
+        val points = mutableListOf<Point>()
+        var lastPoint = start
+
+        // Traiter le segment jusqu'au point intermédiaire
+        val obstaclesToIntermediate = obstacles.filter {
+            isPointOnSegment(it.x,it.y, start.x,start.y, intermediate.x,intermediate.y, threshold)
+        }
+
+        for (obstacle in obstaclesToIntermediate) {
+            val contourPoints = createContourPoints(lastPoint, Point(obstacle.x, obstacle.y), intermediate, threshold)
+            points.addAll(contourPoints)
+            lastPoint = contourPoints.last()
+        }
+
+        points.add(intermediate)
+
+        // Traiter le segment du point intermédiaire à la fin
+        val obstaclesToEnd = obstacles.filter {
+            isPointOnSegment(it.x,it.y, intermediate.x,intermediate.y, end.x,end.y, threshold)
+        }
+
+        lastPoint = intermediate
+        for (obstacle in obstaclesToEnd) {
+            val contourPoints = createContourPoints(lastPoint, Point(obstacle.x, obstacle.y), end, threshold)
+            points.addAll(contourPoints)
+            lastPoint = contourPoints.last()
+        }
+
+        points.add(end)
+        return points
+    }
+
+    private fun handleMidPoint(
+        start: Point,
+        midPoint: Point,
+        end: Point,
+        graph: NavigationGraph,
+        threshold: Float
+    ): List<Point> {
+        return if (!isPointOnObstacle(midPoint, graph, threshold)) {
+            listOf(midPoint, end)
+        } else {
+            // Contourner le point médian si nécessaire
+            val contourPoints = createContourPoints(start, midPoint, end, threshold)
+            contourPoints + end
+        }
+    }
+
     private fun findDetour(start: Point, end: Point, graph: NavigationGraph): List<Point> {
         // Try to find the nearest navigable node that can bypass the obstacle
         val midX = (start.x + end.x) / 2
@@ -118,8 +357,8 @@ class PathFinder {
 
         potentialNodes.forEach { node ->
             val detourPoint = Point(node.x, node.y)
-            if (isSegmentClear(start, detourPoint, graph) &&
-                isSegmentClear(detourPoint, end, graph)) {
+            if (isSegmentClear(start, detourPoint, graph,"end") &&
+                isSegmentClear(detourPoint, end, graph,"start")) {
                 return listOf(detourPoint)
             }
         }
@@ -268,13 +507,23 @@ class PathFinder {
         val tempNode = Node("temp_${prefix}_${point.x}_${point.y}", point.x, point.y, NODE_TYPE_TEMP)
         graph.nodes.add(tempNode)
 
-        floorPlan.rooms.polygons.find {
-            isPointInPolygon(point.x, point.y, it.coords) &&
-                    it.name != "Room 1" // Exclude "Room 1"
-        }?.let { room ->
-            Log.d("bro here","broooo")
+        val otherRooms = floorPlan.rooms.polygons.filter { it.name != "Room 1" }
+
+        val targetRoom = if (otherRooms.isNotEmpty()) {
+            // Il existe au moins une autre salle que "Room 1"
+            otherRooms.find { isPointInPolygon(point.x, point.y, it.coords) }
+        } else {
+            // Sinon, on utilise "Room 1"
+            floorPlan.rooms.polygons.find { it.name == "Room 1" && isPointInPolygon(point.x, point.y, it.coords) }
+        }
+
+        targetRoom?.let { room ->
+            Log.d("connect", "Connecting to room: ${room.name}")
             connectTempNodeToRoomElements(tempNode, room, floorPlan, graph)
-        } ?: graph.connectToNearest(tempNode, floorPlan)
+        } ?: run {
+            Log.d("connect", "Falling back to nearest connection")
+            graph.connectToNearest(tempNode, floorPlan)
+        }
 
         return tempNode
     }
@@ -345,22 +594,46 @@ class PathFinder {
                 println("Connecté ${tempNode.id} à ${nearestNode.id} (distance=$weight)")
             }
     }
-    private fun isSegmentClear(start: Point, end: Point, graph: NavigationGraph): Boolean {
-        val obstacles = graph.nodes.filter {
-            it.type in listOf(NODE_TYPE_POI, NODE_TYPE_DOOR, NODE_TYPE_WINDOW)
+    private fun isSegmentClear(start: Point, end: Point, graph: NavigationGraph,type:String): Boolean {
+        val temp:Point;
+        if (type=="end"){
+            temp=start
+        }else{
+            temp=end
         }
+        val obstacles = graph.nodes.filter {
+            it.type in listOf(NODE_TYPE_POI, NODE_TYPE_DOOR, NODE_TYPE_WINDOW) &&
+                    !(it.x == end.x && it.y == end.y)
+                    && !(it.x == start.x && it.y == start.y)
+        }
+        Log.d("PathFinder", "Obstacles: $obstacles")
         return obstacles.none { obstacle ->
             isPointOnSegment(obstacle.x, obstacle.y, start.x, start.y, end.x, end.y)
         }
     }
 
-    private fun isPointOnSegment(px: Float, py: Float, x1: Float, y1: Float, x2: Float, y2: Float): Boolean {
-        val withinX = px in minOf(x1, x2)..maxOf(x1, x2)
-        val withinY = py in minOf(y1, y2)..maxOf(y1, y2)
+
+    private fun isPointOnSegment(
+        px: Float, py: Float,
+        x1: Float, y1: Float,
+        x2: Float, y2: Float,
+        threshold: Float = 1.0f // tu peux ajuster cette valeur
+    ): Boolean {
+        val withinX = px in (minOf(x1, x2) - threshold)..(maxOf(x1, x2) + threshold)
+        val withinY = py in (minOf(y1, y2) - threshold)..(maxOf(y1, y2) + threshold)
+
         if (!withinX || !withinY) return false
+
         val crossProduct = (py - y1) * (x2 - x1) - (px - x1) * (y2 - y1)
-        return abs(crossProduct) < 1e-6
+        val distance = abs(crossProduct) / hypot((x2 - x1).toDouble(), (y2 - y1).toDouble())
+
+        val isOnSegment = distance <= threshold
+        if (isOnSegment) {
+            Log.d("PathFinder", "Point ($px, $py) is within threshold $threshold of segment from ($x1, $y1) to ($x2, $y2)")
+        }
+        return isOnSegment
     }
+
 
 
 

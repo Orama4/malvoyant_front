@@ -1,0 +1,713 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": 1,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            122,
+            262
+          ],
+          [
+            1722,
+            262
+          ]
+        ]
+      },
+      "properties": {
+        "class_name": "wall",
+        "thickness": 10,
+        "wallId": 0,
+        "type": "wall",
+        "length": 1600
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 2,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            122,
+            262
+          ],
+          [
+            122.00000000000006,
+            1262
+          ]
+        ]
+      },
+      "properties": {
+        "class_name": "wall",
+        "thickness": 10,
+        "wallId": 1,
+        "type": "wall",
+        "length": 1000
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 3,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            1722,
+            262
+          ],
+          [
+            1722,
+            1262
+          ]
+        ]
+      },
+      "properties": {
+        "class_name": "wall",
+        "thickness": 10,
+        "wallId": 2,
+        "type": "wall",
+        "length": 1000
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 4,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            122.00000000000006,
+            1262
+          ],
+          [
+            1722,
+            1262
+          ]
+        ]
+      },
+      "properties": {
+        "class_name": "wall",
+        "thickness": 10,
+        "wallId": 3,
+        "type": "wall",
+        "length": 1600
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "door-1",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1722,
+          757.0540618896484
+        ]
+      },
+      "properties": {
+        "class_name": "door",
+        "family": "inWall",
+        "type": "doorDouble",
+        "angle": 270,
+        "angleSign": 1,
+        "hinge": "normal",
+        "size": 60,
+        "thick": 10,
+        "width": "1.00",
+        "height": "0.17",
+        "wallId": 2,
+        "original_id": 0,
+        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#9fb2e2\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 A27,27 0 0,1 -3,27\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"5,5\",\"opacity\":0.6},{\"path\":\"M30,0 A27,27 0 0,0 3,27\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"5,5\",\"opacity\":0.6},{\"path\":\"M-30,0 L-1,0 M1,0 L30,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
+        "wall_info": "{\"wallId\":2,\"thickness\":10,\"type\":\"wall\"}"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "door-2",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          122.00000000000001,
+          597.0540618896484
+        ]
+      },
+      "properties": {
+        "class_name": "door",
+        "family": "inWall",
+        "type": "doorDouble",
+        "angle": 90,
+        "angleSign": 1,
+        "hinge": "normal",
+        "size": 60,
+        "thick": 10,
+        "width": "1.00",
+        "height": "0.17",
+        "wallId": 1,
+        "original_id": 1,
+        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#9fb2e2\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 A27,27 0 0,1 -3,27\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"5,5\",\"opacity\":0.6},{\"path\":\"M30,0 A27,27 0 0,0 3,27\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"5,5\",\"opacity\":0.6},{\"path\":\"M-30,0 L-1,0 M1,0 L30,0\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
+        "wall_info": "{\"wallId\":1,\"thickness\":10,\"type\":\"wall\"}"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "window-3",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1722,
+          935.0540618896484
+        ]
+      },
+      "properties": {
+        "class_name": "window",
+        "family": "inWall",
+        "type": "windowDouble",
+        "angle": 270,
+        "angleSign": 1,
+        "hinge": "normal",
+        "size": 60,
+        "thick": 10,
+        "width": "1.00",
+        "height": "0.17",
+        "wallId": 2,
+        "original_id": 2,
+        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0 M0,-5 L0,5\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
+        "wall_info": "{\"wallId\":2,\"thickness\":10,\"type\":\"wall\"}"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "window-4",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1722,
+          1053.0540618896484
+        ]
+      },
+      "properties": {
+        "class_name": "window",
+        "family": "inWall",
+        "type": "windowDouble",
+        "angle": 270,
+        "angleSign": 1,
+        "hinge": "normal",
+        "size": 60,
+        "thick": 10,
+        "width": "1.00",
+        "height": "0.17",
+        "wallId": 2,
+        "original_id": 3,
+        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0 M0,-5 L0,5\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
+        "wall_info": "{\"wallId\":2,\"thickness\":10,\"type\":\"wall\"}"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "window-5",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1722,
+          501.05406188964844
+        ]
+      },
+      "properties": {
+        "class_name": "window",
+        "family": "inWall",
+        "type": "windowDouble",
+        "angle": 90,
+        "angleSign": 1,
+        "hinge": "normal",
+        "size": 60,
+        "thick": 10,
+        "width": "1.00",
+        "height": "0.17",
+        "wallId": 2,
+        "original_id": 4,
+        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0 M0,-5 L0,5\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
+        "wall_info": "{\"wallId\":2,\"thickness\":10,\"type\":\"wall\"}"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "window-6",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1722,
+          608.0540618896484
+        ]
+      },
+      "properties": {
+        "class_name": "window",
+        "family": "inWall",
+        "type": "windowDouble",
+        "angle": 90,
+        "angleSign": 1,
+        "hinge": "normal",
+        "size": 60,
+        "thick": 10,
+        "width": "1.00",
+        "height": "0.17",
+        "wallId": 2,
+        "original_id": 5,
+        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0 M0,-5 L0,5\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
+        "wall_info": "{\"wallId\":2,\"thickness\":10,\"type\":\"wall\"}"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "window-7",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          122,
+          762
+        ]
+      },
+      "properties": {
+        "class_name": "window",
+        "family": "inWall",
+        "type": "windowDouble",
+        "angle": 90,
+        "angleSign": 1,
+        "hinge": "normal",
+        "size": 60,
+        "thick": 10,
+        "width": "1.00",
+        "height": "0.17",
+        "wallId": 1,
+        "original_id": 6,
+        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0 M0,-5 L0,5\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "window-8",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          122.00000000000004,
+          918.4324324131012
+        ]
+      },
+      "properties": {
+        "class_name": "window",
+        "family": "inWall",
+        "type": "windowDouble",
+        "angle": 270,
+        "angleSign": 1,
+        "hinge": "normal",
+        "size": 60,
+        "thick": 10,
+        "width": "1.00",
+        "height": "0.17",
+        "wallId": 1,
+        "original_id": 7,
+        "paths": "[{\"path\":\"M-30,-5 L30,-5 L30,5 L-30,5 Z\",\"fill\":\"#ceecf0\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1},{\"path\":\"M-30,0 L30,0 M0,-5 L0,5\",\"fill\":\"none\",\"stroke\":\"#333\",\"strokeDashArray\":\"none\",\"opacity\":1}]",
+        "wall_info": "{\"wallId\":1,\"thickness\":10,\"type\":\"wall\"}"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "room-1",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              122,
+              262
+            ],
+            [
+              1722,
+              262
+            ],
+            [
+              1722,
+              1262
+            ],
+            [
+              122.00000000000006,
+              1262
+            ],
+            [
+              122,
+              262
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "class_name": "room_polygon",
+        "name": "Room 1",
+        "area": 160,
+        "pixelArea": 1600000,
+        "type": "hallway",
+        "color": "#f0daaf",
+        "partitionCount": 0,
+        "regularCount": 4,
+        "edgeKeys": [],
+        "path": [
+          0,
+          1,
+          3,
+          2,
+          0
+        ],
+        "center": "{\"x\":0,\"y\":0}"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "vertex-1",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          122,
+          262
+        ]
+      },
+      "properties": {
+        "class_name": "room_vertex",
+        "bypass": 0,
+        "segment": [
+          0,
+          1
+        ],
+        "links": "[{\"x\":1722,\"y\":262,\"wallIndex\":0},{\"x\":122.00000000000006,\"y\":1262,\"wallIndex\":1}]",
+        "child": "[{\"id\":1,\"wall\":0},{\"id\":2,\"wall\":1}]"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "vertex-2",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1722,
+          262
+        ]
+      },
+      "properties": {
+        "class_name": "room_vertex",
+        "bypass": 0,
+        "segment": [
+          0,
+          2
+        ],
+        "links": "[{\"x\":122,\"y\":262,\"wallIndex\":0},{\"x\":1722,\"y\":1262,\"wallIndex\":2}]",
+        "child": "[{\"id\":0,\"wall\":0},{\"id\":3,\"wall\":2}]"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "vertex-3",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          122.00000000000006,
+          1262
+        ]
+      },
+      "properties": {
+        "class_name": "room_vertex",
+        "bypass": 0,
+        "segment": [
+          1,
+          3
+        ],
+        "links": "[{\"x\":122,\"y\":262,\"wallIndex\":1},{\"x\":1722,\"y\":1262,\"wallIndex\":3}]",
+        "child": "[{\"id\":0,\"wall\":1},{\"id\":3,\"wall\":3}]"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "vertex-4",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1722,
+          1262
+        ]
+      },
+      "properties": {
+        "class_name": "room_vertex",
+        "bypass": 0,
+        "segment": [
+          2,
+          3
+        ],
+        "links": "[{\"x\":1722,\"y\":262,\"wallIndex\":2},{\"x\":122.00000000000006,\"y\":1262,\"wallIndex\":3}]",
+        "child": "[{\"id\":1,\"wall\":2},{\"id\":2,\"wall\":3}]"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-1",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1476.1351318359375,
+          349.05406188964844
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "Descktop",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1749397030208
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-2",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          364.5765838623047,
+          336.9459533691406
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "Board",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 100,
+        "height": 200,
+        "original_id": 1749397076438
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-3",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1279.5765838623047,
+          548.2972946166992
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "table1",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1749397108183
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-4",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1284.5765838623047,
+          702.4684677124023
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "table2",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1749397120204
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-5",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1285.5765838623047,
+          913
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "table3",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1749397131921
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-6",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          903.5765838623047,
+          544.5405426025391
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "table4",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1749397143333
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-7",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          909.5765838623047,
+          708.1261291503906
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "table5",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1749397153469
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-8",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          917.5765838623047,
+          913.5495452880859
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "table6",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1749397163911
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-9",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1654.5765838623047,
+          872.3243255615234
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "bascket",
+        "type": "plant",
+        "description": "",
+        "icon": "/admin/stair.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1749397192044
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-10",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          478.5765838623047,
+          524.9459533691406
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "table7",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1749397207774
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-11",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          478.5765838623047,
+          710.9459533691406
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "table8",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1749397217403
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "poi-12",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          505.5765838623047,
+          944.5225224494934
+        ]
+      },
+      "properties": {
+        "class_name": "poi",
+        "name": "table9",
+        "type": "furniture",
+        "description": "",
+        "icon": "/admin/bur.svg",
+        "width": 50,
+        "height": 50,
+        "original_id": 1749397229298
+      }
+    }
+  ],
+  "metadata": {
+    "scale": 1,
+    "offset": {
+      "x": 0,
+      "y": 0
+    },
+    "canvasSize": {
+      "width": 2000,
+      "height": 2000
+    }
+  }
+}
