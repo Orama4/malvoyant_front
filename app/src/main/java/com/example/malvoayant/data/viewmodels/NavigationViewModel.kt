@@ -33,6 +33,10 @@ class NavigationViewModel(
     fun clearError() {
         errorMessage = null
     }
+    var showInstructions by mutableStateOf(false)
+        private set
+
+
 
     fun calculatePath(start: Any, destination: Any) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -70,19 +74,67 @@ class NavigationViewModel(
                                 dx1.toDouble()
                             )
                         ).toFloat()
-                        if (currentPoint.x<nextPoint.x || currentPoint.y>nextPoint.y) {
-                            instructions += StaticInstruction(
-                                instruction = "Turn right",
-                                distance = null,
-                                type = "Turning"
-                            )
-                        } else {
-                            instructions += StaticInstruction(
-                                instruction = "Turn left",
-                                distance = null,
-                                type = "Turning"
-                            )
+                        if (startPoint.x>currentPoint.x){
+                            if (currentPoint.y>nextPoint.y) {
+                                instructions += StaticInstruction(
+                                    instruction = "Turn right",
+                                    distance = null,
+                                    type = "Turning"
+                                )
+                            } else {
+                                instructions += StaticInstruction(
+                                    instruction = "Turn left",
+                                    distance = null,
+                                    type = "Turning"
+                                )
+                            }
                         }
+                        else if (startPoint.x<currentPoint.x){
+                            if (currentPoint.y>nextPoint.y) {
+                                instructions += StaticInstruction(
+                                    instruction = "Turn left",
+                                    distance = null,
+                                    type = "Turning"
+                                )
+                            } else {
+                                instructions += StaticInstruction(
+                                    instruction = "Turn right",
+                                    distance = null,
+                                    type = "Turning"
+                                )
+                            }
+                        }
+                        else if (startPoint.y<currentPoint.y){
+                            if (currentPoint.x>nextPoint.x) {
+                                instructions += StaticInstruction(
+                                    instruction = "Turn right",
+                                    distance = null,
+                                    type = "Turning"
+                                )
+                            } else {
+                                instructions += StaticInstruction(
+                                    instruction = "Turn left",
+                                    distance = null,
+                                    type = "Turning"
+                                )
+                            }
+                        }
+                        else if (startPoint.y>currentPoint.y){
+                            if (currentPoint.x<nextPoint.x) {
+                                instructions += StaticInstruction(
+                                    instruction = "Turn right",
+                                    distance = null,
+                                    type = "Turning"
+                                )
+                            } else {
+                                instructions += StaticInstruction(
+                                    instruction = "Turn left",
+                                    distance = null,
+                                    type = "Turning"
+                                )
+                            }
+                        }
+
                     }
                 }
                 Log.d("NavigationVM","Instructions created with ${instructions} steps")

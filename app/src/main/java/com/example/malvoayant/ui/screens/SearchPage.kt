@@ -1,5 +1,6 @@
 package com.example.malvoayant.ui.screens
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import androidx.compose.foundation.lazy.items
@@ -11,6 +12,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
+import com.example.malvoayant.NavigationLogic.Models.StaticInstruction
 import com.example.malvoayant.R
 import com.example.malvoayant.data.models.POI
 import com.example.malvoayant.data.models.Point
@@ -76,7 +79,14 @@ fun SearchScreen(
     var showEndSelection by remember { mutableStateOf(false) }
     // Position actuelle (à remplacer par votre logique réelle)
     val currentPosition = remember { POI(x=1654.5765f, y=548.2973F, name = "current") }
+    var showInstructions by remember { mutableStateOf(false) }
 
+    // مراقبة تغيير التعليمات
+    LaunchedEffect(navigationViewModel.instructions) {
+        if (navigationViewModel.instructions.isNotEmpty()) {
+            showInstructions = true
+        }
+    }
 
 
     // Remember the launcher for file picking
@@ -239,9 +249,22 @@ fun SearchScreen(
                     stepCounterViewModel = stepCounterViewModel,
                     navigationViewModel = navigationViewModel
                 )
+                // Floating Action Button pour réafficher les instructions
+                if (!showInstructions && navigationViewModel.instructions.isNotEmpty()) {
+                    FloatingInstructionsButton(
+                        onShowInstructions = {
+                            showInstructions = true
+                            speechHelper.speak("Navigation instructions opened")
+                        },
+                        instructionsCount = navigationViewModel.instructions.size,
+                        speechHelper = speechHelper,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp)
+                    )
+                }
             }
-            // Connection status and WiFi position display
-            ConnectionStatusAndWiFiInfo(isConnected, wifiPosition.toString(), lastWifiUpdateAgo, wifiConfidence)
+
 
             // Bottom navigation buttons
             BottomNavigationButtons(
@@ -280,41 +303,81 @@ fun SearchScreen(
                 speechHelper = speechHelper
             )
         }
+        NavigationInstructionsBottomSheet(
+            instructions = navigationViewModel.instructions,
+            isVisible = showInstructions && navigationViewModel.instructions.isNotEmpty(),
+            onDismiss = { showInstructions = false },
+            speechHelper = speechHelper
+        )
+
+
     }
 }
 
 
 @Composable
-private fun ConnectionStatusAndWiFiInfo(
-    isConnected: Boolean,
-    wifiPosition: String?,
-    lastWifiUpdateAgo: String?,
-    wifiConfidence: Float
+fun FloatingInstructionsButton(
+    onShowInstructions: () -> Unit,
+    instructionsCount: Int,
+    speechHelper: SpeechHelper,
+    modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        tonalElevation = 2.dp,
-        shape = RoundedCornerShape(8.dp)
+    val infiniteTransition = rememberInfiniteTransition(label = "fabPulse")
+    val scale = infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "fabScale"
+    )
+
+    ExtendedFloatingActionButton(
+        onClick = {
+            speechHelper.speak("Opening navigation instructions")
+            onShowInstructions()
+        },
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            }
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(28.dp)
+            ),
+        containerColor = AppColors.primary,
+        contentColor = Color.White,
+        elevation = FloatingActionButtonDefaults.elevation(
+            defaultElevation = 8.dp,
+            pressedElevation = 12.dp
+        )
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Display connection status
-            Text(
-                text = if (isConnected) "WebSocket: Connected" else "WebSocket: Disconnected",
-                fontWeight = FontWeight.Bold
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_navigation),
+                contentDescription = "Show navigation instructions",
+                modifier = Modifier.size(24.dp)
             )
 
-            // WiFi position and confidence
-            Text(
-                text = "WiFi Position: $wifiPosition"
-            )
-            Text(
-                text = "Last Update: $lastWifiUpdateAgo"
-            )
-            Text(
-                text = "Confidence: ${"%.2f".format(wifiConfidence)}"
-            )
+            Column {
+                Text(
+                    text = "Instructions",
+                    fontSize = 16.sp,
+                    fontFamily = PlusJakartaSans,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "$instructionsCount steps",
+                    fontSize = 12.sp,
+                    fontFamily = PlusJakartaSans,
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            }
         }
     }
 }
@@ -483,7 +546,7 @@ private fun BottomNavigationButtons(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .height(80.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         // Helper Button
         AnimatedActionButton(
@@ -845,3 +908,286 @@ fun PointListItem(
         )
     }
 }
+
+// أضف هذا المكون إلى ملف SearchScreen.kt
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NavigationInstructionsBottomSheet(
+    instructions: List<StaticInstruction>,
+    isVisible: Boolean,
+    onDismiss: () -> Unit,
+    speechHelper: SpeechHelper,
+    modifier: Modifier = Modifier
+) {
+    val bottomSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = false
+    )
+
+    LaunchedEffect(isVisible) {
+        if (isVisible) {
+            bottomSheetState.show()
+            // قراءة التعليمات صوتياً
+            val instructionsText = instructions.joinToString(". ") { instruction ->
+                "${instruction.instruction}${instruction.distance?.let { " for ${String.format("%.1f", it)} meters" } ?: ""}"
+            }
+            speechHelper.speak("Navigation instructions ready. $instructionsText")
+        } else {
+            bottomSheetState.hide()
+        }
+    }
+
+    if (isVisible) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = bottomSheetState,
+            containerColor = Color.White,
+            contentColor = AppColors.darkBlue,
+            modifier = modifier
+        ) {
+            NavigationInstructionsContent(
+                instructions = instructions,
+                onClose = onDismiss,
+                speechHelper = speechHelper
+            )
+        }
+    }
+}
+
+@Composable
+private fun NavigationInstructionsContent(
+    instructions: List<StaticInstruction>,
+    onClose: () -> Unit,
+    speechHelper: SpeechHelper
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        // Header avec titre et bouton fermer
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Navigation Instructions",
+                fontSize = 24.sp,
+                fontFamily = PlusJakartaSans,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.darkBlue
+            )
+
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(CircleShape)
+                    .background(AppColors.primary.copy(alpha = 0.1f))
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_close), // تأكد من وجود هذا الأيقون
+                    contentDescription = "Close",
+                    tint = AppColors.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        // عدد الخطوات
+        Text(
+            text = "${instructions.size} steps to destination",
+            fontSize = 16.sp,
+            fontFamily = PlusJakartaSans,
+            color = AppColors.darkBlue.copy(alpha = 0.7f),
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        // قائمة التعليمات
+        LazyColumn(
+            modifier = Modifier.heightIn(max = 400.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            itemsIndexed(instructions) { index, instruction ->
+                InstructionCard(
+                    instruction = instruction,
+                    stepNumber = index + 1,
+                    isLast = index == instructions.size - 1,
+                    speechHelper = speechHelper
+                )
+            }
+        }
+
+        // Bouton de fermeture en bas
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = {
+                speechHelper.speak("Navigation instructions closed")
+                onClose()
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AppColors.primary
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text(
+                text = "Start Navigation",
+                fontSize = 18.sp,
+                fontFamily = PlusJakartaSans,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@SuppressLint("DefaultLocale")
+@Composable
+private fun InstructionCard(
+    instruction: StaticInstruction,
+    stepNumber: Int,
+    isLast: Boolean,
+    speechHelper: SpeechHelper
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                val speechText = "${instruction.instruction}${
+                    instruction.distance?.let { " for ${String.format("%.1f", it)} meters" } ?: ""
+                }"
+                speechHelper.speak(speechText)
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = if (stepNumber == 1) Color(0xFFFDF1E5) else Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth()
+                ,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Numéro d'étape avec icône
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (stepNumber == 1) AppColors.primary
+                        else AppColors.darkBlue.copy(alpha = 0.1f)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isLast) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_flag2), // icône drapeau pour destination
+                        contentDescription = "Destination",
+                        tint = if (stepNumber == 1) Color.White else AppColors.darkBlue,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Text(
+                        text = stepNumber.toString(),
+                        fontSize = 18.sp,
+                        fontFamily = PlusJakartaSans,
+                        fontWeight = FontWeight.Bold,
+                        color = if (stepNumber == 1) Color.White else AppColors.darkBlue
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Icône de direction
+            DirectionIcon(
+                instruction = instruction.instruction,
+                modifier = Modifier.size(32.dp)
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Détails de l'instruction
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = instruction.instruction,
+                    fontSize = 18.sp,
+                    fontFamily = PlusJakartaSans,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.darkBlue
+                )
+
+                instruction.distance?.let { distance ->
+                    Text(
+                        text = "${String.format("%.1f", distance)} meters",
+                        fontSize = 14.sp,
+                        fontFamily = PlusJakartaSans,
+                        color = AppColors.darkBlue.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+
+            // Flèche pour indiquer la prochaine étape
+            if (stepNumber == 1) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_arrow_forward),
+                    contentDescription = "Next step",
+                    tint = AppColors.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DirectionIcon(
+    instruction: String,
+    modifier: Modifier = Modifier
+) {
+    val iconRes = when {
+        instruction.contains("straight", ignoreCase = true) -> R.drawable.ic_arrow_up
+        instruction.contains("right", ignoreCase = true) -> R.drawable.ic_arrow_right
+        instruction.contains("left", ignoreCase = true) -> R.drawable.ic_arrow_left
+        instruction.contains("destination", ignoreCase = true) -> R.drawable.ic_flag2
+        else -> R.drawable.ic_arrow_up
+    }
+
+    val iconColor = when {
+        instruction.contains("straight", ignoreCase = true) -> Color(0xFF4CAF50) // Vert
+        instruction.contains("right", ignoreCase = true) -> Color(0xFF2196F3) // Bleu
+        instruction.contains("left", ignoreCase = true) -> Color(0xFF2196F3) // Bleu
+        instruction.contains("destination", ignoreCase = true) -> Color(0xFFFF5722) // Orange
+        else -> AppColors.darkBlue
+    }
+
+    Box(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(iconColor.copy(alpha = 0.1f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(id = iconRes),
+            contentDescription = instruction,
+            tint = iconColor,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+

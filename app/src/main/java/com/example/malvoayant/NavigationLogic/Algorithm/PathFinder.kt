@@ -75,65 +75,7 @@ class PathFinder {
 
         return emptyList()
     }
-//    private fun smoothPathWithCorners(path: List<Point>, graph: NavigationGraph): List<Point> {
-//        if (path.size < 2) return path
-//        val orthogonalPath = mutableListOf<Point>()
-//        orthogonalPath.add(path[0])
-//
-//        for (i in 0 until path.size - 1) {
-//            val current = path[i]
-//            val next = path[i + 1]
-//
-//            val threshold = 5
-//            if (abs(current.x - next.x) > threshold && abs(current.y - next.y) > threshold) {
-//                Log.d("PathFinder", "Segmentttt bloqué: $current -> $next")
-//                val horizontalIntermediate = Point(next.x, current.y)
-//                val verticalIntermediate = Point(current.x, next.y)
-//                //verifying if horizontalIntermediate is not a pre existing node
-//                var horiz=true;
-//                var vert=true;
-//                if (!graph.nodes.any {
-//                        abs(it.x - horizontalIntermediate.x) <= threshold &&
-//                                abs(it.y - horizontalIntermediate.y) <= threshold
-//                    } ) {
-//
-//                    val horizontalClear = isSegmentClear(current, horizontalIntermediate, graph,"end") &&
-//                            isSegmentClear(horizontalIntermediate, next, graph,"start")
-//                    if (horizontalClear) {
-//                        orthogonalPath.add(horizontalIntermediate)
-//                    } else{
-//                        horiz=false;
-//                    }
-//                }
-//
-//                if (!graph.nodes.any {
-//                        abs(it.x - verticalIntermediate.x) <= threshold &&
-//                                abs(it.y - verticalIntermediate.y) <= threshold
-//                    } && !horiz) {
-//
-//                    val verticalClear =
-//                        isSegmentClear(current, verticalIntermediate, graph, "end") &&
-//                                isSegmentClear(verticalIntermediate, next, graph, "start")
-//                    if (verticalClear) {
-//                        Log.d("PathFinder", "Segment bloqué: $current -> $verticalIntermediate")
-//                        orthogonalPath.add(verticalIntermediate)
-//                    } else {
-//                        vert = false;
-//                    }
-//                }
-//                if( !horiz && !vert) {
-//                    Log.d("PathFinder", "Segment bloqué: $current -> $next")
-//                    // Si les deux segments sont bloqués, on cherche un détour
-//                    val detour = findDetour(current, next, graph)
-//                    orthogonalPath.addAll(detour)
-//                }
-//
-//            }
-//            orthogonalPath.add(next)
-//        }
-//
-//        return simplifyPath(orthogonalPath)
-//    }
+
 
     private fun smoothPathWithCorners(path: List<Point>, graph: NavigationGraph): List<Point> {
         if (path.size < 2) return path
@@ -635,6 +577,64 @@ class PathFinder {
     }
 
 
-
+//    private fun smoothPathWithCorners(path: List<Point>, graph: NavigationGraph): List<Point> {
+//        if (path.size < 2) return path
+//        val orthogonalPath = mutableListOf<Point>()
+//        orthogonalPath.add(path[0])
+//
+//        for (i in 0 until path.size - 1) {
+//            val current = path[i]
+//            val next = path[i + 1]
+//
+//            val threshold = 5
+//            if (abs(current.x - next.x) > threshold && abs(current.y - next.y) > threshold) {
+//                Log.d("PathFinder", "Segmentttt bloqué: $current -> $next")
+//                val horizontalIntermediate = Point(next.x, current.y)
+//                val verticalIntermediate = Point(current.x, next.y)
+//                //verifying if horizontalIntermediate is not a pre existing node
+//                var horiz=true;
+//                var vert=true;
+//                if (!graph.nodes.any {
+//                        abs(it.x - horizontalIntermediate.x) <= threshold &&
+//                                abs(it.y - horizontalIntermediate.y) <= threshold
+//                    } ) {
+//
+//                    val horizontalClear = isSegmentClear(current, horizontalIntermediate, graph,"end") &&
+//                            isSegmentClear(horizontalIntermediate, next, graph,"start")
+//                    if (horizontalClear) {
+//                        orthogonalPath.add(horizontalIntermediate)
+//                    } else{
+//                        horiz=false;
+//                    }
+//                }
+//
+//                if (!graph.nodes.any {
+//                        abs(it.x - verticalIntermediate.x) <= threshold &&
+//                                abs(it.y - verticalIntermediate.y) <= threshold
+//                    } && !horiz) {
+//
+//                    val verticalClear =
+//                        isSegmentClear(current, verticalIntermediate, graph, "end") &&
+//                                isSegmentClear(verticalIntermediate, next, graph, "start")
+//                    if (verticalClear) {
+//                        Log.d("PathFinder", "Segment bloqué: $current -> $verticalIntermediate")
+//                        orthogonalPath.add(verticalIntermediate)
+//                    } else {
+//                        vert = false;
+//                    }
+//                }
+//                if( !horiz && !vert) {
+//                    Log.d("PathFinder", "Segment bloqué: $current -> $next")
+//                    // Si les deux segments sont bloqués, on cherche un détour
+//                    val detour = findDetour(current, next, graph)
+//                    orthogonalPath.addAll(detour)
+//                }
+//
+//            }
+//            orthogonalPath.add(next)
+//        }
+//
+//        return simplifyPath(orthogonalPath)
+//    }
 
 }
