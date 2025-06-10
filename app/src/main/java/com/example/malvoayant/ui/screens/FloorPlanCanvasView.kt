@@ -1,5 +1,6 @@
 package com.example.malvoayant.ui.screens
 
+import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -141,8 +142,14 @@ fun FloorPlanCanvasView(
             isInitialFocus = true
 
             // Réinitialiser focusOffset pour le centrage initial
-            focusOffset = Offset.Zero
+            //focusOffset = Offset.Zero
+            val canvasCenter = Offset(canvasSize.width / 2f, canvasSize.height / 2f)
+            focusOffset = Offset(
+                x = (canvasCenter.x  - cx),
+                y = (canvasCenter.y  - cy)
+            )
 
+            Log.d("FloorPlanCanvasView", "Focus offset set to: $focusOffset")
 
             // Calcul de la rotation pour que le vecteur path[0] -> path[1] pointe vers le haut
             val (nx, ny) = path[1]
@@ -212,19 +219,9 @@ fun FloorPlanCanvasView(
                     val canvasCenter = Offset(size.width/2f, size.height/2f)
 
                     withTransform({
-                        if (isInitialFocus) {
-                            // Première activation : centrage automatique
-                            scale(focusScale, focusScale)
-                            translate(-cx, -cy)
-                            //focusOffset=Offset(-cx,-cy)
-                            translate(canvasCenter.x, canvasCenter.y)
-                        } else {
-                            // Gestes utilisateur : utiliser focusOffset
-                            //translate(-cx, -cy)
-                            //translate(canvasCenter.x, canvasCenter.y)
-                            translate(focusOffset.x, focusOffset.y)
-                            scale(focusScale, focusScale)
-                        }
+                        scale(focusScale, focusScale)
+                        translate(focusOffset.x, focusOffset.y)
+
                     })  {
                         drawContent(
                             floorPlanState = floorPlanState,
