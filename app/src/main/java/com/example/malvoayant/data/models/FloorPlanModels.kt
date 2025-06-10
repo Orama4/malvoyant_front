@@ -103,7 +103,9 @@ data class FloorPlanState(
     val scale: Float = 1f,
     val offset: Offset = Offset(),
     val canvasSize: CanvasSize = CanvasSize(),
+    val maxPoint: Point = Point(0f, 0f), // Add maxPoint here
     val minPoint: Point = Point(0f, 0f) // Add minPoint here
+
 )
 
 

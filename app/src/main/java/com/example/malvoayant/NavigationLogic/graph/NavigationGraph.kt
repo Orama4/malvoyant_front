@@ -77,6 +77,7 @@ class NavigationGraph {
         return isLineIntersectingPolygon(
             fromNode.x, fromNode.y,
             toNode.x, toNode.y,
+
             zone.coords.map { it.x to it.y }
         )
     }

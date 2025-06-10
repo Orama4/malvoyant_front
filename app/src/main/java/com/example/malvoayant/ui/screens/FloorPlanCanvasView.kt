@@ -1,5 +1,7 @@
 package com.example.malvoayant.ui.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -7,12 +9,26 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.with
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
@@ -24,7 +40,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.*
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.malvoayant.data.models.DoorWindow
 import com.example.malvoayant.data.models.FloorPlanState
@@ -35,9 +54,11 @@ import com.example.malvoayant.data.models.Wall
 import com.example.malvoayant.data.models.Zone
 import com.example.malvoayant.data.viewmodels.NavigationViewModel
 import com.example.malvoayant.data.viewmodels.StepCounterViewModel
+import com.example.malvoayant.ui.theme.PlusJakartaSans
 import kotlin.math.*
 import kotlin.random.Random
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun FloorPlanCanvasView(
     floorPlanState: FloorPlanState,
@@ -45,27 +66,25 @@ fun FloorPlanCanvasView(
     stepCounterViewModel: StepCounterViewModel = viewModel(),
     navigationViewModel: NavigationViewModel
 ) {
-    // Dans votre ViewModel ou classe de données :
+    // 1️⃣ Mode global vs focus
+    var globalView by remember { mutableStateOf(true) }
+
+    // 2️⃣ États caméra - séparés pour chaque mode
+    // Vue globale
+    var globalScale by remember { mutableStateOf(floorPlanState.scale) }
+    var globalOffset by remember { mutableStateOf(Offset(floorPlanState.offset.x, floorPlanState.offset.y)) }
+
+    // Vue focus (zoom sur position)
+    var focusScale by remember { mutableStateOf(6f) }
+    var focusOffset by remember { mutableStateOf(Offset.Zero) }
+    var focusRotation by remember { mutableStateOf(0f) }
+    var isInitialFocus by remember { mutableStateOf(false) }
 
     val pathPoints by stepCounterViewModel.pathPoints.observeAsState(listOf())
-
-    var scale by remember { mutableStateOf(floorPlanState.scale) }
-    var offset by remember { mutableStateOf(Offset(floorPlanState.offset.x, floorPlanState.offset.y)) }
+    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     val wifiPosition by stepCounterViewModel.wifiPositionLive.observeAsState(null)
-    LaunchedEffect(floorPlanState.scale, floorPlanState.offset) {
-        scale = floorPlanState.scale
-        offset = Offset(floorPlanState.offset.x, floorPlanState.offset.y)
-    }
 
-    // Refined color palette for a more elegant look
-    val wallColor = Color(0xFF2C3E50)  // Rich dark blue for walls
-    val doorColor = Color(0xFFD68910)  // Warm gold for doors
-    val windowColor = Color(0xFF5DADE2)  // Sky blue for windows
-    val poiColor = Color(0xFFC0392B)  // Deep red for POIs
-    val pathStartColor = Color(0xFF27AE60)  // Forest green start
-    val pathEndColor = Color(0xFFF1C40F)  // Gold end
-    val pathGradientColors = listOf(pathStartColor, pathEndColor)
-    //calcule animations
+    // Animation pour le chemin
     val infiniteTransition = rememberInfiniteTransition()
     val pulseRadius by infiniteTransition.animateFloat(
         initialValue = 6f,
@@ -73,41 +92,65 @@ fun FloorPlanCanvasView(
         animationSpec = infiniteRepeatable(
             animation = tween(1000),
             repeatMode = RepeatMode.Reverse
-        ),
-
-    )
-    /*val progress by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 2000,  // 2 secondes
-                easing = FastOutSlowInEasing
-            ),
-            repeatMode = RepeatMode.Restart  // Recommence depuis 0
         )
-    )*/
-    // Animation unique (3 secondes)
+    )
+
     val progress by animateFloatAsState(
         targetValue = 1f,
         animationSpec = tween(
-            durationMillis = 3000, // 3 secondes
+            durationMillis = 3000,
             easing = FastOutSlowInEasing
         )
     )
 
-    // Elegant room color palette
+    // Palette de couleurs
+    val wallColor = Color(0xFF2C3E50)
+    val doorColor = Color(0xFFD68910)
+    val windowColor = Color(0xFF5DADE2)
+    val poiColor = Color(0xFFC0392B)
+    val pathStartColor = Color(0xFF27AE60)
+    val pathEndColor = Color(0xFFF1C40F)
+
     val roomColors = remember {
         mapOf(
-            "living" to Color(0xFFF9F3E3),      // Soft cream for living room
-            "bedroom" to Color(0xFFE8F3EC),     // Mint green for bedroom
-            "kitchen" to Color(0xFFF0E6EF),     // Lavender for kitchen
-            "bathroom" to Color(0xFFE1EEF5),    // Soft blue for bathroom
-            "entrance" to Color(0xFFF2F2F2),    // Light gray for entrance
-            "hallway" to Color(0xFFF4F0E6),     // Beige for hallway
-            "room" to Color(0xFFF1F8FB),        // Light blue for generic room
-            "default" to Color(0xFFF5F5F5)      // Default off-white
+            "living" to Color(0xFFF9F3E3),
+            "bedroom" to Color(0xFFE8F3EC),
+            "kitchen" to Color(0xFFF0E6EF),
+            "bathroom" to Color(0xFFE1EEF5),
+            "entrance" to Color(0xFFF2F2F2),
+            "hallway" to Color(0xFFF4F0E6),
+            "room" to Color(0xFFF1F8FB),
+            "default" to Color(0xFFF5F5F5)
         )
+    }
+
+    // Effet pour calculer la position focus quand on change de mode
+    LaunchedEffect(globalView, navigationViewModel.currentPath) {
+        val path = navigationViewModel.currentPath
+        if (!globalView && path != null && path.size >= 2) {
+            // Position actuelle (premier point du chemin)
+            val (cx, cy) = path.first()
+
+            // Calcul de l'offset pour centrer la position actuelle
+            focusOffset = Offset(
+                (canvasSize.width / 2f - cx * focusScale) / focusScale,
+                (canvasSize.height / 2f - cy * focusScale) / focusScale
+            )
+
+            // Marquer comme initialisation
+            isInitialFocus = true
+
+            // Réinitialiser focusOffset pour le centrage initial
+            focusOffset = Offset.Zero
+
+
+            // Calcul de la rotation pour que le vecteur path[0] -> path[1] pointe vers le haut
+            val (nx, ny) = path[1]
+            val dx = nx - cx
+            val dy = ny - cy
+            // Angle pour que le vecteur pointe vers le haut (axe Y négatif)
+            focusRotation = -atan2(dx, dy) + PI.toFloat() / 2f
+        }
     }
 
     Box(
@@ -126,57 +169,206 @@ fun FloorPlanCanvasView(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
+                .onSizeChanged { canvasSize = it }
                 .pointerInput(Unit) {
+                    // Dans detectTransformGestures
                     detectTransformGestures { _, pan, zoom, _ ->
-                        scale = (scale * zoom).coerceIn(0.1f, 5f)
-                        offset += pan
+                        if (globalView) {
+                            // Vue globale
+                            globalScale = (globalScale * zoom).coerceIn(0.1f, 5f)
+                            globalOffset += pan
+                        } else {
+                            // Vue focus : marquer fin de l'initialisation dès le premier geste
+                            isInitialFocus = false
+                            focusScale = (focusScale * zoom).coerceIn(1f, 10f)
+                            focusOffset += pan
+                        }
                     }
                 }
         ) {
-            translate(offset.x, offset.y) {
-                scale(scale, scale) {
+            if (globalView) {
+                // ===== VUE GLOBALE =====
+                withTransform({
+                    translate(globalOffset.x, globalOffset.y)
+                    scale(globalScale, globalScale)
+                }) {
+                    drawContent(
+                        floorPlanState = floorPlanState,
+                        roomColors = roomColors,
+                        wallColor = wallColor,
+                        doorColor = doorColor,
+                        windowColor = windowColor,
+                        pathPoints = pathPoints,
+                        wifiPosition = wifiPosition,
+                        navigationViewModel = navigationViewModel,
+                        progress = progress
+                    )
+                }
+            } else {
+                // ===== VUE FOCUS =====
+                val path = navigationViewModel.currentPath
+                if (path != null && path.size >= 2) {
+                    val (cx, cy) = path.first()
+                    val canvasCenter = Offset(size.width/2f, size.height/2f)
 
-                    drawInfiniteGrid()
-
-                    // Draw rooms with subtle 3D effects and patterns
-                    drawElegantRooms(floorPlanState.rooms, roomColors)
-
-                    // Draw refined zones with better styling
-                    drawElegantZones(floorPlanState.zones)
-
-                    // Draw walls with more sophisticated 3D effect
-                    drawElegantWalls(floorPlanState.walls, wallColor)
-
-                    // Draw modern doors and windows with 3D details
-                    drawElegantDoorWindows(floorPlanState.doors, doorColor, isDoor = true)
-                    drawElegantDoorWindows(floorPlanState.windows, windowColor, isDoor = false)
-
-                    // Draw stylish POIs with category-specific icons
-                    drawElegantPOIs(floorPlanState.pois)
-                    //wifi path
-                    wifiPosition?.let { position ->
-                        val wifiColor=Color(0xFF8E44AD)
-                        drawWiFiPath(floorPlanState.minPoint, pathPoints, position, wifiColor)
-                    }
-                    // Draw elegant path with smooth gradients
-                    //drawElegantPath(floorPlanState.minPoint, pathPoints, currentPosition, currentHeading, pathGradientColors)
-                    //draw the current path
-                    navigationViewModel.currentPath?.let { path ->
-                        val angle = if (path.size > 1) {
-                            calculateAngleBetweenPoints(path[0], path[1])
-                        } else 0f
-                        drawAdvancedNavigationPath(
-                            path = navigationViewModel.currentPath ?: emptyList(),
-                            currentPosition = Point(340.0f,340.0f),
-                            progress = progress,
-                            angle = angle,
-                            density = this.density
+                    withTransform({
+                        if (isInitialFocus) {
+                            // Première activation : centrage automatique
+                            scale(focusScale, focusScale)
+                            translate(-cx, -cy)
+                            //focusOffset=Offset(-cx,-cy)
+                            translate(canvasCenter.x, canvasCenter.y)
+                        } else {
+                            // Gestes utilisateur : utiliser focusOffset
+                            //translate(-cx, -cy)
+                            //translate(canvasCenter.x, canvasCenter.y)
+                            translate(focusOffset.x, focusOffset.y)
+                            scale(focusScale, focusScale)
+                        }
+                    })  {
+                        drawContent(
+                            floorPlanState = floorPlanState,
+                            roomColors = roomColors,
+                            wallColor = wallColor,
+                            doorColor = doorColor,
+                            windowColor = windowColor,
+                            pathPoints = pathPoints,
+                            wifiPosition = wifiPosition,
+                            navigationViewModel = navigationViewModel,
+                            progress = progress
                         )
                     }
                 }
             }
         }
+
+        // Bouton toggle stylisé
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp)
+        ) {
+            FloatingActionButton(
+                onClick = {
+                    globalView = !globalView
+                    // Quand on revient à la vue globale, on recentre
+                    if (globalView) {
+                        globalScale = floorPlanState.scale
+                        globalOffset = Offset(floorPlanState.offset.x, floorPlanState.offset.y)
+                    }
+                    else{
+                        // Réinitialiser la vue focus
+                        focusScale = 6f
+                    }
+                },
+                containerColor = if (globalView) Color(0xFF2196F3) else Color(0xFFFF9800),
+                contentColor = Color.White,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 8.dp,
+                    pressedElevation = 12.dp
+                )
+            ) {
+                AnimatedContent(
+                    targetState = globalView,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(300)) with
+                                fadeOut(animationSpec = tween(300))
+                    }
+                ) { isGlobal ->
+                    if (isGlobal) {
+                        Icon(
+                            imageVector = Icons.Default.MyLocation,
+                            contentDescription = "Vue Focus",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Map,
+                            contentDescription = "Vue Globale",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Indicateur de mode en haut
+        Card(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.Black.copy(alpha = 0.5f)
+            ),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Text(
+                text = if (globalView) "Vue Globale" else "Vue Focus",
+                color = Color.White,
+                fontFamily = PlusJakartaSans,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
     }
+}
+
+// Fonction helper pour dessiner tout le contenu
+private fun DrawScope.drawContent(
+    floorPlanState: FloorPlanState,
+    roomColors: Map<String, Color>,
+    wallColor: Color,
+    doorColor: Color,
+    windowColor: Color,
+    pathPoints: List<Pair<Float, Float>>,
+    wifiPosition: Pair<Float, Float>?,
+    navigationViewModel: NavigationViewModel,
+    progress: Float
+) {
+    drawInfiniteGrid()
+
+    // Draw rooms with subtle 3D effects and patterns
+    drawElegantRooms(floorPlanState.rooms, roomColors)
+
+    // Draw refined zones with better styling
+    drawElegantZones(floorPlanState.zones)
+
+    // Draw walls with more sophisticated 3D effect
+    drawElegantWalls(floorPlanState.walls, wallColor)
+
+    // Draw modern doors and windows with 3D details
+    drawElegantDoorWindows(floorPlanState.doors, doorColor, isDoor = true)
+    drawElegantDoorWindows(floorPlanState.windows, windowColor, isDoor = false)
+
+    // Draw stylish POIs with category-specific icons
+    drawElegantPOIs(floorPlanState.pois)
+
+    // WiFi path
+    wifiPosition?.let { position ->
+        val wifiColor = Color(0xFF8E44AD)
+        drawWiFiPath(floorPlanState.minPoint, pathPoints, position, wifiColor)
+    }
+
+    // Draw the current path
+    navigationViewModel.currentPath?.let { path ->
+        val angle = if (path.size > 1) {
+            calculateAngleBetweenPoints(path[0], path[1])
+        } else 0f
+        drawAdvancedNavigationPath(
+            path = path,
+            currentPosition = Point(340.0f, 340.0f),
+            progress = progress,
+            angle = angle,
+            density = this.density
+        )
+    }
+}
+
+// Extension pour calculer l'angle entre deux points
+private fun calculateAngleBetweenPoints(p1: Point, p2: Point): Float {
+    val dx = p2.x - p1.x
+    val dy = p2.y - p1.y
+    return atan2(dy, dx)
 }
 private fun DrawScope.drawInfiniteGrid() {
     val gridSize = 50f // Size of each grid cell
@@ -1853,8 +2045,3 @@ private fun createSmoothPath(points: List<Point>): Path {
     }
 }
 
-private fun calculateAngleBetweenPoints(start: Point, end: Point): Float {
-    val dx = end.x - start.x
-    val dy = end.y - start.y
-    return Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
-}

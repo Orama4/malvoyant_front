@@ -1,7 +1,6 @@
 package com.example.malvoayant.NavigationLogic.utils
 
 import com.example.malvoayant.NavigationLogic.Models.DOOR_PROXIMITY_THRESHOLD
-import com.example.malvoayant.NavigationLogic.Models.Edge
 import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.data.models.RoomPolygon
 import com.example.malvoayant.data.models.Zone

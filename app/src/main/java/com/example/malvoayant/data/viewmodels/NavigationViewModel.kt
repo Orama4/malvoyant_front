@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.malvoayant.NavigationLogic.Algorithm.PathFinder
 import com.example.malvoayant.NavigationLogic.Models.StaticInstruction
+import com.example.malvoayant.NavigationLogic.graph.GridNavigationGraph
 import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.exceptions.PathfindingException
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +47,24 @@ class NavigationViewModel(
 
             try {
                 val floorPlan = floorPlanViewModel.floorPlanState
-                currentPath = pathFinder.findPath(start, destination, floorPlan)
+                Log.d("NavigationVM", "brooo")
+                val gr=GridNavigationGraph(
+                    floorPlan = floorPlan,
+                    bounds = listOf(
+                        floorPlan.minPoint.x,
+                        floorPlan.maxPoint.x,
+                        floorPlan.minPoint.y,
+                        floorPlan.maxPoint.y
+                    )
+                )
+                Log.d("NavigationVM", "brooo")
+                gr.buildGrid()
+                val patt= gr.findPath(start, destination )
+                Log.d("NavigationVMG", "Path found: $patt")
+                val patt_simp= gr.simplifyPath(patt)
+                Log.d("NavigationVMG", "Simplified path: $patt_simp")
+                //currentPath = pathFinder.findPath(start, destination, floorPlan)
+                currentPath = patt_simp
                 instructions = emptyList()
                 //crate instructions based on the path
 
@@ -54,9 +72,10 @@ class NavigationViewModel(
                     instructions=instructions+ StaticInstruction(
                         instruction = "Go straight",
                         distance = sqrt((currentPath!![i+1].x - currentPath!![i].x).pow(2) +
-                                (currentPath!![i+1].y - currentPath!![i].y).pow(2) ),
+                                (currentPath!![i+1].y - currentPath!![i].y).pow(2) )/50,
                     )
                     // checking if i+1 is on the right or left of i to add turning instruction
+
                     if (i < currentPath!!.size - 2) {
                         val nextPoint = currentPath!![i + 2]
                         val currentPoint = currentPath!![i + 1]
@@ -74,67 +93,79 @@ class NavigationViewModel(
                                 dx1.toDouble()
                             )
                         ).toFloat()
-                        if (startPoint.x>currentPoint.x){
-                            if (currentPoint.y>nextPoint.y) {
-                                instructions += StaticInstruction(
-                                    instruction = "Turn right",
-                                    distance = null,
-                                    type = "Turning"
-                                )
-                            } else {
-                                instructions += StaticInstruction(
-                                    instruction = "Turn left",
-                                    distance = null,
-                                    type = "Turning"
-                                )
-                            }
-                        }
-                        else if (startPoint.x<currentPoint.x){
-                            if (currentPoint.y>nextPoint.y) {
-                                instructions += StaticInstruction(
-                                    instruction = "Turn left",
-                                    distance = null,
-                                    type = "Turning"
-                                )
-                            } else {
-                                instructions += StaticInstruction(
-                                    instruction = "Turn right",
-                                    distance = null,
-                                    type = "Turning"
-                                )
-                            }
-                        }
-                        else if (startPoint.y<currentPoint.y){
-                            if (currentPoint.x>nextPoint.x) {
-                                instructions += StaticInstruction(
-                                    instruction = "Turn right",
-                                    distance = null,
-                                    type = "Turning"
-                                )
-                            } else {
-                                instructions += StaticInstruction(
-                                    instruction = "Turn left",
-                                    distance = null,
-                                    type = "Turning"
-                                )
-                            }
-                        }
-                        else if (startPoint.y>currentPoint.y){
-                            if (currentPoint.x<nextPoint.x) {
-                                instructions += StaticInstruction(
-                                    instruction = "Turn right",
-                                    distance = null,
-                                    type = "Turning"
-                                )
-                            } else {
-                                instructions += StaticInstruction(
-                                    instruction = "Turn left",
-                                    distance = null,
-                                    type = "Turning"
-                                )
-                            }
-                        }
+                        if(startPoint.x==currentPoint.x || startPoint.y==currentPoint.y) {
 
+                            if (startPoint.x > currentPoint.x) {
+                                if (currentPoint.y > nextPoint.y) {
+                                    instructions += StaticInstruction(
+                                        instruction = "Turn right",
+                                        distance = null,
+                                        type = "Turning"
+                                    )
+                                } else {
+                                    instructions += StaticInstruction(
+                                        instruction = "Turn left",
+                                        distance = null,
+                                        type = "Turning"
+                                    )
+                                }
+                            } else if (startPoint.x < currentPoint.x) {
+                                if (currentPoint.y > nextPoint.y) {
+                                    instructions += StaticInstruction(
+                                        instruction = "Turn left",
+                                        distance = null,
+                                        type = "Turning"
+                                    )
+                                } else {
+                                    instructions += StaticInstruction(
+                                        instruction = "Turn right",
+                                        distance = null,
+                                        type = "Turning"
+                                    )
+                                }
+                            } else if (startPoint.y < currentPoint.y) {
+                                if (currentPoint.x > nextPoint.x) {
+                                    instructions += StaticInstruction(
+                                        instruction = "Turn right",
+                                        distance = null,
+                                        type = "Turning"
+                                    )
+                                } else {
+                                    instructions += StaticInstruction(
+                                        instruction = "Turn left",
+                                        distance = null,
+                                        type = "Turning"
+                                    )
+                                }
+                            } else if (startPoint.y > currentPoint.y) {
+                                if (currentPoint.x < nextPoint.x) {
+                                    instructions += StaticInstruction(
+                                        instruction = "Turn right",
+                                        distance = null,
+                                        type = "Turning"
+                                    )
+                                } else {
+                                    instructions += StaticInstruction(
+                                        instruction = "Turn left",
+                                        distance = null,
+                                        type = "Turning"
+                                    )
+                                }
+                            }
+                        }
+                        else if (angle > 0) {
+                            instructions += StaticInstruction(
+                                instruction = "Turn right",
+                                distance = null,
+                                type = "Turning"
+                            )
+                        } else if (angle < 0) {
+                            instructions += StaticInstruction(
+                                instruction = "Turn left",
+                                distance = null,
+                                type = "Turning"
+                            )
+                        }
                     }
                 }
                 Log.d("NavigationVM","Instructions created with ${instructions} steps")

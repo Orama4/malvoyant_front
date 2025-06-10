@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -77,6 +79,7 @@ fun SearchScreen(
     var endPoint by remember { mutableStateOf<POI?>(null) }
     var showStartSelection by remember { mutableStateOf(false) }
     var showEndSelection by remember { mutableStateOf(false) }
+    //var showEndSelection by  { mutableStateOf(false) }
     // Position actuelle (à remplacer par votre logique réelle)
     val currentPosition = remember { POI(x=1654.5765f, y=548.2973F, name = "current") }
     var showInstructions by remember { mutableStateOf(false) }
@@ -148,6 +151,7 @@ fun SearchScreen(
         speechHelper.initializeSpeech {
             speechHelper.speak("Search page. You can search for points of interest. Use the buttons at the bottom for help, SOS, or repair services.")
         }
+
     }
 
     DisposableEffect(Unit) {
@@ -250,6 +254,7 @@ fun SearchScreen(
                     navigationViewModel = navigationViewModel
                 )
                 // Floating Action Button pour réafficher les instructions
+
                 if (!showInstructions && navigationViewModel.instructions.isNotEmpty()) {
                     FloatingInstructionsButton(
                         onShowInstructions = {
@@ -313,6 +318,7 @@ fun SearchScreen(
 
     }
 }
+
 
 
 @Composable

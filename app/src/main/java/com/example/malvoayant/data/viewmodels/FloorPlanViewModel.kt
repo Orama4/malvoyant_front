@@ -76,6 +76,35 @@ class FloorPlanViewModel : ViewModel() {
 
         return Point(minX, minY)
     }
+    //calculate max point
+    private fun calculateMaxPoint(walls: List<Wall>, pois: List<POI>, doors: List<DoorWindow>, windows: List<DoorWindow>): Point {
+        var maxX = Float.MIN_VALUE
+        var maxY = Float.MIN_VALUE
+
+        fun updateMaxPoint(point: Point) {
+            if (point.x > maxX) maxX = point.x
+            if (point.y > maxY) maxY = point.y
+        }
+
+        walls.forEach { wall ->
+            updateMaxPoint(wall.start)
+            updateMaxPoint(wall.end)
+        }
+
+        pois.forEach { poi ->
+            updateMaxPoint(Point(poi.x, poi.y))
+        }
+
+        doors.forEach { door ->
+            updateMaxPoint(Point(door.x, door.y))
+        }
+
+        windows.forEach { window ->
+            updateMaxPoint(Point(window.x, window.y))
+        }
+
+        return Point(maxX, maxY)
+    }
 
     fun setWalls(walls: List<Wall>) {
         floorPlanState = floorPlanState.copy(walls = walls)
@@ -364,6 +393,8 @@ class FloorPlanViewModel : ViewModel() {
 
                 val minPoint = calculateMinPoint(newWalls, newPOIs, newDoors, newWindows)
                 setMinPoint(minPoint)
+                val maxPoint = calculateMaxPoint(newWalls, newPOIs, newDoors, newWindows)
+                setMaxPoint(maxPoint)
 
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -373,6 +404,9 @@ class FloorPlanViewModel : ViewModel() {
 
     fun setMinPoint(point: Point) {
         floorPlanState = floorPlanState.copy(minPoint = point)
+    }
+    fun setMaxPoint(point: Point) {
+        floorPlanState = floorPlanState.copy(maxPoint = point)
     }
 
     fun importFromGeoJSONUri(context: Context, uri: Uri) {
