@@ -17,8 +17,8 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 class NavigationViewModel(
-    private val floorPlanViewModel: FloorPlanViewModel
-) : ViewModel() {
+    private val floorPlanViewModel: FloorPlanViewModel,
+    ) : ViewModel() {
     private val pathFinder = PathFinder()
 
     var currentPath by mutableStateOf<List<Point>?>(null)

@@ -38,9 +38,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.malvoayant.NavigationLogic.Models.StaticInstruction
 import com.example.malvoayant.R
+import com.example.malvoayant.data.models.FloorPlanState
 import com.example.malvoayant.data.models.POI
 import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
@@ -60,28 +62,25 @@ fun SearchScreen(
     context: Context,
     navController: NavHostController,
     floorPlanViewModel: FloorPlanViewModel,
-    stepCounterViewModel: StepCounterViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-    navigationViewModel: NavigationViewModel
+    stepCounterViewModel: StepCounterViewModel = viewModel(),
+    navigationViewModel: NavigationViewModel,
 ) {
     val context = LocalContext.current
-    val isConnected by stepCounterViewModel.isConnected.observeAsState(false)
-    val floorPlan = floorPlanViewModel.floorPlanState
     val searchText = remember { mutableStateOf("") }
     val lastClickTime = remember { mutableStateOf(0L) }
     val doubleClickTimeWindow = 300L
     // Observe position data from Raspberry Pi
-    val wifiPosition by stepCounterViewModel.wifiPositionLive.observeAsState(null)
-    val lastWifiUpdateAgo by stepCounterViewModel.lastWifiUpdateAgo.observeAsState("Never")
-    val wifiConfidence by stepCounterViewModel.wifiConfidence.observeAsState(0f)
     val errorMessage = navigationViewModel.errorMessage
     // Nouveaux états pour la sélection
     var startPoint by remember { mutableStateOf<POI?>(null) }
     var endPoint by remember { mutableStateOf<POI?>(null) }
     var showStartSelection by remember { mutableStateOf(false) }
     var showEndSelection by remember { mutableStateOf(false) }
-    //var showEndSelection by  { mutableStateOf(false) }
-    // Position actuelle (à remplacer par votre logique réelle)
-    val currentPosition = remember { POI(x=1654.5765f, y=548.2973F, name = "current") }
+
+    val currentPosition2 by stepCounterViewModel.currentPositionLive.observeAsState(Pair(0f, 0f))
+    val currentPosition = remember(currentPosition2) {
+        POI(x = currentPosition2.first*50+floorPlanViewModel.floorPlanState.minPoint.x, y = currentPosition2.second*50+floorPlanViewModel.floorPlanState.minPoint.x, name = "current")
+    }
     var showInstructions by remember { mutableStateOf(false) }
 
     // مراقبة تغيير التعليمات
@@ -283,11 +282,14 @@ fun SearchScreen(
         }
         // Liste de sélection pour le départ
         if (showStartSelection) {
+            Log.d("QUICK CHECKIIING ","current position :${currentPosition.x}, ${currentPosition.y}")
             PointSelectionDialog(
                 title = "Choose starting point",
                 points = listOf(currentPosition) + filteredPois,
                 onSelect = {
                     startPoint = it
+                    Log.d("Cheking after selecting","start psition :x= ${startPoint!!.x}, y=${startPoint!!.y}")
+
                     showStartSelection = false
                 },
                 onDismiss = { showStartSelection = false },

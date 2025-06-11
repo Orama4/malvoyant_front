@@ -1,281 +1,328 @@
 package com.example.malvoayant.data.viewmodels
-
 import android.app.Application
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import org.java_websocket.client.WebSocketClient
-import org.java_websocket.handshake.ServerHandshake
-import org.json.JSONObject
-import java.lang.Exception
-import java.net.URI
+import com.example.malvoayant.data.models.FloorPlanState
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
+import kotlin.math.abs
+import kotlin.math.atan2
 
-class StepCounterViewModel(application: Application) : AndroidViewModel(application) {
-    private var isReconnecting = false
+class StepCounterViewModel(application: Application, var floorPlanState: FloorPlanState,) : AndroidViewModel(application) {
 
-    // WebSocket properties
-    private var webSocketClient: WebSocketClient? = null
-    private val _isConnected = MutableLiveData(false)
-    val isConnected: LiveData<Boolean> = _isConnected
+    private val sensorManager = application.getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
-    // WiFi position properties
-    private val _wifiPositionLive = MutableLiveData<Pair<Float, Float>?>(null)
-    val wifiPositionLive: LiveData<Pair<Float, Float>?> = _wifiPositionLive
 
-    private val _wifiConfidence = MutableLiveData(0.0f)
-    val wifiConfidence: LiveData<Float> = _wifiConfidence
+    // Use accelerometer for more reliable step detection
+    private val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    private val stepDetector = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
+    private val rotationVector = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
 
-    // For visualization - path tracking with only WiFi positions
-    private val _pathPoints = MutableLiveData(listOf<Pair<Float, Float>>())
-    val pathPoints: LiveData<List<Pair<Float, Float>>> = _pathPoints
+    private val _steps = MutableLiveData(0)
+    val steps: LiveData<Int> = _steps
 
-    // Current position (only from WiFi)
+    private val _currentHeadingLive = MutableLiveData(0f)
+    val currentHeadingLive: LiveData<Float> = _currentHeadingLive
+
+    private var currentHeading = 0f
+    private var currentPosition = Pair(0f, 0f)
+    private val stepLength = 1f
+
     private val _currentPositionLive = MutableLiveData(Pair(0f, 0f))
     val currentPositionLive: LiveData<Pair<Float, Float>> = _currentPositionLive
 
-    // Position update time tracking
-    private var lastWifiUpdateTime = 0L
-    private val _lastWifiUpdateAgo = MutableLiveData("Never")
-    val lastWifiUpdateAgo: LiveData<String> = _lastWifiUpdateAgo
+    private val _pathPoints = MutableLiveData(listOf(Pair(0f, 0f)))
+    val pathPoints: LiveData<List<Pair<Float, Float>>> = _pathPoints
 
-    // Connection status
-    private val _connectionStatus = MutableLiveData("Disconnected")
-    val connectionStatus: LiveData<String> = _connectionStatus
+    private var environmentNorth = 0f
+    private var isCalibrated = false
 
-    private val _errorMessage = MutableLiveData<String?>(null)
-    val errorMessage: LiveData<String?> = _errorMessage
+    // Step detection parameters
+    private var lastAcceleration = 0f
+    private var previousAcceleration = 0f
+    private var lastStepTime = 0L
+    private var stepThreshold = 1.8f // Optimized for normal walking (1.5-3.0 range)
+    private val minStepInterval = 250L // Minimum 250ms between steps (240 steps/min max)
+    private val maxStepInterval = 2000L // Maximum 2 seconds between steps (30 steps/min min)
+    private var consecutiveNoSteps = 0
+    private val maxConsecutiveNoSteps = 10
 
-    private var reconnectAttempts = 0
-    private val maxReconnectAttempts = 5
+    // Low-pass filter for smoothing accelerometer data
+    private val alpha = 0.8f
+    private val gravity = FloatArray(3)
+    private val linearAcceleration = FloatArray(3)
 
-    private var reconnectionJob: kotlinx.coroutines.Job? = null
-
-    // Start a timer to update the "last update" text
-    private val updateTimer = CoroutineScope(Dispatchers.Default)
-
-    init {
-        // Start timer to update "last update ago" text
-        updateTimer.launch {
-            while (isActive) {
-                updateLastUpdateText()
-                delay(1000)  // Update every second
-            }
-        }
-    }
-
-    // WebSocket functions
-    fun initWebSocket() {
-        connectWebSocket()
-        startReconnectionTimer()
-    }
-
-    private fun connectWebSocket() {
-        if (isReconnecting) return
-        isReconnecting = true
-
-        try {
-            webSocketClient?.close()
-            webSocketClient = null
-        } catch (e: Exception) {
-            // Ignore any exceptions during cleanup
-        }
-
-        val serverUri = URI("ws://192.168.205.205:8000/ws/position") // Update with Pi's IP
-
-        webSocketClient = object : WebSocketClient(serverUri) {
-            override fun onOpen(handshakedata: ServerHandshake?) {
-                reconnectAttempts = 0  // Reset counter on successful connection
-                _isConnected.postValue(true)
-                _connectionStatus.postValue("Connected to Raspberry Pi")
-                _errorMessage.postValue(null)
-                requestWifiPositionUpdates()
-
-                // Cancel reconnection timer since we're connected
-                reconnectionJob?.cancel()
-                reconnectionJob = null
-            }
-
-            override fun onMessage(message: String?) {
-                Log.d("WebSocket", "Message received: $message")
-                message?.let {
-                    try {
-                        val json = JSONObject(it)
-                        when (json.getString("type")) {
-                            "wifi_position" -> {
-                                val position = json.getJSONObject("position")
-                                val x = position.getDouble("x").toFloat()
-                                val y = position.getDouble("y").toFloat()
-
-                                // Optional: default confidence to 1.0 if not present
-                                val confidence = if (position.has("confidence")) {
-                                    position.getDouble("confidence").toFloat()
-                                } else {
-                                    1.0f
-                                }
-
-                                _wifiPositionLive.postValue(Pair(x, y))
-                                _wifiConfidence.postValue(confidence)
-                                lastWifiUpdateTime = System.currentTimeMillis()
-
-                                // Update current position with WiFi position
-                                _currentPositionLive.postValue(Pair(x, y))
-
-                                // Update path points with WiFi position
-                                val currentPath = _pathPoints.value ?: listOf()
-                                val updatedPath = currentPath + Pair(x, y)
-                                _pathPoints.postValue(updatedPath)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.e("WebSocket", "Error parsing message: ${e.message}", e)
-                        _errorMessage.postValue("Error parsing message: ${e.message}")
+    // Step detection using both sensors for redundancy
+    private val stepListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            when (event.sensor.type) {
+                Sensor.TYPE_STEP_DETECTOR -> {
+                    // Hardware step detector as backup
+                    val currentTime = System.currentTimeMillis()
+                    if (currentTime - lastStepTime > minStepInterval) {
+                        handleStepDetected("hardware")
+                        lastStepTime = currentTime
                     }
                 }
-            }
 
-            override fun onClose(code: Int, reason: String?, remote: Boolean) {
-                _isConnected.postValue(false)
-                _connectionStatus.postValue("Disconnected: $reason")
-
-                // reconnect with exponential backoff
-                if (reconnectAttempts < maxReconnectAttempts) {
-                    reconnectAttempts++
-                }
-
-                startReconnectionTimer()
-            }
-
-            override fun onError(ex: Exception?) {
-                _isConnected.postValue(false)
-                _errorMessage.postValue("WebSocket error: ${ex?.message}")
-                // Attempt reconnect after delay
-                CoroutineScope(Dispatchers.IO).launch {
-                    delay(5000)
-                    connectWebSocket()
+                Sensor.TYPE_ACCELEROMETER -> {
+                    // Custom step detection using accelerometer
+                    processAccelerometerData(event.values)
                 }
             }
         }
 
-        // connection timeout and handle reconnection
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                delay(10000)
-                if (webSocketClient != null && !_isConnected.value!!) {
-                    _connectionStatus.postValue("Connection timed out")
-                    _errorMessage.postValue("Failed to connect to server")
-                    webSocketClient?.close()
-                    webSocketClient = null
+        override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
+//            Log.d("StepCounter", "Sensor accuracy changed: ${sensor.name} = $accuracy")
+        }
+    }
+
+    private fun processAccelerometerData(values: FloatArray) {
+        // Apply low-pass filter to isolate gravity
+        gravity[0] = alpha * gravity[0] + (1 - alpha) * values[0]
+        gravity[1] = alpha * gravity[1] + (1 - alpha) * values[1]
+        gravity[2] = alpha * gravity[2] + (1 - alpha) * values[2]
+
+        // Remove gravity to get linear acceleration
+        linearAcceleration[0] = values[0] - gravity[0]
+        linearAcceleration[1] = values[1] - gravity[1]
+        linearAcceleration[2] = values[2] - gravity[2]
+
+        // Calculate magnitude of linear acceleration
+        val magnitude = sqrt(
+            linearAcceleration[0] * linearAcceleration[0] +
+                    linearAcceleration[1] * linearAcceleration[1] +
+                    linearAcceleration[2] * linearAcceleration[2]
+        )
+
+        // Step detection algorithm
+        detectStep(magnitude)
+    }
+
+    private fun detectStep(acceleration: Float) {
+        val currentTime = System.currentTimeMillis()
+
+        // Check for step pattern: significant change in acceleration
+        val accelerationChange = abs(acceleration - lastAcceleration)
+
+        if (accelerationChange > stepThreshold &&
+            currentTime - lastStepTime > minStepInterval) {
+
+            // Additional validation: check if we have a proper step pattern
+            if (isValidStepPattern(acceleration, lastAcceleration, previousAcceleration)) {
+                handleStepDetected("accelerometer")
+                lastStepTime = currentTime
+                consecutiveNoSteps = 0
+            }
+        }
+
+        // Update acceleration history
+        previousAcceleration = lastAcceleration
+        lastAcceleration = acceleration
+
+        // Check for walking timeout
+        if (currentTime - lastStepTime > maxStepInterval) {
+            consecutiveNoSteps++
+            if (consecutiveNoSteps > maxConsecutiveNoSteps) {
+            }
+        }
+    }
+
+    private fun isValidStepPattern(current: Float, last: Float, previous: Float): Boolean {
+        // Check for a peak or valley pattern typical of walking
+        val isIncreasing = current > last && last > previous
+        val isDecreasing = current < last && last < previous
+        val hasPeak = last > current && last > previous
+        val hasValley = last < current && last < previous
+
+        return hasPeak || hasValley || (isIncreasing && current > stepThreshold) ||
+                (isDecreasing && abs(current - previous) > stepThreshold * 0.5f)
+    }
+
+    private fun handleStepDetected(source: String) {
+        _steps.postValue((_steps.value ?: 0) + 1)
+        updatePosition()
+//        Log.d("StepCounter", "Step detected from $source sensor. Total steps: ${_steps.value}")
+    }
+
+    private val rotationListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
+                val rotationMatrix = FloatArray(9)
+                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+
+                val orientationAngles = FloatArray(3)
+                SensorManager.getOrientation(rotationMatrix, orientationAngles)
+
+                // Convert to degrees and normalize to 0-360
+                currentHeading = Math.toDegrees(orientationAngles[0].toDouble()).toFloat() + 160
+                if (currentHeading < 0) {
+                    currentHeading += 360f
                 }
-            } finally {
-                isReconnecting = false
+
+                // Calculate heading relative to environment
+                val envHeading = calculateEnvironmentHeading(currentHeading)
+                _currentHeadingLive.postValue(envHeading)
             }
         }
 
-        try {
-            webSocketClient?.connect()
-        } catch (e: Exception) {
-            _errorMessage.postValue("Connection error: ${e.message}")
-            isReconnecting = false
-        }
-    }
-
-    private fun requestWifiPositionUpdates(intervalSeconds: Double = 1.0) {
-        val jsonObject = JSONObject()
-        jsonObject.put("type", "start_position_updates")
-        jsonObject.put("interval", intervalSeconds)
-
-        webSocketClient?.let { client ->
-            if (client.isOpen) {
-                client.send(jsonObject.toString())
+        override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
+            if (accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE) {
+                Log.w("StepCounter", "Rotation sensor accuracy is unreliable")
             }
         }
     }
 
-    fun requestSingleWifiUpdate() {
-        try {
-            val jsonObject = JSONObject()
-            jsonObject.put("type", "single_position_request")
+    private fun calculateEnvironmentHeading(deviceHeading: Float): Float {
+        return if (isCalibrated) {
+            ((deviceHeading - environmentNorth + 360) % 360)
+        } else {
+            deviceHeading
+        }
+    }
+    fun getOuterWallPolygon(floorPlanState: FloorPlanState): List<Pair<Float, Float>> {
 
-            webSocketClient?.let { client ->
-                if (client.isOpen) {
-                    client.send(jsonObject.toString())
-                }
+        // Étape 1: Collecter tous les points uniques
+        val allPoints = mutableSetOf<Pair<Float, Float>>()
+        for (wall in floorPlanState.walls) {
+            allPoints.add(Pair(wall.start.x, wall.start.y))
+            allPoints.add(Pair(wall.end.x, wall.end.y))
+        }
+
+        if (allPoints.size < 3) return allPoints.toList()
+
+        // Étape 2: Trouver le centre du polygone
+        val centerX = allPoints.map { it.first }.average().toFloat()
+        val centerY = allPoints.map { it.second }.average().toFloat()
+
+        // Étape 3: Ordonner les points par angle depuis le centre
+        val orderedPoints = allPoints.sortedBy { point ->
+            atan2((point.second - centerY).toDouble(), (point.first - centerX).toDouble())
+        }
+
+        return orderedPoints
+    }
+
+    fun isPointInPolygon(point: Pair<Float, Float>, polygon: List<Pair<Float, Float>>): Boolean {
+        var (x, y) = point
+
+        x=x*50+floorPlanState.minPoint.x
+        y=y*50+floorPlanState.minPoint.y
+
+        var inside = false
+        val n = polygon.size
+
+        var j = n - 1
+        for (i in 0 until n) {
+            val xi = polygon[i].first
+            val yi = polygon[i].second
+            val xj = polygon[j].first
+            val yj = polygon[j].second
+
+//            Log.d("PolygonCheck", "Edge from ($xi, $yi) to ($xj, $yj)")
+
+            if (((yi > y) != (yj > y)) &&
+                (x < (xj - xi) * (y - yi) / (yj - yi + 0.0000001f) + xi)) {
+                inside = !inside
+//                Log.d("PolygonCheck", "Point crosses edge from ($xi, $yi) to ($xj, $yj). Inside status: $inside")
             }
-        } catch (e: Exception) {
-            _errorMessage.postValue("Error sending request: ${e.message}")
+
+            j = i
+        }
+
+//        Log.d("PolygonCheck", "Point ($x, $y) is inside polygon: $inside,the polygon is :$polygon,  and minpoint is min.x=${floorPlanState.minPoint.x},min.y=${floorPlanState.minPoint.y}")
+        return inside
+    }
+
+
+    private fun updatePosition() {
+        val envHeading = calculateEnvironmentHeading(currentHeading)
+
+        val rad = Math.toRadians(envHeading.toDouble())
+
+        var deltaX = (stepLength * cos(rad)).toFloat()
+        var deltaY = (stepLength * sin(rad)).toFloat()
+
+        // Initial step length
+        var currentStepLength = stepLength
+
+        // Minimum step length threshold
+        val minStepLength = 0.2f
+
+        var nextPosition = Pair(
+            currentPosition.first + deltaX,
+            currentPosition.second + deltaY
+        )
+
+        val outerPolygon: List<Pair<Float, Float>> = getOuterWallPolygon(floorPlanState)
+
+        // Reduce step length until the next position is inside the polygon or step length is too small
+        while (!isPointInPolygon(nextPosition, outerPolygon) && currentStepLength > minStepLength) {
+
+            currentStepLength -= 0.1f
+            deltaX = (currentStepLength * cos(rad)).toFloat()
+            deltaY = (currentStepLength * sin(rad)).toFloat()
+            nextPosition = Pair(
+                currentPosition.first + deltaX,
+                currentPosition.second + deltaY
+            )
+        }
+
+        // Check if the final position is inside the polygon
+        if (isPointInPolygon(nextPosition, outerPolygon)) {
+
+            currentPosition = nextPosition
+
+            _currentPositionLive.postValue(currentPosition)
+            Log.d("QUICK CHECKIIIINNNG IN STEP","current position :${currentPosition.first}, ${currentPosition.second}")
+            val updatedPath = _pathPoints.value.orEmpty() + currentPosition
+
+            _pathPoints.postValue(updatedPath)
+            Log.d("Navigation", "Step taken: heading=$envHeading°, position=$currentPosition")
+        } else {
+            Log.d("Navigation", "Step ignored: next position is outside the walls!")
         }
     }
 
-    private fun updateLastUpdateText() {
-        if (lastWifiUpdateTime == 0L) {
-            _lastWifiUpdateAgo.postValue("Never")
-            return
-        }
 
-        val age = System.currentTimeMillis() - lastWifiUpdateTime
-        val text = when {
-            age < 1000 -> "Just now"
-            age < 60000 -> "${age / 1000} seconds ago"
-            else -> "${age / 60000} minutes ago"
-        }
-
-        _lastWifiUpdateAgo.postValue(text)
-    }
-
-    // Public functions for controlling the system
     fun startListening() {
-        // Only initialize WebSocket connection - no sensors
-        initWebSocket()
+        // Register both accelerometer and step detector for redundancy
+        accelerometer?.let {
+            sensorManager.registerListener(stepListener, it, SensorManager.SENSOR_DELAY_GAME)
+        }
+
+        stepDetector?.let {
+            sensorManager.registerListener(stepListener, it, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+
+        rotationVector?.let {
+            sensorManager.registerListener(rotationListener, it, SensorManager.SENSOR_DELAY_GAME)
+        }
+
+        Log.d("StepCounter", "Started listening - Accelerometer: ${accelerometer != null}, StepDetector: ${stepDetector != null}")
     }
 
     fun stopListening() {
-        // Close WebSocket connection
-        webSocketClient?.close()
+        sensorManager.unregisterListener(stepListener)
+        sensorManager.unregisterListener(rotationListener)
+        Log.d("StepCounter", "Stopped listening for sensors")
     }
 
-    fun resetAll() {
-        // Clear path points
-        _pathPoints.value = listOf()
-
-        // Keep the last WiFi position but reset the path
-        val lastWifiPos = _wifiPositionLive.value ?: Pair(0f, 0f)
-        _currentPositionLive.value = lastWifiPos
-    }
 
     override fun onCleared() {
         super.onCleared()
-        reconnectionJob?.cancel()
-        webSocketClient?.close()
-        updateTimer.cancel()
+        stopListening()
     }
 
-    private fun startReconnectionTimer() {
-        // Cancel any existing job first
-        reconnectionJob?.cancel()
-
-        // Start a new job that periodically attempts to reconnect
-        reconnectionJob = CoroutineScope(Dispatchers.IO).launch {
-            while (isActive && (!_isConnected.value!!)) {
-                // Calculate delay based on reconnect attempts
-                val delayMs = if (reconnectAttempts < maxReconnectAttempts) {
-                    1000L * (1 shl reconnectAttempts) // Exponential backoff
-                } else {
-                    30000L // Once every 30 seconds after max attempts
-                }
-
-                delay(delayMs)
-                if (!_isConnected.value!!) {
-                    _connectionStatus.postValue("Attempting to reconnect...")
-                    connectWebSocket()
-                }
-            }
-        }
-    }
 }
