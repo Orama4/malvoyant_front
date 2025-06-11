@@ -11,7 +11,12 @@ import com.example.malvoayant.NavigationLogic.Models.StaticInstruction
 import com.example.malvoayant.NavigationLogic.graph.GridNavigationGraph
 import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.exceptions.PathfindingException
+import com.example.malvoayant.utils.NavigationUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -37,9 +42,20 @@ class NavigationViewModel(
     var showInstructions by mutableStateOf(false)
         private set
 
+    // Ajoutez cette fonction
+    fun handleObstacleDetected(position: Point) {
+        NavigationUtils.detectObstacle(position)
+    }
+    private val _traversedPath = MutableStateFlow<List<Point>>(emptyList())
+    val traversedPath: StateFlow<List<Point>> = _traversedPath
+
+    fun updateTraversedPath(point: Point) {
+        _traversedPath.update { it + point }
+    }
 
 
     fun calculatePath(start: Any, destination: Any) {
+        NavigationUtils.stopNavigation(null)
         viewModelScope.launch(Dispatchers.IO) {
             isLoading = true
             errorMessage = null

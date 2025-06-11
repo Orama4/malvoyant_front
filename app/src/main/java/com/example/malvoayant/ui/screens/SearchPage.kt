@@ -50,6 +50,7 @@ import com.example.malvoayant.navigation.Screen
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
+import com.example.malvoayant.utils.NavigationUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -63,6 +64,11 @@ fun SearchScreen(
     stepCounterViewModel: StepCounterViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     navigationViewModel: NavigationViewModel
 ) {
+    //navigation variables
+    var isNavigationActive by remember { mutableStateOf(false) }
+    val traversedPath = remember { mutableStateOf<List<Point>>(emptyList()) }
+    var currentInstructionIndex by remember { mutableStateOf(0) }
+    //*******************************************************
     val context = LocalContext.current
     val isConnected by stepCounterViewModel.isConnected.observeAsState(false)
     val floorPlan = floorPlanViewModel.floorPlanState
@@ -270,6 +276,59 @@ fun SearchScreen(
                 }
             }
 
+            //navigation button
+            Button(
+                onClick = {
+                    speechHelper.speak("Navigation started")
+                    // Démarrer la navigation
+                    if (startPoint != null && endPoint != null) {
+                        val start = if (startPoint!!.name == "current") {
+                            Point(x = startPoint!!.x, y = startPoint!!.y)
+                        } else {
+                            startPoint!!
+                        }
+
+                        NavigationUtils.startNavigation(
+                            start = start,
+                            destination = Point(endPoint!!.x,endPoint!!.y),
+                            navigationViewModel = navigationViewModel,
+                            onPositionUpdated = { newPosition ->
+                                // Mettre à jour la position dans StepCounterViewModel si nécessaire
+                            },
+                            onInstructionChanged = { newIndex ->
+                                currentInstructionIndex = newIndex
+                                // Parler l'instruction si nécessaire
+                                navigationViewModel.instructions.getOrNull(newIndex)?.let { instruction ->
+                                    speechHelper.speak(instruction.instruction)
+                                }
+                            },
+                            onStopNavigation = {
+                                isNavigationActive = false
+                                currentInstructionIndex = 0
+                                speechHelper.speak("You have reached your destination, would you like to activate OD2 to get more information about the current position")
+                            }
+                        )
+                        isNavigationActive = true
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AppColors.primary,
+                    contentColor = Color.White
+                )
+            ) {
+                Text(
+                    text = "Start Navigation",
+                    fontSize = 18.sp,
+                    fontFamily = PlusJakartaSans,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
 
             // Bottom navigation buttons
             BottomNavigationButtons(
@@ -312,8 +371,27 @@ fun SearchScreen(
             instructions = navigationViewModel.instructions,
             isVisible = showInstructions && navigationViewModel.instructions.isNotEmpty(),
             onDismiss = { showInstructions = false },
-            speechHelper = speechHelper
+            speechHelper = speechHelper,
+            currentInstructionIndex = currentInstructionIndex
         )
+        // Dans le Box principal de SearchScreen
+        if (isNavigationActive) {
+            Button(
+                onClick = {
+                    NavigationUtils.getTraversedPath().lastOrNull()?.let {
+                        navigationViewModel.handleObstacleDetected(it)
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Red
+                )
+            ) {
+                Text("Simuler un obstacle")
+            }
+        }
 
 
     }
@@ -874,6 +952,7 @@ fun PointSelectionDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppColors.primary
                     )
@@ -924,7 +1003,8 @@ fun NavigationInstructionsBottomSheet(
     isVisible: Boolean,
     onDismiss: () -> Unit,
     speechHelper: SpeechHelper,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    currentInstructionIndex: Int = 0 // Ajoutez un paramètre pour l'index actuel
 ) {
     val bottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = false
@@ -954,7 +1034,8 @@ fun NavigationInstructionsBottomSheet(
             NavigationInstructionsContent(
                 instructions = instructions,
                 onClose = onDismiss,
-                speechHelper = speechHelper
+                speechHelper = speechHelper,
+                currentInstructionIndex = currentInstructionIndex // Vous pouvez ajuster cet index selon vos besoins
             )
         }
     }
@@ -964,7 +1045,8 @@ fun NavigationInstructionsBottomSheet(
 private fun NavigationInstructionsContent(
     instructions: List<StaticInstruction>,
     onClose: () -> Unit,
-    speechHelper: SpeechHelper
+    speechHelper: SpeechHelper,
+    currentInstructionIndex: Int = 0 // Ajoutez un paramètre pour l'index actuel
 ) {
     Column(
         modifier = Modifier
@@ -1022,6 +1104,7 @@ private fun NavigationInstructionsContent(
                     instruction = instruction,
                     stepNumber = index + 1,
                     isLast = index == instructions.size - 1,
+                    isCurrent = index == currentInstructionIndex,
                     speechHelper = speechHelper
                 )
             }
@@ -1062,6 +1145,7 @@ private fun InstructionCard(
     instruction: StaticInstruction,
     stepNumber: Int,
     isLast: Boolean,
+    isCurrent: Boolean, // Ajoutez ce paramètre
     speechHelper: SpeechHelper
 ) {
     Card(
@@ -1074,7 +1158,7 @@ private fun InstructionCard(
                 speechHelper.speak(speechText)
             },
         colors = CardDefaults.cardColors(
-            containerColor = if (stepNumber == 1) Color(0xFFFDF1E5) else Color.White
+            containerColor = if (isCurrent) Color(0xFFFDF1E5) else Color.White
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = RoundedCornerShape(16.dp)
@@ -1092,7 +1176,7 @@ private fun InstructionCard(
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(
-                        if (stepNumber == 1) AppColors.primary
+                        if (isCurrent) AppColors.primary
                         else AppColors.darkBlue.copy(alpha = 0.1f)
                     ),
                 contentAlignment = Alignment.Center
