@@ -184,12 +184,10 @@ class GridNavigationGraph(
         //just for the last element i want it to be the goalPoint
         if (cellPath.isEmpty()) return emptyList()
         //remove the last and put goalPoint instead of it
-//        if (cellPath.last() == goalCell) {
-//            cellPath.removeAt(0)
-//            cellPath += Cell(startCell.i, startCell.j, startPoint, true)
-//            cellPath.removeAt(cellPath.size - 1)
-//            cellPath += Cell(goalCell.i, goalCell.j, goalPoint, true)
-//        }
+        if (cellPath.last() == goalCell) {
+            cellPath [0]= Cell(startCell.i, startCell.j, startPoint, true)
+
+        }
 
         return cellPath.map { it.center }
     }

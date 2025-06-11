@@ -79,7 +79,7 @@ fun SearchScreen(
 
     val currentPosition2 by stepCounterViewModel.currentPositionLive.observeAsState(Pair(0f, 0f))
     val currentPosition = remember(currentPosition2) {
-        POI(x = currentPosition2.first*50+floorPlanViewModel.floorPlanState.minPoint.x, y = currentPosition2.second*50+floorPlanViewModel.floorPlanState.minPoint.x, name = "current")
+        POI(x = currentPosition2.first*50+floorPlanViewModel.floorPlanState.minPoint.x, y = currentPosition2.second*50+floorPlanViewModel.floorPlanState.minPoint.y, name = "current")
     }
     var showInstructions by remember { mutableStateOf(false) }
 
