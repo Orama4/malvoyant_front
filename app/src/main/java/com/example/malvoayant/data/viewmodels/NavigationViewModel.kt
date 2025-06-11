@@ -72,7 +72,7 @@ class NavigationViewModel(
                     instructions=instructions+ StaticInstruction(
                         instruction = "Go straight",
                         distance = sqrt((currentPath!![i+1].x - currentPath!![i].x).pow(2) +
-                                (currentPath!![i+1].y - currentPath!![i].y).pow(2) )/50,
+                                (currentPath!![i+1].y - currentPath!![i].y).pow(2) )/100,
                     )
                     // checking if i+1 is on the right or left of i to add turning instruction
 
