@@ -58,7 +58,8 @@ import com.example.malvoayant.data.viewmodels.StepCounterViewModel
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import kotlin.math.*
 import kotlin.random.Random
-
+import com.example.malvoayant.NavigationLogic.utils.calculateDistance
+import com.example.malvoayant.utils.NavigationUtils
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun FloorPlanCanvasView(
@@ -68,7 +69,7 @@ fun FloorPlanCanvasView(
     navigationViewModel: NavigationViewModel
 ) {
 
-
+    val traversedPath by navigationViewModel.traversedPath.collectAsState()
     val pathPoints by stepCounterViewModel.pathPoints.observeAsState(listOf(Pair(0f, 0f)))
     val currentPosition by stepCounterViewModel.currentPositionLive.observeAsState(Pair(0f, 0f))
     val currentHeading by stepCounterViewModel.currentHeadingLive.observeAsState(0f)
@@ -130,38 +131,28 @@ fun FloorPlanCanvasView(
         )
     }
 
-    // Effet pour calculer la position focus quand on change de mode
-    LaunchedEffect(globalView, navigationViewModel.currentPath) {
-        val path = navigationViewModel.currentPath
-        if (!globalView && path != null && path.size >= 2) {
-            // Position actuelle (premier point du chemin)
-            val (cx, cy) = path.first()
+    LaunchedEffect(globalView, traversedPath) {
+        if (!globalView && traversedPath.isNotEmpty()) {
+            val lastPoint = traversedPath.last()
+            val (cx, cy) = lastPoint
 
-            // Calcul de l'offset pour centrer la position actuelle
+            val canvasCenter = Offset(canvasSize.width / 2f, canvasSize.height / 2f)
+
+            // Offset pour centrer sur le dernier point
             focusOffset = Offset(
-                (canvasSize.width / 2f - cx * focusScale) / focusScale,
-                (canvasSize.height / 2f - cy * focusScale) / focusScale
+                x = canvasCenter.x - cx,
+                y = canvasCenter.y - cy
             )
 
-            // Marquer comme initialisation
             isInitialFocus = true
 
-            // Réinitialiser focusOffset pour le centrage initial
-            //focusOffset = Offset.Zero
-            val canvasCenter = Offset(canvasSize.width / 2f, canvasSize.height / 2f)
-            focusOffset = Offset(
-                x = (canvasCenter.x  - cx),
-                y = (canvasCenter.y  - cy)
-            )
-
-            Log.d("FloorPlanCanvasView", "Focus offset set to: $focusOffset")
-
-            // Calcul de la rotation pour que le vecteur path[0] -> path[1] pointe vers le haut
-            val (nx, ny) = path[1]
-            val dx = nx - cx
-            val dy = ny - cy
-            // Angle pour que le vecteur pointe vers le haut (axe Y négatif)
-            focusRotation = -atan2(dx, dy) + PI.toFloat() / 2f
+            // Calculer une rotation si on a un point précédent (optionnel)
+            if (traversedPath.size >= 2) {
+                val prev = traversedPath[traversedPath.size - 2]
+                val dx = lastPoint.x - prev.x
+                val dy = lastPoint.y - prev.y
+                focusRotation = -atan2(dx, dy) + PI.toFloat() / 2f
+            }
         }
     }
 
@@ -212,6 +203,7 @@ fun FloorPlanCanvasView(
                         windowColor = windowColor,
                         navigationViewModel = navigationViewModel,
                         progress = progress,
+                        traversedPath = traversedPath,
                         pathPoints=pathPoints,
                         currentPosition=currentPosition,
                         currentHeading=currentHeading,
@@ -240,6 +232,7 @@ fun FloorPlanCanvasView(
                             navigationViewModel = navigationViewModel,
                             progress = progress,
                             pathPoints=pathPoints,
+                            traversedPath = traversedPath,
                         currentPosition=currentPosition,
                         currentHeading=currentHeading,
                         pathGradientColors=pathGradientColors,
@@ -269,7 +262,7 @@ fun FloorPlanCanvasView(
                         focusScale = 6f
                     }
                 },
-                containerColor = if (globalView) Color(0xFF2196F3) else Color(0xFFFF9800),
+                containerColor = if (globalView) Color(0xFF0D1B2A) else Color(0xFFE76F00),
                 contentColor = Color.White,
                 elevation = FloatingActionButtonDefaults.elevation(
                     defaultElevation = 8.dp,
@@ -286,13 +279,13 @@ fun FloorPlanCanvasView(
                     if (isGlobal) {
                         Icon(
                             imageVector = Icons.Default.MyLocation,
-                            contentDescription = "Vue Focus",
+                            contentDescription = "Focus view",
                             modifier = Modifier.size(24.dp)
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Default.Map,
-                            contentDescription = "Vue Globale",
+                            contentDescription = "Global view",
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -311,7 +304,7 @@ fun FloorPlanCanvasView(
             shape = RoundedCornerShape(20.dp)
         ) {
             Text(
-                text = if (globalView) "Vue Globale" else "Vue Focus",
+                text = if (globalView) "Global view" else "Focus view",
                 color = Color.White,
                 fontFamily = PlusJakartaSans,
                 fontSize = 12.sp,
@@ -330,6 +323,7 @@ private fun DrawScope.drawContent(
     windowColor: Color,
     navigationViewModel: NavigationViewModel,
     progress: Float,
+    traversedPath: List<Point> = emptyList(),
     pathPoints: List<Pair<Float, Float>>,
     currentPosition: Pair<Float, Float>,
     currentHeading: Float,
@@ -368,8 +362,67 @@ private fun DrawScope.drawContent(
             density = this.density
         )
     }
+    val remainingPath = navigationViewModel.currentPath?.let { path ->
+        if (traversedPath.isNotEmpty()) {
+            path.dropWhile { point ->
+                traversedPath.any { calculateDistance(it, point) < 1.0 }
+            }
+        } else {
+            path
+        }
+    }
+
+    if (remainingPath != null && remainingPath.isNotEmpty()) {
+        drawPath(
+            points = remainingPath,
+            color = Color.Blue,
+            strokeWidth = 8f
+        )
+    }
+    if (traversedPath.isNotEmpty()) {
+        // Dessiner le chemin parcouru en gris
+        drawPath(
+            points = traversedPath,
+            color = Color.Gray,
+            strokeWidth = 8f
+        )
+
+        // Dessiner la position actuelle
+        val currentPos = traversedPath.last()
+        drawCircle(
+            color = Color.Green,
+            center = Offset(currentPos.x, currentPos.y),
+            radius = 12f
+        )
+    }
+
 }
 
+
+private fun DrawScope.drawPath(
+    points: List<Point>,
+    color: Color,
+    strokeWidth: Float
+) {
+    if (points.size < 2) return
+
+    val path = Path().apply {
+        moveTo(points[0].x, points[0].y)
+        for (i in 1 until points.size) {
+            lineTo(points[i].x, points[i].y)
+        }
+    }
+
+    drawPath(
+        path = path,
+        color = color,
+        style = Stroke(width = strokeWidth)
+    )
+}
+
+private fun calculateDistance(a: Point, b: Point): Float {
+    return sqrt((a.x - b.x).pow(2) + (a.y - b.y).pow(2))
+}
 // Extension pour calculer l'angle entre deux points
 private fun calculateAngleBetweenPoints(p1: Point, p2: Point): Float {
     val dx = p2.x - p1.x

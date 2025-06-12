@@ -15,6 +15,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.math.pow
 import kotlin.math.sqrt
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import com.example.malvoayant.utils.NavigationUtils
 
 class NavigationViewModel(
     private val floorPlanViewModel: FloorPlanViewModel,
@@ -38,8 +43,20 @@ class NavigationViewModel(
         private set
 
 
+    // Ajoutez cette fonction
+    fun handleObstacleDetected(position: Point) {
+        NavigationUtils.detectObstacle(position)
+    }
+    private val _traversedPath = MutableStateFlow<List<Point>>(emptyList())
+    val traversedPath: StateFlow<List<Point>> = _traversedPath
+
+    fun updateTraversedPath(point: Point) {
+        _traversedPath.update { it + point }
+    }
+
 
     fun calculatePath(start: Any, destination: Any) {
+        NavigationUtils.stopNavigation(null)
         viewModelScope.launch(Dispatchers.IO) {
             isLoading = true
             errorMessage = null
