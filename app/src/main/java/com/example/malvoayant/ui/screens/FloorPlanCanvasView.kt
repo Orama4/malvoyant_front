@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,7 +56,6 @@ import com.example.malvoayant.data.models.Room
 import com.example.malvoayant.data.models.Wall
 import com.example.malvoayant.data.models.Zone
 import com.example.malvoayant.data.viewmodels.NavigationViewModel
-import com.example.malvoayant.data.viewmodels.StepCounterViewModel
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.utils.NavigationUtils
 import kotlin.math.*
@@ -66,7 +66,7 @@ import kotlin.random.Random
 fun FloorPlanCanvasView(
     floorPlanState: FloorPlanState,
     modifier: Modifier = Modifier,
-    stepCounterViewModel: StepCounterViewModel = viewModel(),
+    viewModel: StepCounterViewModel = viewModel(),
     navigationViewModel: NavigationViewModel
 ) {
 
@@ -85,9 +85,12 @@ fun FloorPlanCanvasView(
     var focusRotation by remember { mutableStateOf(0f) }
     var isInitialFocus by remember { mutableStateOf(false) }
 
-    val pathPoints by stepCounterViewModel.pathPoints.observeAsState(listOf())
+    val pathPoints by viewModel.pathPoints.observeAsState(listOf())
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
-    val wifiPosition by stepCounterViewModel.wifiPositionLive.observeAsState(null)
+   // val wifiPosition by stepCounterViewModel.wifiPositionLive.observeAsState(null)
+
+    val currentPosition by viewModel.currentPositionLive.observeAsState(Pair(0f, 0f))
+    val currentHeading by viewModel.currentHeadingLive.observeAsState(0f)
 
     // Animation pour le chemin
     val infiniteTransition = rememberInfiniteTransition()
@@ -187,8 +190,6 @@ fun FloorPlanCanvasView(
             }
         }
     }
-
-
     Box(
         modifier = modifier
             .clipToBounds()
@@ -235,10 +236,11 @@ fun FloorPlanCanvasView(
                         doorColor = doorColor,
                         windowColor = windowColor,
                         pathPoints = pathPoints,
-                        wifiPosition = wifiPosition,
+                        wifiPosition = currentPosition,
                         navigationViewModel = navigationViewModel,
                         progress = progress,
-                        traversedPath = traversedPath
+                        currentPosition = currentPosition,
+                        currentHeading = currentHeading
                     )
                 }
             } else {
@@ -260,13 +262,31 @@ fun FloorPlanCanvasView(
                             doorColor = doorColor,
                             windowColor = windowColor,
                             pathPoints = pathPoints,
-                            wifiPosition = wifiPosition,
+                            wifiPosition = currentPosition,
                             navigationViewModel = navigationViewModel,
                             progress = progress,
-                            traversedPath = traversedPath
+                            currentPosition = currentPosition,
+                            currentHeading = currentHeading
                         )
                     }
                 }
+            }
+        }
+        if (navigationViewModel.isOffPath) {
+            val offPathModifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+                .background(Color.Red.copy(alpha = 0.7f))
+
+            val textModifier = Modifier.padding(8.dp)
+
+            Box(modifier = offPathModifier) {
+                Text(
+                    text = "OFF PATH",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    modifier = textModifier
+                )
             }
         }
 
@@ -352,8 +372,14 @@ private fun DrawScope.drawContent(
     wifiPosition: Pair<Float, Float>?,
     navigationViewModel: NavigationViewModel,
     progress: Float,
-    traversedPath: List<Point> = emptyList()
+    currentPosition : Pair<Float, Float>,
+    currentHeading: Float
 ) {
+    val headingColor = Color(0xFFE74C3C)
+    val pathStartColor = Color(0xFF27AE60)  // Forest green start
+    val pathEndColor = Color(0xFFF1C40F)  // Gold end
+    val pathGradientColors = listOf(pathStartColor, pathEndColor)
+
     drawInfiniteGrid()
 
     // Draw rooms with subtle 3D effects and patterns
@@ -371,6 +397,8 @@ private fun DrawScope.drawContent(
 
     // Draw stylish POIs with category-specific icons
     drawElegantPOIs(floorPlanState.pois)
+
+    drawElegantPath(floorPlanState.minPoint, pathPoints, currentPosition, currentHeading, pathGradientColors, headingColor)
 
     // WiFi path
     wifiPosition?.let { position ->
@@ -393,7 +421,7 @@ private fun DrawScope.drawContent(
     }
 
     // Dessiner le chemin restant en bleu
-    val remainingPath = navigationViewModel.currentPath?.let { path ->
+        /* val remainingPath = navigationViewModel.currentPath?.let { path ->
         if (traversedPath.isNotEmpty()) {
             path.dropWhile { point ->
                 traversedPath.any { calculateDistance(it, point) < 1.0 }
@@ -419,13 +447,16 @@ private fun DrawScope.drawContent(
         )
 
         // Dessiner la position actuelle
-        val currentPos = traversedPath.last()
+        val currentPos = currentPosition
         drawCircle(
             color = Color.Green,
             center = Offset(currentPos.x, currentPos.y),
             radius = 12f
         )
     }
+         */
+
+
 }
 
 // Extension pour calculer l'angle entre deux points
@@ -473,7 +504,192 @@ private fun DrawScope.drawInfiniteGrid() {
     }
 }
 
+private fun DrawScope.drawElegantPath(
+    minPoint: Point,
+    pathPoints: List<Pair<Float, Float>>,
+    currentPosition: Pair<Float, Float>,
+    currentHeading: Float,
+    gradientColors: List<Color>,
+    headingColor: Color
+) {
+    // Always draw the current position and heading indicator, even if no steps taken yet
+    val posX = currentPosition.first * 50 + minPoint.x
+    val posY = currentPosition.second * 50 + minPoint.y
 
+    // Draw current position with elegant styling
+    // Pulsating outer glow effect
+    for (i in 3 downTo 1) {
+        drawCircle(
+            color = headingColor.copy(alpha = 0.05f * i),
+            radius = 24f + (i * 3),
+            center = Offset(posX, posY)
+        )
+    }
+
+    // Main position indicator
+    drawCircle(
+        color = Color.White,
+        radius = 12f,
+        center = Offset(posX, posY)
+    )
+
+    drawCircle(
+        color = headingColor,
+        radius = 8f,
+        center = Offset(posX, posY)
+    )
+
+    // Draw elegant heading arrow - always show this regardless of movement
+    val headingRad = Math.toRadians(currentHeading.toDouble())
+    val arrowLength = 30.dp.toPx()  // Made longer for better visibility
+    val arrowEndX = posX + arrowLength * cos(headingRad).toFloat()
+    val arrowEndY = posY + arrowLength * sin(headingRad).toFloat()
+
+    // Arrow shaft with gradient and increased width for visibility
+    drawLine(
+        brush = Brush.linearGradient(
+            colors = listOf(headingColor, headingColor.copy(alpha = 0.7f)),
+            start = Offset(posX, posY),
+            end = Offset(arrowEndX, arrowEndY)
+        ),
+        start = Offset(posX, posY),
+        end = Offset(arrowEndX, arrowEndY),
+        strokeWidth = 3.5f  // Slightly thicker for better visibility
+    )
+
+    // Arrow head with enhanced size and visibility
+    val arrowHeadLength = 10.dp.toPx()  // Larger arrow head
+    val angle1 = headingRad + Math.PI * 3 / 4
+    val angle2 = headingRad - Math.PI * 3 / 4
+
+    val arrowHead1X = arrowEndX + arrowHeadLength * cos(angle1).toFloat()
+    val arrowHead1Y = arrowEndY + arrowHeadLength * sin(angle1).toFloat()
+
+    val arrowHead2X = arrowEndX + arrowHeadLength * cos(angle2).toFloat()
+    val arrowHead2Y = arrowEndY + arrowHeadLength * sin(angle2).toFloat()
+
+    // Draw arrow head with thicker stroke
+    drawLine(
+        color = headingColor,
+        start = Offset(arrowEndX, arrowEndY),
+        end = Offset(arrowHead1X, arrowHead1Y),
+        strokeWidth = 3.5f
+    )
+
+    drawLine(
+        color = headingColor,
+        start = Offset(arrowEndX, arrowEndY),
+        end = Offset(arrowHead2X, arrowHead2Y),
+        strokeWidth = 3.5f
+    )
+
+    // Add a small indicator showing heading angle as text
+    drawContext.canvas.nativeCanvas.drawText(
+        String.format("%.0f°", currentHeading),
+        arrowEndX + 5f,
+        arrowEndY + 5f,
+        android.graphics.Paint().apply {
+            color = android.graphics.Color.parseColor("#333333")
+            textSize = 14f
+            isFakeBoldText = true
+            setShadowLayer(1.5f, 0.5f, 0.5f, android.graphics.Color.WHITE)
+        }
+    )
+
+    // Only draw path if we have movement
+    if (pathPoints.size > 1) {
+        val path = Path()
+        path.moveTo(pathPoints[0].first * 50 + minPoint.x, pathPoints[0].second * 50 + minPoint.y)
+
+        // Create smooth path with bezier curves
+        for (i in 1 until pathPoints.size) {
+            val start = pathPoints[i - 1]
+            val end = pathPoints[i]
+            val controlX = (start.first + end.first) / 2
+            val controlY = (start.second + end.second) / 2
+
+            path.quadraticBezierTo(
+                controlX * 50 + minPoint.x, controlY * 50 + minPoint.y,
+                end.first * 50 + minPoint.x, end.second * 50 + minPoint.y
+            )
+        }
+
+        // Draw path with elegant glow effect
+        for (i in 5 downTo 1) {
+            drawPath(
+                path = path,
+                brush = Brush.linearGradient(
+                    start = Offset(
+                        pathPoints.first().first * 50 + minPoint.x,
+                        pathPoints.first().second * 50 + minPoint.y
+                    ),
+                    end = Offset(
+                        pathPoints.last().first * 50 + minPoint.x,
+                        pathPoints.last().second * 50 + minPoint.y
+                    ),
+                    colors = gradientColors
+                ),
+                style = Stroke(
+                    width = 4f + i * 1.2f,
+                    pathEffect = PathEffect.cornerPathEffect(12f)
+                ),
+                alpha = 0.03f * i
+            )
+        }
+
+        // Draw actual path with refined gradient
+        drawPath(
+            path = path,
+            brush = Brush.linearGradient(
+                start = Offset(
+                    pathPoints.first().first * 50 + minPoint.x,
+                    pathPoints.first().second * 50 + minPoint.y
+                ),
+                end = Offset(
+                    pathPoints.last().first * 50 + minPoint.x,
+                    pathPoints.last().second * 50 + minPoint.y
+                ),
+                colors = gradientColors
+            ),
+            style = Stroke(width = 4f, pathEffect = PathEffect.cornerPathEffect(12f))
+        )
+
+        // Draw elegant waypoints
+        pathPoints.forEachIndexed { index, point ->
+            val centerX = point.first * 50 + minPoint.x
+            val centerY = point.second * 50 + minPoint.y
+            val isEndPoint = index == 0 || index == pathPoints.size - 1
+
+            // Outer glow
+            drawCircle(
+                color = if (isEndPoint) gradientColors[if (index == 0) 0 else 1].copy(alpha = 0.2f) else Color(
+                    0x20000000
+                ),
+                radius = if (isEndPoint) 16f else 12f,
+                center = Offset(centerX, centerY)
+            )
+
+            // White circle
+            drawCircle(
+                color = Color.White,
+                radius = if (isEndPoint) 8f else 6f,
+                center = Offset(centerX, centerY),
+                style = Fill
+            )
+
+            // Inner colored circle
+            drawCircle(
+                color = if (isEndPoint) gradientColors[if (index == 0) 0 else 1] else Color(
+                    0xFF78909C
+                ),
+                radius = if (isEndPoint) 5f else 3f,
+                center = Offset(centerX, centerY),
+                style = Fill
+            )
+        }
+    }
+}
+/*
 private fun DrawScope.drawElegantPath(
     minPoint: Point,
     pathPoints: List<Pair<Float, Float>>,
@@ -624,7 +840,7 @@ private fun DrawScope.drawElegantPath(
             )
         }
     }
-}
+}*/
 
 private fun DrawScope.drawElegantWalls(walls: List<Wall>, wallColor: Color) {
     walls.forEach { wall ->

@@ -12,7 +12,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
 import com.example.malvoayant.data.viewmodels.NavigationViewModel
-import com.example.malvoayant.data.viewmodels.StepCounterViewModel
 import com.example.malvoayant.ui.screens.*
 
 // Define the navigation routes

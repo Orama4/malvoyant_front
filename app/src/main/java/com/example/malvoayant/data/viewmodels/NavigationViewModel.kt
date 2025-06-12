@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.malvoayant.NavigationLogic.Algorithm.PathFinder
 import com.example.malvoayant.NavigationLogic.Models.StaticInstruction
 import com.example.malvoayant.NavigationLogic.graph.GridNavigationGraph
+import com.example.malvoayant.NavigationLogic.utils.calculateDistance
 import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.exceptions.PathfindingException
 import com.example.malvoayant.utils.NavigationUtils
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -25,6 +27,10 @@ class NavigationViewModel(
     private val floorPlanViewModel: FloorPlanViewModel
 ) : ViewModel() {
     private val pathFinder = PathFinder()
+
+    private var deviationThreshold = 1.0f
+    var isOffPath by mutableStateOf(false)
+        private set
 
     var currentPath by mutableStateOf<List<Point>?>(null)
         private set
@@ -60,6 +66,8 @@ class NavigationViewModel(
             isLoading = true
             errorMessage = null
             currentPath = null
+
+            isOffPath = false
 
             try {
                 val floorPlan = floorPlanViewModel.floorPlanState
@@ -197,5 +205,42 @@ class NavigationViewModel(
                 isLoading = false
             }
         }
+    }
+
+    // method to hande deviation
+    fun checkForDeviation(currentPosition: Point) {
+        viewModelScope.launch(Dispatchers.Default) {
+            val path = currentPath ?: return@launch
+
+            // Find nearest point on path
+            val nearestPoint = path.minByOrNull { calculateDistance(it, currentPosition) }
+                ?: return@launch
+
+            val distanceToPath = calculateDistance(nearestPoint, currentPosition)
+
+            // Check if deviation exceeds threshold
+            val newOffPathState = distanceToPath > deviationThreshold
+
+            // Only update if state changed to avoid unnecessary recompositions
+            if (newOffPathState != isOffPath) {
+                withContext(Dispatchers.Main) {
+                    isOffPath = newOffPathState
+                    if (newOffPathState) {
+                        errorMessage = "Warning: You've deviated from the path"
+                        // Optionally trigger path recalculation here
+                         recalculatePath(currentPosition)
+                    }
+                }
+            }
+
+            // Always update traversed path
+            updateTraversedPath(currentPosition)
+        }
+    }
+
+    // method to recalculate path
+    private fun recalculatePath(currentPosition: Point) {
+        val destination = currentPath?.lastOrNull() ?: return
+        calculatePath(currentPosition, destination)
     }
 }

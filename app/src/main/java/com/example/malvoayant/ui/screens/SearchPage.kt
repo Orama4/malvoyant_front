@@ -45,7 +45,6 @@ import com.example.malvoayant.data.models.POI
 import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
 import com.example.malvoayant.data.viewmodels.NavigationViewModel
-import com.example.malvoayant.data.viewmodels.StepCounterViewModel
 import com.example.malvoayant.navigation.Screen
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
@@ -70,15 +69,15 @@ fun SearchScreen(
     var currentInstructionIndex by remember { mutableStateOf(0) }
     //*******************************************************
     val context = LocalContext.current
-    val isConnected by stepCounterViewModel.isConnected.observeAsState(false)
+  //  val isConnected by stepCounterViewModel.isConnected.observeAsState(false)
     val floorPlan = floorPlanViewModel.floorPlanState
     val searchText = remember { mutableStateOf("") }
     val lastClickTime = remember { mutableStateOf(0L) }
     val doubleClickTimeWindow = 300L
     // Observe position data from Raspberry Pi
-    val wifiPosition by stepCounterViewModel.wifiPositionLive.observeAsState(null)
-    val lastWifiUpdateAgo by stepCounterViewModel.lastWifiUpdateAgo.observeAsState("Never")
-    val wifiConfidence by stepCounterViewModel.wifiConfidence.observeAsState(0f)
+ //   val wifiPosition by stepCounterViewModel.wifiPositionLive.observeAsState(null)
+   // val lastWifiUpdateAgo by stepCounterViewModel.lastWifiUpdateAgo.observeAsState("Never")
+    //val wifiConfidence by stepCounterViewModel.wifiConfidence.observeAsState(0f)
     val errorMessage = navigationViewModel.errorMessage
     // Nouveaux états pour la sélection
     var startPoint by remember { mutableStateOf<POI?>(null) }
@@ -87,9 +86,19 @@ fun SearchScreen(
     var showEndSelection by remember { mutableStateOf(false) }
     //var showEndSelection by  { mutableStateOf(false) }
     // Position actuelle (à remplacer par votre logique réelle)
-    val currentPosition = remember { POI(x=1654.5765f, y=548.2973F, name = "current") }
+    //val currentPosition = remember { POI(x=1654.5765f, y=548.2973F, name = "current") }
     var showInstructions by remember { mutableStateOf(false) }
 
+    val currentPositionFromSensor by stepCounterViewModel.currentPositionLive.observeAsState(Pair(0f, 0f))
+    val currentPosition = remember {
+        derivedStateOf {
+            POI(
+                x = currentPositionFromSensor.first * 50 + floorPlan.minPoint.x,
+                y = currentPositionFromSensor.second * 50 + floorPlan.minPoint.y,
+                name = "current"
+            )
+        }
+    }.value
     // مراقبة تغيير التعليمات
     LaunchedEffect(navigationViewModel.instructions) {
         if (navigationViewModel.instructions.isNotEmpty()) {
@@ -190,7 +199,7 @@ fun SearchScreen(
         if (startPoint != null && endPoint != null) {
             if (startPoint!!.name == "current") {
                 navigationViewModel.calculatePath(
-                    start =Point(x= startPoint!!.x, y= startPoint!!.y),
+                    start = Point(x = currentPosition.x, y = currentPosition.y),
                     destination = endPoint!!
                 )
             }else{
@@ -256,7 +265,7 @@ fun SearchScreen(
                 FloorPlanCanvasView(
                     floorPlanState = floorPlanViewModel.floorPlanState,
                     modifier = Modifier.fillMaxSize(),
-                    stepCounterViewModel = stepCounterViewModel,
+                    viewModel = stepCounterViewModel,
                     navigationViewModel = navigationViewModel
                 )
                 // Floating Action Button pour réafficher les instructions
