@@ -105,6 +105,20 @@ fun SearchScreen(
             showInstructions = true
         }
     }
+//handle deviation
+    LaunchedEffect(isNavigationActive) {
+        if (isNavigationActive) {
+            while (isNavigationActive) {
+                navigationViewModel.checkForDeviation(
+                    Point(
+                        x = currentPosition.x,
+                        y = currentPosition.y
+                    )
+                )
+                delay(1000)
+            }
+        }
+    }
 
 
     // Remember the launcher for file picking
@@ -185,7 +199,7 @@ fun SearchScreen(
         floorPlanViewModel.setPois(filteredPois)
 
     }
-    /*LaunchedEffect(floorPlan.pois) {
+    /* LaunchedEffect(floorPlan.pois) {
         if (floorPlan.pois.size >= 3 && !navigationViewModel.isLoading) {
             navigationViewModel.calculatePath(
                 start = Point(310.0f, 310.0f),
@@ -230,6 +244,7 @@ fun SearchScreen(
                 )
             )
     ) {
+
         // Main content
         Column(
             modifier = Modifier
@@ -284,7 +299,13 @@ fun SearchScreen(
                     )
                 }
             }
-
+            DeviationTestPanel(
+                navigationViewModel = navigationViewModel,
+                speechHelper = speechHelper,
+                modifier = Modifier
+                    //.align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            )
             //navigation button
             Button(
                 onClick = {
@@ -1287,6 +1308,240 @@ private fun DirectionIcon(
             tint = iconColor,
             modifier = Modifier.size(20.dp)
         )
+    }
+}
+
+@Composable
+fun DeviationTestPanel(
+    navigationViewModel: NavigationViewModel,
+    speechHelper: SpeechHelper,
+    modifier: Modifier = Modifier
+) {
+    var showTestPanel by remember { mutableStateOf(false) }
+
+    // Only show if there's a current path
+    if (navigationViewModel.currentPath != null) {
+        // Floating button to show/hide test panel
+        if (true ) {
+            FloatingActionButton(
+                onClick = {
+                    showTestPanel = true
+                    speechHelper.speak("Deviation test panel opened")
+                },
+                modifier = modifier,
+                containerColor = Color(0xFF9C27B0), // Purple color to distinguish from navigation
+                contentColor = Color.White
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_flag), // You'll need to add this icon
+                    contentDescription = "Test Deviation",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        // Test panel overlay
+        if (showTestPanel) {
+            TestPanelOverlay(
+                navigationViewModel = navigationViewModel,
+                speechHelper = speechHelper,
+                onClose = { showTestPanel = false }
+            )
+        }
+    }
+}
+
+@Composable
+private fun TestPanelOverlay(
+    navigationViewModel: NavigationViewModel,
+    speechHelper: SpeechHelper,
+    onClose: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.7f))
+            .clickable { onClose() },
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .clip(RoundedCornerShape(16.dp))
+                .clickable { }, // Prevent closing when clicking inside
+            color = Color.White,
+            //elevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Deviation Testing",
+                        fontSize = 20.sp,
+                        fontFamily = PlusJakartaSans,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.darkBlue
+                    )
+
+                    IconButton(onClick = onClose) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_close),
+                            contentDescription = "Close",
+                            tint = AppColors.darkBlue
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Test status
+                Text(
+                    text = navigationViewModel.testModeStatus,
+                    fontSize = 14.sp,
+                    fontFamily = PlusJakartaSans,
+                    color = if (navigationViewModel.isTestRunning()) Color(0xFF4CAF50) else Color.Gray,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Test buttons
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.heightIn(max = 300.dp)
+                ) {
+                    item {
+                        TestButton(
+                            text = "Full Deviation Test",
+                            description = "Tests all deviation scenarios",
+                            onClick = {
+                                speechHelper.speak("Starting full deviation test")
+                                navigationViewModel.startDeviationTest()
+                            },
+                            enabled = !navigationViewModel.isTestRunning()
+                        )
+                    }
+
+                    item {
+                        TestButton(
+                            text = "Simulate Real Walk",
+                            description = "Natural walking with deviations",
+                            onClick = {
+                                speechHelper.speak("Starting real-time walk simulation")
+                                navigationViewModel.simulateRealtimeWalk()
+                            },
+                            enabled = !navigationViewModel.isTestRunning()
+                        )
+                    }
+
+                    item {
+                        TestButton(
+                            text = "Test Minor Deviation (0.4m)",
+                            description = "Should not trigger warning",
+                            onClick = {
+                                speechHelper.speak("Testing minor deviation")
+                                navigationViewModel.testSpecificDeviation(0.4f)
+                            },
+                            enabled = !navigationViewModel.isTestRunning()
+                        )
+                    }
+
+                    item {
+                        TestButton(
+                            text = "Test Moderate Deviation (1.2m)",
+                            description = "Should show guidance",
+                            onClick = {
+                                speechHelper.speak("Testing moderate deviation")
+                                navigationViewModel.testSpecificDeviation(1.2f)
+                            },
+                            enabled = !navigationViewModel.isTestRunning()
+                        )
+                    }
+
+                    item {
+                        TestButton(
+                            text = "Test Major Deviation (2.8m)",
+                            description = "Should recalculate path",
+                            onClick = {
+                                speechHelper.speak("Testing major deviation")
+                                navigationViewModel.testSpecificDeviation(2.8f)
+                            },
+                            enabled = !navigationViewModel.isTestRunning()
+                        )
+                    }
+
+                    item {
+                        TestButton(
+                            text = "Stop Test",
+                            description = "Stop current test",
+                            onClick = {
+                                speechHelper.speak("Stopping deviation test")
+                                navigationViewModel.stopDeviationTest()
+                            },
+                            enabled = navigationViewModel.isTestRunning(),
+                            isStopButton = true
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Info text
+                Text(
+                    text = "• Minor: <0.5m - No action\n• Moderate: 0.5-2m - Guidance\n• Major: >2m - Recalculate",
+                    fontSize = 12.sp,
+                    fontFamily = PlusJakartaSans,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TestButton(
+    text: String,
+    description: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    isStopButton: Boolean = false
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(64.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isStopButton) Color(0xFFE74C3C) else AppColors.primary,
+            disabledContainerColor = Color.Gray.copy(alpha = 0.3f)
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = text,
+                fontSize = 14.sp,
+                fontFamily = PlusJakartaSans,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Text(
+                text = description,
+                fontSize = 11.sp,
+                fontFamily = PlusJakartaSans,
+                color = Color.White.copy(alpha = 0.8f),
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
