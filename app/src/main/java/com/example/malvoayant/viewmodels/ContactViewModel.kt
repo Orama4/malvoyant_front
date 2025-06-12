@@ -1,8 +1,10 @@
 package com.example.malvoayant.viewmodels
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.malvoayant.api.User
 import com.example.malvoayant.repositories.AuthRepository
 import com.example.malvoayant.repositories.ContactsRepository
 import com.example.malvoayant.ui.screens.Contact
@@ -12,8 +14,10 @@ import kotlinx.coroutines.launch
 
 class ContactViewModel (
     private val contactRepository: ContactsRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val context: Context
 ) : ViewModel() {
+    private val authViewModel  = AuthViewModel(authRepository,context)
     private val _contacts = MutableStateFlow<List<Contact>>(emptyList())
     val contacts: StateFlow<List<Contact>> get() = _contacts
 
@@ -29,14 +33,16 @@ class ContactViewModel (
             _error.value = null
 
             try {
-                val token = authRepository.getToken()
+                val token = authViewModel.getToken()
                 if (token == null) {
                     _error.value = "Authentication required"
                     return@launch
                 }
 
                 val response = authRepository.getProfile(token)
-                val endUserId = authRepository.getUserId()
+                val user :User? = authViewModel.getUserInfo()
+                Log.d("USER_USER",user.toString())
+                val endUserId = user?.endUserId
                 if (endUserId == null) {
                     Log.d("ContactVM", "user id: $endUserId")
                     _error.value = "User ID not available"

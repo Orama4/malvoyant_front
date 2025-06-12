@@ -1,5 +1,6 @@
 package com.example.malvoayant.navigation
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -50,17 +51,19 @@ sealed class Screen(val route: String) {
 
 @Composable
 fun NavigationController(authRepository: AuthRepository) {
+    val context = LocalContext.current
+
     val contactApiService= RetrofitClient.contactService
     val contactViewModel: ContactViewModel = viewModel(
         factory = ContactsViewModelFactory(
             repository = ContactsRepository(
                 contactApiService = contactApiService
             ), // Provide dependencies manually
-            authRepository = authRepository // Provide dependencies manually
+            authRepository = authRepository, // Provide dependencies manually,
+            context
         )
     )
     val navController = rememberNavController()
-    val context = LocalContext.current
     val viewModel: FloorPlanViewModel = viewModel()
     val authViewModel: AuthViewModel = viewModel(
         factory = AuthViewModelFactory(authRepository,LocalContext.current)
@@ -74,8 +77,8 @@ fun NavigationController(authRepository: AuthRepository) {
             authViewModel.getToken() != null
         }
     }
-
-    val startDestination = if (isLoggedIn.value) Screen.Home.route else Screen.Search.route
+    Log.d("LOGGED__IN",isLoggedIn.value.toString())
+    val startDestination = if (isLoggedIn.value) Screen.Search.route else Screen.Home.route
     NavHost(
         navController = navController,
         startDestination = startDestination
