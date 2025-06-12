@@ -17,7 +17,6 @@ object NavigationUtils {
     private const val DEVIATION_THRESHOLD = 2.0 // meters
     private const val OBSTACLE_DETECTION_RANGE = 3.0 // meters
     private const val RECALCULATION_DELAY = 5000L // ms
-    private const val STEP_SIMULATION_INTERVAL = 1000L // ms
     private const val STRAIGHT_DISTANCE_THRESHOLD = 1.0 // meters
     private const val TURNING_DISTANCE_THRESHOLD = 1.0 // meters
 
@@ -25,12 +24,18 @@ object NavigationUtils {
     private var isNavigating = false
     private var currentPosition: Point? = null
     private var currentInstructionIndex = 0
-    private var currentPointIndex=0
+    private var currentPointIndex = 0
     private var traversedPath = mutableListOf<Point>()
-    private var simulationJob: Job? = null
     private var obstacleDetected = false
     private var lastPositionUpdateTime = 0L
-
+    private var onPositionUpdatedCallback: ((Point) -> Unit)? = null
+    private var onInstructionChangedCallback: ((Int) -> Unit)? = null
+    private var onStopNavigationCallback: (() -> Unit)? = null
+    private var navigationViewModel: NavigationViewModel? = null
+    private var instructionGiven = false // Track if first instruction has been given
+    private var lastMovementTime = 0L
+    private var lastPosition: Point? = null
+    private const val MOVEMENT_THRESHOLD = 1.0 // meters - minimum movement to detect walking
 
     fun startNavigation(
         start: Any,
@@ -52,78 +57,95 @@ object NavigationUtils {
         traversedPath.clear()
         traversedPath.add(startPoint)
         currentInstructionIndex = 0
+        currentPointIndex = 0
         obstacleDetected = false
+        instructionGiven = false
+        lastMovementTime = System.currentTimeMillis()
+        lastPosition = startPoint
 
-        // Start step simulation
-        simulationJob?.cancel()
-        simulationJob = navigationViewModel.viewModelScope.launch {
-            while (isNavigating) {
-                delay(STEP_SIMULATION_INTERVAL)
-                simulateNextStep(navigationViewModel, onPositionUpdated, onInstructionChanged, onStopNavigation )
-            }
-        }
+        // Store callbacks and viewModel for use in updatePosition
+        this.onPositionUpdatedCallback = onPositionUpdated
+        this.onInstructionChangedCallback = onInstructionChanged
+        this.onStopNavigationCallback = onStopNavigation
+        this.navigationViewModel = navigationViewModel
+
+        // Start with the first instruction
+        onInstructionChanged(currentInstructionIndex)
     }
 
     fun stopNavigation(path: List<Point>?) {
         isNavigating = false
         if (path != null) {
-            currentInstructionIndex=path.size - 1
+            currentInstructionIndex = path.size - 1
         }
-        simulationJob?.cancel()
+        onPositionUpdatedCallback = null
+        onInstructionChangedCallback = null
+        onStopNavigationCallback = null
+        navigationViewModel = null
     }
 
     fun detectObstacle(position: Point) {
         obstacleDetected = true
+        handleObstacle()
     }
 
-    private suspend fun simulateNextStep(
-        navigationViewModel: NavigationViewModel,
-        onPositionUpdated: (Point) -> Unit,
-        onInstructionChanged: (Int) -> Unit,
-        onStopNavigation: () -> Unit
-    ) {
-        val path = navigationViewModel.currentPath ?: return
+    // Method to update position from step detection
+    fun updatePosition(position: Point) {
+        if (!isNavigating) return
+
+        val path = navigationViewModel?.currentPath ?: return
         if (path.isEmpty()) return
 
-        // Sécurité pour l'indice
-        if (currentPointIndex >= path.size - 1) {
+        currentPosition = position
+        traversedPath.add(position)
+        navigationViewModel?.updateTraversedPath(position)
+        onPositionUpdatedCallback?.invoke(position)
+
+        // Check if user started walking (for first instruction)
+        val currentTime = System.currentTimeMillis()
+        if (!instructionGiven && lastPosition != null) {
+            val movedDistance = calculateDistance(lastPosition!!, position)
+            if (movedDistance > MOVEMENT_THRESHOLD) {
+                // User started walking, give first instruction
+                onInstructionChangedCallback?.invoke(currentInstructionIndex)
+                instructionGiven = true
+            }
+        }
+        lastPosition = position
+        lastMovementTime = currentTime
+
+        // Check if we've reached the next point in the path
+        if (currentPointIndex < path.size - 1) {
+            val nextPoint = path[currentPointIndex + 1]
+            if (calculateDistance(position, nextPoint) < STRAIGHT_DISTANCE_THRESHOLD) {
+                currentPointIndex++
+
+                // Advance instruction if needed
+                if (shouldAdvanceInstruction(path[currentPointIndex - 1], nextPoint)) {
+                    currentInstructionIndex++
+                    onInstructionChangedCallback?.invoke(currentInstructionIndex)
+                }
+            }
+        }
+
+        // Check if we've reached the destination
+        if (currentPointIndex >= path.size - 1 ||
+            calculateDistance(position, path.last()) < STRAIGHT_DISTANCE_THRESHOLD) {
             stopNavigation(path)
-            onStopNavigation()
+            onStopNavigationCallback?.invoke()
             return
         }
 
-        val currentPoint = path[currentPointIndex]
-        val nextPoint = path[currentPointIndex + 1]
-
-        // Avance vers le prochain point
-        currentPosition = moveTowards(currentPosition!!, nextPoint, 4f)
-
-
-
-        traversedPath.add(currentPosition!!)
-        navigationViewModel.updateTraversedPath(currentPosition!!)
-        onPositionUpdated(currentPosition!!)
-
-        // Avancer dans les points
-        if (calculateDistance(currentPosition!!, nextPoint) < 0.5) {
-            currentPointIndex++
-        }
-
-        // Détection d'instruction atteinte
-        if (shouldAdvanceInstruction(currentPoint, nextPoint)) {
-            currentInstructionIndex++
-            onInstructionChanged(currentInstructionIndex)
-        }
-
+        // Check for deviation
         if (isDeviatingFromPath()) {
-            handleDeviation(navigationViewModel)
+            handleDeviation()
         }
 
+        // Check for obstacle (implemented elsewhere)
         if (obstacleDetected) {
-            handleObstacle(navigationViewModel)
+            handleObstacle()
         }
     }
-
 
     private fun shouldAdvanceInstruction(currentPoint: Point, nextPoint: Point): Boolean {
         val isStraightInstruction = currentInstructionIndex % 2 == 0
@@ -134,22 +156,6 @@ object NavigationUtils {
         } else {
             // For turning instructions (odd index), advance when leaving current point
             calculateDistance(currentPosition!!, currentPoint) > TURNING_DISTANCE_THRESHOLD
-        }
-    }
-
-    private fun moveTowards(current: Point, target: Point, speed: Float): Point {
-        val dx = target.x - current.x
-        val dy = target.y - current.y
-        val distance = sqrt(dx.pow(2) + dy.pow(2))
-
-        return if (distance <= speed) {
-            target
-        } else {
-            val ratio = speed / distance
-            Point(
-                x = current.x + dx * ratio,
-                y = current.y + dy * ratio
-            )
         }
     }
 
@@ -190,38 +196,42 @@ object NavigationUtils {
         return calculateDistance(point, projection)
     }
 
-    private suspend fun handleDeviation(navigationViewModel: NavigationViewModel) {
+    private fun handleDeviation() {
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastPositionUpdateTime < RECALCULATION_DELAY) return
 
         lastPositionUpdateTime = currentTime
         currentPosition?.let { currentPos ->
             // Recalculate path from current position
-            navigationViewModel.calculatePath(
+            navigationViewModel?.calculatePath(
                 start = currentPos,
-                destination = navigationViewModel.currentPath?.last() ?: return@let
+                destination = navigationViewModel?.currentPath?.last() ?: return@let
             )
 
             // Reset navigation state
             traversedPath.clear()
             traversedPath.add(currentPos)
             currentInstructionIndex = 0
+            currentPointIndex = 0
+            instructionGiven = false
         }
     }
 
-    private suspend fun handleObstacle(navigationViewModel: NavigationViewModel) {
+    private fun handleObstacle() {
         obstacleDetected = false
         currentPosition?.let { currentPos ->
             // Recalculate path avoiding obstacle
-            navigationViewModel.calculatePath(
+            navigationViewModel?.calculatePath(
                 start = currentPos,
-                destination = navigationViewModel.currentPath?.last() ?: return@let
+                destination = navigationViewModel?.currentPath?.last() ?: return@let
             )
 
             // Reset navigation state
             traversedPath.clear()
             traversedPath.add(currentPos)
             currentInstructionIndex = 0
+            currentPointIndex = 0
+            instructionGiven = false
         }
     }
 

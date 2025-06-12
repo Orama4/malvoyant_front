@@ -67,15 +67,16 @@ fun SearchScreen(
 ) {
     //navigation variables
     var isNavigationActive by remember { mutableStateOf(false) }
-    val traversedPath = remember { mutableStateOf<List<Point>>(emptyList()) }
     var currentInstructionIndex by remember { mutableStateOf(0) }
 
     val context = LocalContext.current
     val searchText = remember { mutableStateOf("") }
+
     val lastClickTime = remember { mutableStateOf(0L) }
     val doubleClickTimeWindow = 300L
-    // Observe position data from Raspberry Pi
     val errorMessage = navigationViewModel.errorMessage
+
+
     // Nouveaux états pour la sélection
     var startPoint by remember { mutableStateOf<POI?>(null) }
     var endPoint by remember { mutableStateOf<POI?>(null) }
@@ -86,6 +87,8 @@ fun SearchScreen(
     val currentPosition = remember(currentPosition2) {
         POI(x = currentPosition2.first*50+floorPlanViewModel.floorPlanState.minPoint.x, y = currentPosition2.second*50+floorPlanViewModel.floorPlanState.minPoint.y, name = "current")
     }
+
+
     var showInstructions by remember { mutableStateOf(false) }
 
     // مراقبة تغيير التعليمات
@@ -95,8 +98,16 @@ fun SearchScreen(
         }
     }
 
+    LaunchedEffect(currentPosition2, isNavigationActive) {
+        if (isNavigationActive) {
+            val point = Point(
+                x = currentPosition.x,
+                y = currentPosition.y
+            )
 
-    // Remember the launcher for file picking
+            NavigationUtils.updatePosition(point)
+        }
+    }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -104,6 +115,7 @@ fun SearchScreen(
             floorPlanViewModel.importFromGeoJSONUri(context, it)
         }
     }
+
     // Afficher l'erreur
     if (!errorMessage.isNullOrEmpty()) {
         AlertDialog(
@@ -129,24 +141,15 @@ fun SearchScreen(
             }
         )
     }
+
     val scope = rememberCoroutineScope()
     val pendingSpeechJob = remember { mutableStateOf<Job?>(null) }
     val speechHelper = remember { SpeechHelper(context) }
+
+
     // Accès correct avec .value quand pas de delegate
     val currentPath = navigationViewModel.currentPath
-    val isLoading = navigationViewModel.isLoading
 
-    // Animation states
-    val pulsateAnimation = rememberInfiniteTransition(label = "pulsate")
-    val scale = pulsateAnimation.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale"
-    )
 // Observer les changements de chemin
     LaunchedEffect(navigationViewModel.currentPath) {
         Log.d("SearchScreen", "Chemin actuel: $currentPath")
@@ -174,23 +177,26 @@ fun SearchScreen(
         floorPlanViewModel.setPois(filteredPois)
 
     }
-    /*LaunchedEffect(floorPlan.pois) {
-        if (floorPlan.pois.size >= 3 && !navigationViewModel.isLoading) {
-            navigationViewModel.calculatePath(
-                start = Point(310.0f, 310.0f),
-                destination = floorPlan.pois[2]
-                    ?: return@LaunchedEffect
-            )
-        }
-    }*/
-    // Calculer le chemin quand les points changent
+
     LaunchedEffect(startPoint, endPoint) {
         if (startPoint != null && endPoint != null) {
+            Log.d("Navigation", "StartPoint :x= ${startPoint!!.x},y= ${startPoint!!.y},")
+            Log.d("Navigation", "endPoint :x= ${endPoint!!.x},y= ${endPoint!!.y},")
             if (startPoint!!.name == "current") {
-                navigationViewModel.calculatePath(
-                    start =Point(x= startPoint!!.x, y= startPoint!!.y),
-                    destination = endPoint!!
-                )
+                if(startPoint!!.x==0f&&startPoint!!.y==0f){
+
+                    navigationViewModel.calculatePath(
+                        start =Point(x= floorPlanViewModel.floorPlanState.minPoint.x, y= floorPlanViewModel.floorPlanState.minPoint.y),
+                        destination = endPoint!!
+                    )
+                }else
+                {
+                    navigationViewModel.calculatePath(
+                        start =Point(x= startPoint!!.x, y= startPoint!!.y),
+                        destination = endPoint!!
+                    )
+                }
+
             }else{
             navigationViewModel.calculatePath(
                 start = startPoint!!,
@@ -199,13 +205,7 @@ fun SearchScreen(
             }
         }
     }
-    /*if (isLoading) {
-        CircularProgressIndicator()
-    } else {
-        currentPath?.let { path ->
-            PathVisualizer(path)
-        }
-    }*/
+
 
     Box(
         modifier = Modifier
@@ -304,7 +304,8 @@ fun SearchScreen(
                                 isNavigationActive = false
                                 currentInstructionIndex = 0
                                 speechHelper.speak("You have reached your destination, would you like to activate OD2 to get more information about the current position")
-                            }
+                            },
+
                         )
                         isNavigationActive = true
                     }
