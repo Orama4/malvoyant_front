@@ -1,10 +1,10 @@
-package com.example.malvoayant.viewmodels
+package com.example.malvoayant.data.viewmodels
 
 import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.malvoayant.api.User
+import com.example.malvoayant.data.api.User
 import com.example.malvoayant.repositories.AuthRepository
 import com.example.malvoayant.repositories.ContactsRepository
 import com.example.malvoayant.ui.screens.Contact
@@ -40,7 +40,7 @@ class ContactViewModel (
                 }
 
                 val response = authRepository.getProfile(token)
-                val user :User? = authViewModel.getUserInfo()
+                val user : User? = authViewModel.getUserInfo()
                 Log.d("USER_USER",user.toString())
                 val endUserId = user?.endUserId
                 if (endUserId == null) {

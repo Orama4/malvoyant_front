@@ -1,9 +1,9 @@
 package com.example.malvoayant.repositories
 
 import android.util.Log
-import com.example.malvoayant.api.ApiContact
-import com.example.malvoayant.api.AddContactRequest
-import com.example.malvoayant.api.ContactApiService
+import com.example.malvoayant.data.api.ApiContact
+import com.example.malvoayant.data.api.AddContactRequest
+import com.example.malvoayant.data.api.ContactApiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Singleton

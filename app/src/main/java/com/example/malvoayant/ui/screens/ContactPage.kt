@@ -30,7 +30,7 @@ import androidx.navigation.NavHostController
 import com.example.malvoayant.R
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
-import com.example.malvoayant.viewmodels.ContactViewModel
+import com.example.malvoayant.data.viewmodels.ContactViewModel
 import kotlinx.coroutines.delay
 
 // Data class for contact information

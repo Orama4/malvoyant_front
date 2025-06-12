@@ -1,7 +1,6 @@
 package com.example.malvoayant.ui.screens
 
 import android.Manifest
-import android.R.attr
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,19 +23,17 @@ import com.example.malvoayant.ui.components.*
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
-import android.R.attr.value
 import android.content.pm.PackageManager
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
-import com.example.malvoayant.api.RegisterRequest
+import com.example.malvoayant.data.api.RegisterRequest
 import com.example.malvoayant.navigation.Screen
 import com.example.malvoayant.ui.utils.fixSpokenEmail
 import com.example.malvoayant.ui.utils.startListening
-import com.example.malvoayant.viewmodels.AuthViewModel
+import com.example.malvoayant.data.viewmodels.AuthViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

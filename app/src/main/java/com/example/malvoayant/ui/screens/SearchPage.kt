@@ -40,11 +40,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.malvoayant.NavigationLogic.Models.StaticInstruction
 import com.example.malvoayant.R
-import com.example.malvoayant.data.models.FloorPlanState
 import com.example.malvoayant.data.models.POI
 import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
@@ -56,8 +54,7 @@ import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
 import kotlinx.coroutines.CoroutineScope
-import com.example.malvoayant.viewmodels.AuthViewModel
-import com.example.voicerecorder.VoiceRecorderButton
+import com.example.malvoayant.data.viewmodels.AuthViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -343,6 +340,18 @@ fun SearchScreen(
                 speechHelper = speechHelper,
                 scope = scope
             )
+            ModernButton(
+                text = "Logout",
+                onClick = {
+                    authViewModel.logout()
+                    if (authViewModel.error.value == null) {
+                        navController.navigate(Screen.Login.route)
+                    }
+                },
+                icon = Icons.AutoMirrored.Filled.Logout
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
         // Liste de sélection pour le départ
         if (showStartSelection) {
@@ -675,7 +684,7 @@ private fun BottomNavigationButtons(
 
                 if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
                     pendingSpeechJob.value?.cancel()
-                    navController.navigate(Screen.Helper.route)
+                    navController.navigate(Screen.PhoneNumbers.route)
                 } else {
                     pendingSpeechJob.value = scope.launch {
                         delay(doubleClickTimeWindow)
@@ -1142,6 +1151,7 @@ private fun NavigationInstructionsContent(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+
     }
 }
 

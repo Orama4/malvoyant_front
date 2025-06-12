@@ -16,7 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.malvoayant.api.RetrofitClient
+import com.example.malvoayant.data.api.RetrofitClient
 import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
 import com.example.malvoayant.navigation.NavigationController
 import com.example.malvoayant.data.viewmodels.StepCounterViewModel

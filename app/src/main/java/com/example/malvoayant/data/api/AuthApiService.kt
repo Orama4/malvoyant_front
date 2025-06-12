@@ -1,4 +1,4 @@
-package com.example.malvoayant.api
+package com.example.malvoayant.data.api
 
 import retrofit2.Response
 import retrofit2.http.Body

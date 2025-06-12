@@ -14,15 +14,15 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.malvoayant.data.viewmodels.NavigationViewModel
 import com.example.malvoayant.data.viewmodels.StepCounterViewModel
-import com.example.malvoayant.api.RetrofitClient
+import com.example.malvoayant.data.api.RetrofitClient
 import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
 import com.example.malvoayant.repositories.AuthRepository
 import com.example.malvoayant.repositories.ContactsRepository
 import com.example.malvoayant.ui.screens.*
-import com.example.malvoayant.viewmodels.AuthViewModel
-import com.example.malvoayant.viewmodels.AuthViewModelFactory
-import com.example.malvoayant.viewmodels.ContactViewModel
-import com.example.malvoayant.viewmodels.ContactsViewModelFactory
+import com.example.malvoayant.data.viewmodels.AuthViewModel
+import com.example.malvoayant.data.viewmodels.AuthViewModelFactory
+import com.example.malvoayant.data.viewmodels.ContactViewModel
+import com.example.malvoayant.data.viewmodels.ContactsViewModelFactory
 
 // Define the navigation routes
 sealed class Screen(val route: String) {

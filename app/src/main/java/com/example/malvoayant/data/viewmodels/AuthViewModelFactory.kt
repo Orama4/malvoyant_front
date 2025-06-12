@@ -1,4 +1,4 @@
-package com.example.malvoayant.viewmodels
+package com.example.malvoayant.data.viewmodels
 
 import android.content.Context
 import androidx.lifecycle.ViewModel

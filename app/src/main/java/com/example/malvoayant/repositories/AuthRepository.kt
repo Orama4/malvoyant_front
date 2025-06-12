@@ -1,17 +1,17 @@
 package com.example.malvoayant.repositories
 
 import android.util.Log
-import com.example.malvoayant.api.AuthApiService
-import com.example.malvoayant.api.ChangePasswordRequest
-import com.example.malvoayant.api.DeleteAccountRequest
-import com.example.malvoayant.api.LoginRequest
-import com.example.malvoayant.api.LoginResponse
-import com.example.malvoayant.api.RegisterRequest
-import com.example.malvoayant.api.ResetPasswordRequest
-import com.example.malvoayant.api.SendOTPRequest
-import com.example.malvoayant.api.UpdateProfileRequest
-import com.example.malvoayant.api.UserProfileResponse
-import com.example.malvoayant.api.VerifyOTPRequest
+import com.example.malvoayant.data.api.AuthApiService
+import com.example.malvoayant.data.api.ChangePasswordRequest
+import com.example.malvoayant.data.api.DeleteAccountRequest
+import com.example.malvoayant.data.api.LoginRequest
+import com.example.malvoayant.data.api.LoginResponse
+import com.example.malvoayant.data.api.RegisterRequest
+import com.example.malvoayant.data.api.ResetPasswordRequest
+import com.example.malvoayant.data.api.SendOTPRequest
+import com.example.malvoayant.data.api.UpdateProfileRequest
+import com.example.malvoayant.data.api.UserProfileResponse
+import com.example.malvoayant.data.api.VerifyOTPRequest
 
 class AuthRepository(private val authApiService: AuthApiService) {
     // Variable to store the token
