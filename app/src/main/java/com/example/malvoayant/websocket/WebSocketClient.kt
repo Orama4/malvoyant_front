@@ -9,7 +9,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import okhttp3.*
-
+/*
 class WebSocketClient(private var url: String) {
     private val TAG = "WebSocketClient"
     private var webSocket: WebSocket? = null
@@ -103,4 +103,5 @@ class WebSocketClient(private var url: String) {
     fun setUrl(newUrl: String) {
         url = newUrl
     }
-}
+
+} */

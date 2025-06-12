@@ -1,7 +1,7 @@
-package com.example.malvoayant.data.models
-
+package com.example.malvoayant.entities
 
 import java.util.UUID
+
 
 // Modèles de données pour le FloorPlan
 data class Point(
@@ -119,7 +119,3 @@ data class Zone(
     val strokeWidth: Float = 2f,
     val center: Point = Point(0f, 0f)
 )
-
-
-
-

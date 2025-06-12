@@ -125,7 +125,7 @@ class FloorPlanViewModel : ViewModel() {
     fun setZones(zones: List<Zone>) {
         Log.d("am in setting zones ","am in setting zones ")
         zones.forEach { zone ->
-           Log.d("a zone","${zone.name}")
+            Log.d("a zone","${zone.name}")
         }
         floorPlanState = floorPlanState.copy(zones = zones)
     }
@@ -365,9 +365,9 @@ class FloorPlanViewModel : ViewModel() {
                         val offsetObj = metadata.getJSONObject("offset")
                         setOffset(
                             Offset(
-                            x = offsetObj.optDouble("x", 0.0).toFloat(),
-                            y = offsetObj.optDouble("y", 0.0).toFloat()
-                        )
+                                x = offsetObj.optDouble("x", 0.0).toFloat(),
+                                y = offsetObj.optDouble("y", 0.0).toFloat()
+                            )
                         )
                     }
 
@@ -375,9 +375,9 @@ class FloorPlanViewModel : ViewModel() {
                         val sizeObj = metadata.getJSONObject("canvasSize")
                         setCanvasSize(
                             CanvasSize(
-                            width = sizeObj.optDouble("width", 800.0).toFloat(),
-                            height = sizeObj.optDouble("height", 600.0).toFloat()
-                        )
+                                width = sizeObj.optDouble("width", 800.0).toFloat(),
+                                height = sizeObj.optDouble("height", 600.0).toFloat()
+                            )
                         )
                     }
                 }

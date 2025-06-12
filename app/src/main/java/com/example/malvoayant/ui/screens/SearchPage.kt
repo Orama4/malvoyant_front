@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.KeyboardArrowLeft
 import androidx.compose.material3.*
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -49,10 +51,13 @@ import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
 import com.example.malvoayant.data.viewmodels.NavigationViewModel
 import com.example.malvoayant.data.viewmodels.StepCounterViewModel
 import com.example.malvoayant.navigation.Screen
+import com.example.malvoayant.ui.components.ModernButton
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
 import kotlinx.coroutines.CoroutineScope
+import com.example.malvoayant.viewmodels.AuthViewModel
+import com.example.voicerecorder.VoiceRecorderButton
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -64,6 +69,7 @@ fun SearchScreen(
     floorPlanViewModel: FloorPlanViewModel,
     stepCounterViewModel: StepCounterViewModel = viewModel(),
     navigationViewModel: NavigationViewModel,
+    authViewModel: AuthViewModel
 ) {
     //navigation variables
     var isNavigationActive by remember { mutableStateOf(false) }

@@ -33,15 +33,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import com.example.malvoayant.api.LoginRequest
+import com.example.malvoayant.api.RegisterRequest
 import com.example.malvoayant.navigation.Screen
 import com.example.malvoayant.ui.utils.fixSpokenEmail
 import com.example.malvoayant.ui.utils.startListening
+import com.example.malvoayant.viewmodels.AuthViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 @Composable
-fun LoginScreen(context: Context, navController: NavHostController) {
+fun LoginScreen(context: Context, viewModel: AuthViewModel, navController: NavController) {
     val textStates = remember { mutableStateListOf("", "") }
     var step by remember { mutableStateOf(0) }
     var savestep by remember { mutableStateOf(0) }
@@ -75,11 +79,12 @@ fun LoginScreen(context: Context, navController: NavHostController) {
     // Reference to the job for pending speech
     val pendingSpeechJob = remember { mutableStateOf<Job?>(null) }
 
-    val labels = listOf("Email", "Password")
-    val placeholders = listOf("Enter your email", "Enter your password")
+    val labels = listOf("Email", "Password","submit")
+    val placeholders = listOf("Enter your email", "Enter your password","")
     val icons = listOf(
         painterResource(id = R.drawable.ic_email),
         painterResource(id = R.drawable.ic_password),
+        painterResource(id = R.drawable.ic_register)
     )
 
     val speechHelper = remember { SpeechHelper(context) }
@@ -92,7 +97,27 @@ fun LoginScreen(context: Context, navController: NavHostController) {
     }
 
     LaunchedEffect(step) {
-        speechHelper.speak("Enter your ${labels[step]}")
+        when (step) {
+            0, 1 -> speechHelper.speak("Enter your ${labels[step]}")
+            2 -> speechHelper.speak("Click the button in the middle of the screen to login")
+        }
+    }
+
+
+    val loginSuccess by viewModel.loginSuccess.collectAsState()
+    val isLoading by viewModel.loading.collectAsState()
+
+
+    LaunchedEffect(loginSuccess) {
+        if (loginSuccess != null) {
+            navController.navigate(Screen.Search.route){
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
     }
 
     Box(
@@ -147,22 +172,40 @@ fun LoginScreen(context: Context, navController: NavHostController) {
                 Spacer(modifier = Modifier.height(20.dp))
 
                 // Dynamic Input Field
-                MyTextField(
-                    text = labels[step],
-                    content = labels[step],
-                    placeHolder = placeholders[step],
-                    icon = icons[step],
-                    isPassword = step == 1,
-                    value = textStates[step], // Utiliser la liste
-                    onValueChange = { textStates[step] = it }, // Stocker la valeur actuelle
-                    onDone = {
-                        if (step < labels.size - 1) {
-                            step++ // Passer à l'étape suivante
+                if (step < labels.lastIndex) {
+                    MyTextField(
+                        text = labels[step],
+                        content = labels[step],
+                        placeHolder = placeholders[step],
+                        icon = icons[step],
+                        isPassword = step == 1,
+                        value = textStates[step],
+                        onValueChange = { textStates[step] = it },
+                        onDone = { step++ }
+                    )
+                }
+
+                if (step == labels.lastIndex) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(color = AppColors.darkBlue)
                         } else {
-                            navController.navigate(Screen.Search.route) // Navigate to Search.route
+                            NavigationButton(
+                                text = "LOGIN",
+                                icon = painterResource(id = R.drawable.ic_register),
+                                onClick = {
+                                    viewModel.login(LoginRequest(textStates[0], textStates[1]))
+                                }
+                            )
                         }
                     }
-                )
+                }
+
+
+
                 Spacer(modifier = Modifier.height(24.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(0.5f),

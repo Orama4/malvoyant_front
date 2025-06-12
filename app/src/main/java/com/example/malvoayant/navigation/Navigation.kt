@@ -1,7 +1,9 @@
 package com.example.malvoayant.navigation
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -10,10 +12,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
 import com.example.malvoayant.data.viewmodels.NavigationViewModel
 import com.example.malvoayant.data.viewmodels.StepCounterViewModel
+import com.example.malvoayant.api.RetrofitClient
+import com.example.malvoayant.data.viewmodels.FloorPlanViewModel
+import com.example.malvoayant.repositories.AuthRepository
+import com.example.malvoayant.repositories.ContactsRepository
 import com.example.malvoayant.ui.screens.*
+import com.example.malvoayant.viewmodels.AuthViewModel
+import com.example.malvoayant.viewmodels.AuthViewModelFactory
+import com.example.malvoayant.viewmodels.ContactViewModel
+import com.example.malvoayant.viewmodels.ContactsViewModelFactory
 
 // Define the navigation routes
 sealed class Screen(val route: String) {
@@ -24,12 +33,25 @@ sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Registration : Screen("registration")
     object Login : Screen("login")
+    object Verification : Screen("verification")
+    object VerificationOtp : Screen("VerificationOtp")
+    object ResetPassword : Screen("ResetPassword")
+
+    fun createRoute(vararg args: String): String {
+        return buildString {
+            append(route)
+            args.forEach { arg ->
+                append("/$arg")
+            }
+        }
+    }
 
 }
 
+
+
 @Composable
-fun NavigationController(    stepCounterViewModel: StepCounterViewModel = viewModel()
-) {
+fun NavigationController(stepCounterViewModel: StepCounterViewModel = viewModel(),authRepository: AuthRepository) {
     val navController = rememberNavController()
     val context = LocalContext.current
 
@@ -37,19 +59,45 @@ fun NavigationController(    stepCounterViewModel: StepCounterViewModel = viewMo
     val floorPlanViewModel: FloorPlanViewModel = viewModel()
     val navigationViewModel: NavigationViewModel = remember { NavigationViewModel(floorPlanViewModel) }
 
+
+    val contactApiService= RetrofitClient.contactService
+    val contactViewModel: ContactViewModel = viewModel(
+        factory = ContactsViewModelFactory(
+            repository = ContactsRepository(
+                contactApiService = contactApiService
+            ), // Provide dependencies manually
+            authRepository = authRepository, // Provide dependencies manually,
+            context
+        )
+    )
+    val authViewModel: AuthViewModel = viewModel(
+        factory = AuthViewModelFactory(authRepository,LocalContext.current)
+    )
     LaunchedEffect(Unit) {
         floorPlanViewModel.loadGeoJSONFromAssets(context)
 
 
     }
+
+    val isLoggedIn = remember {
+        derivedStateOf {
+            authViewModel.getToken() != null
+        }
+    }
+    Log.d("LOGGED__IN",isLoggedIn.value.toString())
+    val startDestination = if (isLoggedIn.value) Screen.Search.route else Screen.Home.route
     NavHost(
         navController = navController,
-        startDestination = Screen.Search.route
+        startDestination = startDestination
     ) {
 
         composable(Screen.Home.route) { HomeScreen(context,navController) }
-        composable(Screen.Registration.route) { RegistrationScreen1(context) }
-        composable(Screen.Login.route) { LoginScreen(context,navController) }
+        composable(Screen.Registration.route) { RegistrationScreen1(context,authViewModel,navController) }
+        composable(Screen.Login.route) { LoginScreen(context,authViewModel,navController) }
+        composable(Screen.ResetPassword.route + "/{email}") { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+            ResetPasswordScreen(navController, authViewModel, email = email)
+        }
 
         // Helper Screen
         composable(Screen.Helper.route) {
@@ -64,6 +112,7 @@ fun NavigationController(    stepCounterViewModel: StepCounterViewModel = viewMo
             PhoneNumbersScreen(
                 context = context,
                 navController = navController,
+                viewModel = contactViewModel
             )
         }
 
@@ -100,6 +149,7 @@ fun NavigationController(    stepCounterViewModel: StepCounterViewModel = viewMo
             SearchScreen(
                 context = context,
                 navController = navController,
+                authViewModel=authViewModel,
                 floorPlanViewModel = floorPlanViewModel,
                 stepCounterViewModel = stepCounterViewModel,
                 navigationViewModel = navigationViewModel
