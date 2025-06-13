@@ -17,8 +17,8 @@ object NavigationUtils {
     private const val DEVIATION_THRESHOLD = 2.0 // meters
     private const val OBSTACLE_DETECTION_RANGE = 3.0 // meters
     private const val RECALCULATION_DELAY = 5000L // ms
-    private const val STRAIGHT_DISTANCE_THRESHOLD = 1.0 // meters
-    private const val TURNING_DISTANCE_THRESHOLD = 1.0 // meters
+    private const val STRAIGHT_DISTANCE_THRESHOLD = 0.5 // meters
+    private const val TURNING_DISTANCE_THRESHOLD = 0.2 // meters
 
     // Navigation state
     private var isNavigating = false
@@ -35,7 +35,7 @@ object NavigationUtils {
     private var instructionGiven = false // Track if first instruction has been given
     private var lastMovementTime = 0L
     private var lastPosition: Point? = null
-    private const val MOVEMENT_THRESHOLD = 1.0 // meters - minimum movement to detect walking
+    private const val MOVEMENT_THRESHOLD = 0.3 // meters - minimum movement to detect walking
 
     fun startNavigation(
         start: Any,
@@ -78,11 +78,16 @@ object NavigationUtils {
         if (path != null) {
             currentInstructionIndex = path.size - 1
         }
+
+        // ✅ Appeler le callback AVANT de le mettre à null
+        onStopNavigationCallback?.invoke()
+
         onPositionUpdatedCallback = null
         onInstructionChangedCallback = null
         onStopNavigationCallback = null
         navigationViewModel = null
     }
+
 
     fun detectObstacle(position: Point) {
         obstacleDetected = true
@@ -106,35 +111,44 @@ object NavigationUtils {
         if (!instructionGiven && lastPosition != null) {
             val movedDistance = calculateDistance(lastPosition!!, position)
             if (movedDistance > MOVEMENT_THRESHOLD) {
-                // User started walking, give first instruction
-                onInstructionChangedCallback?.invoke(currentInstructionIndex)
+                onInstructionChangedCallback?.invoke(currentInstructionIndex) // OK
                 instructionGiven = true
             }
         }
+
         lastPosition = position
         lastMovementTime = currentTime
+        Log.d("NavigationUtils", "Position updated: $position")
+        Log.d("NavigationUtils", "Current point index: $currentPointIndex")
+        Log.d("NavigationUtils", "Current instruction index: $currentInstructionIndex")
+        Log.d("NavigationUtils", "Path: ${path}")
 
         // Check if we've reached the next point in the path
         if (currentPointIndex < path.size - 1) {
             val nextPoint = path[currentPointIndex + 1]
-            if (calculateDistance(position, nextPoint) < STRAIGHT_DISTANCE_THRESHOLD) {
-                currentPointIndex++
+            Log.d("NavigationUtils", "Next point: $nextPoint")
+            Log.d("NavigationUtils", "Current position: $position")
+            Log.d("NavigationUtils", "Distance to next point: ${calculateDistance(position, nextPoint)}")
 
-                // Advance instruction if needed
-                if (shouldAdvanceInstruction(path[currentPointIndex - 1], nextPoint)) {
+            if (calculateDistance(position, nextPoint)/100 < STRAIGHT_DISTANCE_THRESHOLD) {
+                if (shouldAdvanceInstruction(path[currentPointIndex], nextPoint)) {
                     currentInstructionIndex++
                     onInstructionChangedCallback?.invoke(currentInstructionIndex)
                 }
+                currentPointIndex++
             }
+
         }
 
         // Check if we've reached the destination
         if (currentPointIndex >= path.size - 1 ||
-            calculateDistance(position, path.last()) < STRAIGHT_DISTANCE_THRESHOLD) {
+            calculateDistance(position, path.last()) / 100 < STRAIGHT_DISTANCE_THRESHOLD) {
+
             stopNavigation(path)
-            onStopNavigationCallback?.invoke()
+            Log.d("NavigationUtils", "Reached destination")
             return
         }
+
 
         // Check for deviation
         if (isDeviatingFromPath()) {
@@ -152,10 +166,11 @@ object NavigationUtils {
 
         return if (isStraightInstruction) {
             // For straight instructions (even index), advance when close to next point
-            calculateDistance(currentPosition!!, nextPoint) < STRAIGHT_DISTANCE_THRESHOLD
+            calculateDistance(currentPosition!!, nextPoint)/100 < STRAIGHT_DISTANCE_THRESHOLD
         } else {
             // For turning instructions (odd index), advance when leaving current point
-            calculateDistance(currentPosition!!, currentPoint) > TURNING_DISTANCE_THRESHOLD
+            calculateDistance(currentPosition!!, currentPoint)/100 > TURNING_DISTANCE_THRESHOLD
+
         }
     }
 

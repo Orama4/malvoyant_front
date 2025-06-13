@@ -303,7 +303,7 @@ fun SearchScreen(
                             onStopNavigation = {
                                 isNavigationActive = false
                                 currentInstructionIndex = 0
-                                speechHelper.speak("You have reached your destination, would you like to activate OD2 to get more information about the current position")
+                                speechHelper.speak("You have reached your destination, would you like to activate OD2 to get more information about the current position?")
                             },
 
                         )
