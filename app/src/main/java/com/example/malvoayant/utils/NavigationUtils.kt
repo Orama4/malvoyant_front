@@ -187,7 +187,7 @@ object NavigationUtils {
         return sqrt((a.x - b.x).pow(2) + (a.y - b.y).pow(2).toDouble())
     }
 
-    private fun calculateDistanceToSegment(point: Point, segmentStart: Point, segmentEnd: Point): Double {
+    fun calculateDistanceToSegment(point: Point, segmentStart: Point, segmentEnd: Point): Double {
         val segmentLength = calculateDistance(segmentStart, segmentEnd)
         if (segmentLength == 0.0) return calculateDistance(point, segmentStart)
 

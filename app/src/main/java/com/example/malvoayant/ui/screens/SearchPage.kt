@@ -106,6 +106,8 @@ fun SearchScreen(
             )
 
             NavigationUtils.updatePosition(point)
+            navigationViewModel.checkForDeviation(point)
+
         }
     }
     val launcher = rememberLauncherForActivityResult(
@@ -153,7 +155,36 @@ fun SearchScreen(
 // Observer les changements de chemin
     LaunchedEffect(navigationViewModel.currentPath) {
         Log.d("SearchScreen", "Chemin actuel: $currentPath")
+        if (navigationViewModel.currentPath != null && (isNavigationActive || navigationViewModel.isOffPath)) {
+            // Restart navigation with new path
+            val start = if (startPoint?.name == "current") {
+                Point(x = startPoint!!.x, y = startPoint!!.y)
+            } else {
+                startPoint!!
+            }
+
+            NavigationUtils.startNavigation(
+                start = start,
+                destination = Point(endPoint!!.x, endPoint!!.y),
+                navigationViewModel = navigationViewModel,
+                onPositionUpdated = { /* ... */ },
+                onInstructionChanged = { newIndex ->
+                    currentInstructionIndex = newIndex
+                    navigationViewModel.instructions.getOrNull(newIndex)?.let { instruction ->
+                        speechHelper.speak(instruction.instruction)
+                    }
+                },
+                onStopNavigation = {
+                    isNavigationActive = false
+                    currentInstructionIndex = 0
+                    speechHelper.speak("You have reached your destination, would you like to activate OD2 to get more information about the current position?")
+                }
+            )
+            isNavigationActive = true
+            navigationViewModel.isOffPath = false
+        }
     }
+
     LaunchedEffect(Unit) {
         speechHelper.initializeSpeech {
             speechHelper.speak("Search page. You can search for points of interest. Use the buttons at the bottom for help, SOS, or repair services.")
@@ -327,6 +358,7 @@ fun SearchScreen(
                     fontWeight = FontWeight.Bold
                 )
             }
+
 
 
             // Bottom navigation buttons
