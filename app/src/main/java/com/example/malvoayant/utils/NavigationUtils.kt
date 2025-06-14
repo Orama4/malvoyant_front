@@ -245,7 +245,7 @@ object NavigationUtils {
             Log.d("OBSTACLE", "calcule itineraire a nouvea apartir la position  = $currentPos")
 
             // Recalculate path avoiding obstacle
-            navigationViewModel?.calculatePath(
+            navigationViewModel?.recalculatePathForObstacle(
                 start = currentPos,
                 destination = navigationViewModel?.currentPath?.last() ?: return@let
             )

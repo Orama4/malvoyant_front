@@ -53,7 +53,19 @@ class NavigationViewModel(
 
 
     fun calculatePath(start: Any, destination: Any) {
-        NavigationUtils.stopNavigation(null)
+        calculatePathInternal(start, destination, stopNavigationFirst = true)
+    }
+
+    // Fonction spéciale pour recalcul d'obstacle
+    fun recalculatePathForObstacle(start: Any, destination: Any) {
+        calculatePathInternal(start, destination, stopNavigationFirst = false)
+    }
+
+    private fun calculatePathInternal(start: Any, destination: Any, stopNavigationFirst: Boolean) {
+        // Arrêter la navigation seulement si ce n'est pas un recalcul d'obstacle
+        if (stopNavigationFirst) {
+            NavigationUtils.stopNavigation(null)
+        }
         viewModelScope.launch(Dispatchers.IO) {
             isLoading = true
             errorMessage = null
