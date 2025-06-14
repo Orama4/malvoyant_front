@@ -12,7 +12,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
+import com.example.malvoayant.data.models.ConnectionState
 import com.example.malvoayant.data.models.FloorPlanState
+import com.example.malvoayant.network.LocationWebSocketService
+import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -324,5 +328,65 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
         super.onCleared()
         stopListening()
     }
+
+
+
+
+
+
+
+
+
+
+
+    private val locationService = LocationWebSocketService()
+
+    val connectionState: StateFlow<ConnectionState> = locationService.connectionState
+
+    private var positionObserver: Observer<Pair<Float, Float>>? = null
+    private var isTracking = false
+
+    fun connectToWebSocket(userId: Int, helperId: Int) {
+        locationService.connect(userId, helperId)
+    }
+
+    fun startLocationTracking() {
+        if (isTracking) return
+
+        isTracking = true
+
+        // Observer pour surveiller les changements de position
+        positionObserver = Observer { position ->
+            if (isTracking && locationService.connectionState.value.isConnected) {
+                locationService.sendLocationUpdate(position)
+            }
+        }
+
+        // S'abonner aux changements de position
+        this.currentPositionLive.observeForever(positionObserver!!)
+    }
+
+    fun stopLocationTracking() {
+        isTracking = false
+        positionObserver?.let { observer ->
+            this.currentPositionLive.removeObserver(observer)
+        }
+        positionObserver = null
+    }
+
+    fun disconnect() {
+        stopLocationTracking()
+        locationService.disconnect()
+    }
+
+    fun cleanup() {
+        locationService.cleanup()
+    }
+
+
+
+
+
+
 
 }

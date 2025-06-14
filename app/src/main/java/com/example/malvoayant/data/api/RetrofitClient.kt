@@ -5,8 +5,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 
 object RetrofitClient {
-    private const val AUTH_BASE_URL = "http://192.168.39.234:3001"  // Localhost for emulator
-    private const val CONTACTS_BASE_URL = "http://192.168.39.234:3002"
+    private const val AUTH_BASE_URL = "http://172.20.10.3:3001"  // Localhost for emulator
+    private const val CONTACTS_BASE_URL = "http://172.20.10.3:3002"
 
     // Auth service client
     val authApiService: AuthApiService by lazy {

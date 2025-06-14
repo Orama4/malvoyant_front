@@ -343,10 +343,12 @@ fun SearchScreen(
             ModernButton(
                 text = "Logout",
                 onClick = {
-                    authViewModel.logout()
+                   /* authViewModel.logout()
                     if (authViewModel.error.value == null) {
                         navController.navigate(Screen.Login.route)
-                    }
+                    } */
+                    stepCounterViewModel.connectToWebSocket(11,1)
+                    stepCounterViewModel.startLocationTracking()
                 },
                 icon = Icons.AutoMirrored.Filled.Logout
             )
