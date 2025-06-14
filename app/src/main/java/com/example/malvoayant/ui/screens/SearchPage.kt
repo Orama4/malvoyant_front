@@ -380,16 +380,11 @@ fun SearchScreen(
         if (isNavigationActive) {
             Button(
                 onClick = {
-                    Log.d("OBSTACLE", "Simulation d'un obstacle à 2 mètres")
-                    // Obtenir la position actuelle de la navigation
                     val currentPos = NavigationUtils.getTraversedPath().lastOrNull()
                         ?: Point(currentPosition.x, currentPosition.y)
 
-                    // Détecter l'obstacle à cette position
-                    NavigationUtils.detectObstacle(currentPos)
-
-                    // Parler pour informer l'utilisateur
-                    speechHelper.speak("Obstacle détecté à 2 mètres. Recalcul de l'itinéraire en cours.")
+                    val obstacleMessage = NavigationUtils.handleObstacle(currentPos)
+                    speechHelper.speak(obstacleMessage)
                 },
                 modifier = Modifier
                     .align(Alignment.BottomStart)

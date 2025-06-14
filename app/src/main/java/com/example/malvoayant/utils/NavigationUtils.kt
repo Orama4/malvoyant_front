@@ -90,21 +90,82 @@ object NavigationUtils {
     }
 
 
-    fun detectObstacle(position: Point) {
+
+
+
+    fun handleObstacle(position: Point) : String{
         val obstaclePosition = Point(
             x = position.x + 200f,
             y = position.y
         )
-
-        if (!detectedObstacles.any {
-                calculateDistance(it, obstaclePosition) < 50f
-            }) {
+        if (!detectedObstacles.any { calculateDistance(it, obstaclePosition) < 50f }) {
             detectedObstacles.add(obstaclePosition)
-            Log.d("OBSTACLE", "Obstacle enregistré à la position: (${obstaclePosition.x}, ${obstaclePosition.y})")
+
+            currentPosition?.let { currentPos ->
+                val currentPath = navigationViewModel?.currentPath
+                if (currentPath == null || currentPath.isEmpty()) {
+                    return "Obstacle détecté mais aucun itinéraire actif."
+                }
+
+                val isNewObstacleOnPath = isSpecificObstacleOnCalculatedPath(
+                    obstacle = obstaclePosition,
+                    path = currentPath
+                )
+
+                if (!isNewObstacleOnPath) {
+                    return "Obstacle détecté à 2 mètres sur le côté. Continuez votre chemin."
+                } else {
+                    Log.d("OBSTACLE", "Nouvel obstacle sur le chemin - recalcul nécessaire")
+
+                    navigationViewModel?.recalculatePathForObstacle(
+                        start = currentPos,
+                        destination = currentPath.last()
+                    )
+
+                    traversedPath.clear()
+                    traversedPath.add(currentPos)
+                    currentInstructionIndex = 0
+                    currentPointIndex = 0
+                    instructionGiven = false
+
+                    return "Obstacle détecté sur votre chemin à 2 mètres. Recalcul de l'itinéraire en cours."
+                }
+            }
         }
-        obstacleDetected = true
-        handleObstacle()
+        return "Obstacle déjà détecté dans cette zone."
     }
+
+    private fun isSpecificObstacleOnCalculatedPath(
+        obstacle: Point,
+        path: List<Point>
+    ): Boolean {
+        val maxDistanceToPath = 10f // 1 mètre en unités du système
+
+        for (i in 0 until path.size - 1) {
+            val segmentStart = path[i]
+            val segmentEnd = path[i + 1]
+
+            val distanceToSegment = calculateDistanceToSegment(
+                obstacle,
+                segmentStart,
+                segmentEnd
+            )
+
+            if (distanceToSegment <= maxDistanceToPath) {
+                Log.d("OBSTACLE", "Obstacle détecté sur le segment $i du chemin (distance: $distanceToSegment)")
+                return true
+            }
+        }
+
+        Log.d("OBSTACLE", "Obstacle pas sur le chemin calculé")
+        return false
+    }
+
+
+
+
+
+
 
     // Method to update position from step detection
     fun updatePosition(position: Point) {
@@ -155,10 +216,6 @@ object NavigationUtils {
             handleDeviation()
         }
 
-        // Check for obstacle (implemented elsewhere)
-        if (obstacleDetected) {
-            handleObstacle()
-        }
     }
 
     private fun shouldAdvanceInstruction(currentPoint: Point, nextPoint: Point): Boolean {
@@ -232,33 +289,6 @@ object NavigationUtils {
         }
     }
 
-    private fun handleObstacle() {
-        Log.d("OBSTACLE", "État initial: obstacleDetected = $obstacleDetected")
-        Log.d("OBSTACLE", "Position actuelle = $currentPosition")
-        Log.d("OBSTACLE", "traversedPath taille = ${traversedPath.size}, contenu = ${traversedPath.joinToString(", ") { "(${it.x}, ${it.y})" }}")
-        Log.d("OBSTACLE", "currentInstructionIndex = $currentInstructionIndex")
-        Log.d("OBSTACLE", "currentPointIndex = $currentPointIndex")
-        Log.d("OBSTACLE", "instructionGiven = $instructionGiven")
-
-        obstacleDetected = false
-        currentPosition?.let { currentPos ->
-            Log.d("OBSTACLE", "calcule itineraire a nouvea apartir la position  = $currentPos")
-
-            // Recalculate path avoiding obstacle
-            navigationViewModel?.recalculatePathForObstacle(
-                start = currentPos,
-                destination = navigationViewModel?.currentPath?.last() ?: return@let
-            )
-
-            // Reset navigation state
-            traversedPath.clear()
-            traversedPath.add(currentPos)
-            Log.d("OBSTACLE", "APRÈS réinitialisation: traversedPath.size = ${traversedPath.size}, contenu = ${traversedPath.joinToString(", ") { "(${it.x}, ${it.y})" }}")
-            currentInstructionIndex = 0
-            currentPointIndex = 0
-            instructionGiven = false
-        }
-    }
 
     fun getTraversedPath(): List<Point> = traversedPath.toList()
     fun getCurrentInstructionIndex(): Int = currentInstructionIndex

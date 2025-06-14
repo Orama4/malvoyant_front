@@ -51,7 +51,9 @@ class NavigationViewModel(
         _traversedPath.update { it + point }
     }
 
-
+    fun clearTraversedPath() {
+        _traversedPath.update { emptyList() }
+    }
     fun calculatePath(start: Any, destination: Any) {
         calculatePathInternal(start, destination, stopNavigationFirst = true)
     }
@@ -62,9 +64,10 @@ class NavigationViewModel(
     }
 
     private fun calculatePathInternal(start: Any, destination: Any, stopNavigationFirst: Boolean) {
-        // Arrêter la navigation seulement si ce n'est pas un recalcul d'obstacle
+
         if (stopNavigationFirst) {
             NavigationUtils.stopNavigation(null)
+            clearTraversedPath()
         }
         viewModelScope.launch(Dispatchers.IO) {
             isLoading = true
