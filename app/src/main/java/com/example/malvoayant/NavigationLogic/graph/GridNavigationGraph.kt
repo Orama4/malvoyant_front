@@ -8,6 +8,7 @@ import com.example.malvoayant.NavigationLogic.utils.isPointInPolygon
 import com.example.malvoayant.data.models.FloorPlanState
 import com.example.malvoayant.data.models.POI
 import com.example.malvoayant.data.models.Point
+import com.example.malvoayant.utils.NavigationUtils
 import java.util.PriorityQueue
 import kotlin.math.sqrt
 
@@ -32,7 +33,7 @@ class GridNavigationGraph(
 
         val cols = ((maxX - minX) / cellSize).toInt() + 1
         val rows = ((maxY - minY) / cellSize).toInt() + 1
-
+        val obstacles = NavigationUtils.getDetectedObstacles()
         for (i in 0 until cols) {
             for (j in 0 until rows) {
                 val cx = minX + i * cellSize
@@ -67,8 +68,10 @@ class GridNavigationGraph(
                 }
                 // si tu veux inter-connecter plusieurs pièces via portes, ignore inAnyRoom ici
                 // et gère la connexion porte→cellule dans connectNodes()
-
-                val walkable = !inPoi && !inWall && inAnyRoom
+                val inObstacle = obstacles.any { obstacle ->
+                    calculateDistance(center, obstacle) <= cellSize / 2f
+                }
+                val walkable = !inPoi && !inWall && inAnyRoom && !inObstacle
 
                 val cell = Cell(i, j, center, walkable)
                 cells += cell

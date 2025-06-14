@@ -348,7 +348,37 @@ private fun DrawScope.drawContent(
     // Draw stylish POIs with category-specific icons
     drawElegantPOIs(floorPlanState.pois)
     drawElegantPath(floorPlanState.minPoint, pathPoints, currentPosition, currentHeading, pathGradientColors, headingColor)
+    val obstacles = navigationViewModel.getDetectedObstacles()
+    obstacles.forEach { obstacle ->
+        // Dessiner l'obstacle comme un cercle rouge avec un X
+        drawCircle(
+            color = Color.Red,
+            center = Offset(obstacle.x, obstacle.y),
+            radius = 25f,
+            style = Stroke(width = 4f)
+        )
+        drawCircle(
+            color = Color.Red.copy(alpha = 0.3f),
+            center = Offset(obstacle.x, obstacle.y),
+            radius = 25f
+        )
 
+        // Dessiner un X au centre
+        val centerOffset = Offset(obstacle.x, obstacle.y)
+        val size = 15f
+        drawLine(
+            color = Color.Red,
+            start = Offset(centerOffset.x - size, centerOffset.y - size),
+            end = Offset(centerOffset.x + size, centerOffset.y + size),
+            strokeWidth = 3f
+        )
+        drawLine(
+            color = Color.Red,
+            start = Offset(centerOffset.x + size, centerOffset.y - size),
+            end = Offset(centerOffset.x - size, centerOffset.y + size),
+            strokeWidth = 3f
+        )
+    }
     // Draw the current path
     navigationViewModel.currentPath?.let { path ->
         val angle = if (path.size > 1) {

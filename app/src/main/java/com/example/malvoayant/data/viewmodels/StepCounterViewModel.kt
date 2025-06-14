@@ -36,10 +36,10 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
     val currentHeadingLive: LiveData<Float> = _currentHeadingLive
 
     private var currentHeading = 0f
-    private var currentPosition = Pair(0f, 0f)
+    private var currentPosition = Pair(0f, 4f)
     private val stepLength = 1f
 
-    private val _currentPositionLive = MutableLiveData(Pair(0f, 0f))
+    private val _currentPositionLive = MutableLiveData(Pair(0f, 4f))
     val currentPositionLive: LiveData<Pair<Float, Float>> = _currentPositionLive
 
     private val _pathPoints = MutableLiveData(listOf(Pair(0f, 0f)))
@@ -285,13 +285,13 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
             currentPosition = nextPosition
 
             _currentPositionLive.postValue(currentPosition)
-            Log.d("QUICK CHECKIIIINNNG IN STEP","current position :${currentPosition.first}, ${currentPosition.second}")
+           // Log.d("QUICK CHECKIIIINNNG IN STEP","current position :${currentPosition.first}, ${currentPosition.second}")
             val updatedPath = _pathPoints.value.orEmpty() + currentPosition
 
             _pathPoints.postValue(updatedPath)
-            Log.d("Navigation", "Step taken: heading=$envHeading°, position=$currentPosition")
+        //    Log.d("Navigation", "Step taken: heading=$envHeading°, position=$currentPosition")
         } else {
-            Log.d("Navigation", "Step ignored: next position is outside the walls!")
+     //       Log.d("Navigation", "Step ignored: next position is outside the walls!")
         }
     }
 

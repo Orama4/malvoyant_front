@@ -42,11 +42,8 @@ class NavigationViewModel(
     var showInstructions by mutableStateOf(false)
         private set
 
-
+    fun getDetectedObstacles(): List<Point> = NavigationUtils.getDetectedObstacles()
     // Ajoutez cette fonction
-    fun handleObstacleDetected(position: Point) {
-        NavigationUtils.detectObstacle(position)
-    }
     private val _traversedPath = MutableStateFlow<List<Point>>(emptyList())
     val traversedPath: StateFlow<List<Point>> = _traversedPath
 

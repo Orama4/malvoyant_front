@@ -13,7 +13,6 @@ import com.example.malvoayant.data.viewmodels.StepCounterViewModel
 
 class MainActivity : ComponentActivity() {
     private lateinit var stepCounterViewModel: StepCounterViewModel
-    private val pathFinder = SafePathFinder()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {

@@ -12,13 +12,14 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 object NavigationUtils {
-
+    private val detectedObstacles = mutableListOf<Point>()
+    fun getDetectedObstacles(): List<Point> = detectedObstacles.toList()
     // Configurations
     private const val DEVIATION_THRESHOLD = 2.0 // meters
     private const val OBSTACLE_DETECTION_RANGE = 3.0 // meters
     private const val RECALCULATION_DELAY = 5000L // ms
-    private const val STRAIGHT_DISTANCE_THRESHOLD = 1.0 // meters
-    private const val TURNING_DISTANCE_THRESHOLD = 1.0 // meters
+    private const val STRAIGHT_DISTANCE_THRESHOLD = 0.3 // meters
+    private const val TURNING_DISTANCE_THRESHOLD = 0.2 // meters
 
     // Navigation state
     private var isNavigating = false
@@ -35,7 +36,7 @@ object NavigationUtils {
     private var instructionGiven = false // Track if first instruction has been given
     private var lastMovementTime = 0L
     private var lastPosition: Point? = null
-    private const val MOVEMENT_THRESHOLD = 1.0 // meters - minimum movement to detect walking
+    private const val MOVEMENT_THRESHOLD = 0.3 // meters - minimum movement to detect walking
 
     fun startNavigation(
         start: Any,
@@ -78,13 +79,29 @@ object NavigationUtils {
         if (path != null) {
             currentInstructionIndex = path.size - 1
         }
+
+        // ✅ Appeler le callback AVANT de le mettre à null
+        onStopNavigationCallback?.invoke()
+
         onPositionUpdatedCallback = null
         onInstructionChangedCallback = null
         onStopNavigationCallback = null
         navigationViewModel = null
     }
 
+
     fun detectObstacle(position: Point) {
+        val obstaclePosition = Point(
+            x = position.x + 200f,
+            y = position.y
+        )
+
+        if (!detectedObstacles.any {
+                calculateDistance(it, obstaclePosition) < 50f
+            }) {
+            detectedObstacles.add(obstaclePosition)
+            Log.d("OBSTACLE", "Obstacle enregistré à la position: (${obstaclePosition.x}, ${obstaclePosition.y})")
+        }
         obstacleDetected = true
         handleObstacle()
     }
@@ -106,35 +123,32 @@ object NavigationUtils {
         if (!instructionGiven && lastPosition != null) {
             val movedDistance = calculateDistance(lastPosition!!, position)
             if (movedDistance > MOVEMENT_THRESHOLD) {
-                // User started walking, give first instruction
-                onInstructionChangedCallback?.invoke(currentInstructionIndex)
+                onInstructionChangedCallback?.invoke(currentInstructionIndex) // OK
                 instructionGiven = true
             }
         }
         lastPosition = position
         lastMovementTime = currentTime
 
-        // Check if we've reached the next point in the path
+        // 1) avancer currentPointIndex si on passe un point
         if (currentPointIndex < path.size - 1) {
-            val nextPoint = path[currentPointIndex + 1]
-            if (calculateDistance(position, nextPoint) < STRAIGHT_DISTANCE_THRESHOLD) {
+            val next = path[currentPointIndex + 1]
+            if (calculateDistance(position, next) / 100 < STRAIGHT_DISTANCE_THRESHOLD) {
                 currentPointIndex++
-
-                // Advance instruction if needed
-                if (shouldAdvanceInstruction(path[currentPointIndex - 1], nextPoint)) {
-                    currentInstructionIndex++
-                    onInstructionChangedCallback?.invoke(currentInstructionIndex)
-                }
             }
         }
 
-        // Check if we've reached the destination
+// 2) recalculer l’instruction en “intelligent”
+        updateInstructionIndex(position, path)
+
+        // 3) détection d’arrivée
         if (currentPointIndex >= path.size - 1 ||
-            calculateDistance(position, path.last()) < STRAIGHT_DISTANCE_THRESHOLD) {
+            calculateDistance(position, path.last()) / 100 < STRAIGHT_DISTANCE_THRESHOLD) {
             stopNavigation(path)
-            onStopNavigationCallback?.invoke()
+            Log.d("NavigationUtils", "Reached destination")
             return
         }
+
 
         // Check for deviation
         if (isDeviatingFromPath()) {
@@ -152,10 +166,11 @@ object NavigationUtils {
 
         return if (isStraightInstruction) {
             // For straight instructions (even index), advance when close to next point
-            calculateDistance(currentPosition!!, nextPoint) < STRAIGHT_DISTANCE_THRESHOLD
+            calculateDistance(currentPosition!!, nextPoint)/100 < STRAIGHT_DISTANCE_THRESHOLD
         } else {
             // For turning instructions (odd index), advance when leaving current point
-            calculateDistance(currentPosition!!, currentPoint) > TURNING_DISTANCE_THRESHOLD
+            calculateDistance(currentPosition!!, currentPoint)/100 > TURNING_DISTANCE_THRESHOLD
+
         }
     }
 
@@ -218,8 +233,17 @@ object NavigationUtils {
     }
 
     private fun handleObstacle() {
+        Log.d("OBSTACLE", "État initial: obstacleDetected = $obstacleDetected")
+        Log.d("OBSTACLE", "Position actuelle = $currentPosition")
+        Log.d("OBSTACLE", "traversedPath taille = ${traversedPath.size}, contenu = ${traversedPath.joinToString(", ") { "(${it.x}, ${it.y})" }}")
+        Log.d("OBSTACLE", "currentInstructionIndex = $currentInstructionIndex")
+        Log.d("OBSTACLE", "currentPointIndex = $currentPointIndex")
+        Log.d("OBSTACLE", "instructionGiven = $instructionGiven")
+
         obstacleDetected = false
         currentPosition?.let { currentPos ->
+            Log.d("OBSTACLE", "calcule itineraire a nouvea apartir la position  = $currentPos")
+
             // Recalculate path avoiding obstacle
             navigationViewModel?.calculatePath(
                 start = currentPos,
@@ -229,6 +253,7 @@ object NavigationUtils {
             // Reset navigation state
             traversedPath.clear()
             traversedPath.add(currentPos)
+            Log.d("OBSTACLE", "APRÈS réinitialisation: traversedPath.size = ${traversedPath.size}, contenu = ${traversedPath.joinToString(", ") { "(${it.x}, ${it.y})" }}")
             currentInstructionIndex = 0
             currentPointIndex = 0
             instructionGiven = false
@@ -238,4 +263,53 @@ object NavigationUtils {
     fun getTraversedPath(): List<Point> = traversedPath.toList()
     fun getCurrentInstructionIndex(): Int = currentInstructionIndex
     fun isNavigationActive(): Boolean = isNavigating
+
+    private fun updateInstructionIndex(position: Point, path: List<Point>) {
+        val eps = TURNING_DISTANCE_THRESHOLD
+        var bestInstr = currentInstructionIndex
+        var minDist = Double.MAX_VALUE
+
+        // Pour chaque segment [path[i], path[i+1]] on calcule
+        //   - t_i (paramètre de projection)
+        //   - distance perpendiculaire dist_i
+        // puis on garde l’indice i du segment qui minimise dist_i
+        for (i in 0 until path.size - 1) {
+            val A = path[i]
+            val B = path[i + 1]
+            val vx = B.x - A.x
+            val vy = B.y - A.y
+            val segLen = calculateDistance(A, B)
+            if (segLen == 0.0) continue
+
+            // projection scalaire t_i
+            val t = ((position.x - A.x) * vx + (position.y - A.y) * vy) / (segLen * segLen)
+            // point projeté
+            val projX = A.x + (t * vx).toFloat()
+            val projY = A.y + (t * vy).toFloat()
+            val dist = calculateDistance(position, Point(projX, projY))
+
+            if (dist < minDist) {
+                minDist = dist
+                // calcul de l’instruction
+                val alpha = (eps / segLen).toDouble()
+                bestInstr = when {
+                    t < alpha -> if (i > 0) 2*i - 1 else 2*i         // turning début
+                    t > 1 - alpha -> 2*(i + 1) - 1                     // turning fin
+                    else -> 2*i                                       // straight
+                }
+            }
+        }
+
+        // bornes
+        if (bestInstr < 0) bestInstr = 0
+
+        // on débloque seulement si changement
+        if (bestInstr != currentInstructionIndex) {
+            currentInstructionIndex = bestInstr
+            onInstructionChangedCallback?.invoke(bestInstr)
+        }
+    }
+
+
+
 }
