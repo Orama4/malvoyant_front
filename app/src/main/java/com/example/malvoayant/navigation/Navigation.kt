@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -35,7 +37,15 @@ fun NavigationController(    stepCounterViewModel: StepCounterViewModel = viewMo
 
 
     val floorPlanViewModel: FloorPlanViewModel = viewModel()
-    val navigationViewModel: NavigationViewModel = remember { NavigationViewModel(floorPlanViewModel) }
+    val navigationViewModel: NavigationViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return NavigationViewModel(floorPlanViewModel, stepCounterViewModel) as T
+            }
+        }
+    )
+
 
     LaunchedEffect(Unit) {
         floorPlanViewModel.loadGeoJSONFromAssets(context)

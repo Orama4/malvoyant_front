@@ -26,6 +26,7 @@ import kotlin.math.atan2
 
 class NavigationViewModel(
     private val floorPlanViewModel: FloorPlanViewModel,
+    private val stepCounterViewModel: StepCounterViewModel
 ) : ViewModel() {
     private val pathFinder = PathFinder()
 
@@ -76,7 +77,7 @@ class NavigationViewModel(
         _traversedPath.update { it + point }
     }
 
-    fun calculatePath(start: Any, destination: Any) {
+ /*   fun calculatePath(start: Any, destination: Any) {
         NavigationUtils.stopNavigation(null)
         viewModelScope.launch(Dispatchers.IO) {
             isLoading = true
@@ -221,6 +222,116 @@ class NavigationViewModel(
         }
     }
 
+  */
+ fun calculatePath(start: Any, destination: Any) {
+     NavigationUtils.stopNavigation(null)
+     viewModelScope.launch(Dispatchers.IO) {
+         isLoading = true
+         errorMessage = null
+         currentPath = null
+
+         try {
+             val floorPlan = floorPlanViewModel.floorPlanState
+             Log.d("NavigationVM", "brooo")
+             val gr=GridNavigationGraph(
+                 floorPlan = floorPlan,
+                 bounds = listOf(
+                     floorPlan.minPoint.x,
+                     floorPlan.maxPoint.x,
+                     floorPlan.minPoint.y,
+                     floorPlan.maxPoint.y
+                 )
+             )
+             Log.d("NavigationVM", "brooo")
+             gr.buildGrid()
+             val patt= gr.findPath(start, destination )
+             Log.d("NavigationVMG", "Path found: $patt")
+             val patt_simp= gr.simplifyPath(patt)
+             Log.d("NavigationVMG", "Simplified path: $patt_simp")
+             currentPath = patt_simp
+             instructions = emptyList()
+
+             // Generate instructions based on path and user's heading
+             generateNavigationInstructions(patt_simp)
+
+             Log.d("NavigationVM","Instructions created with ${instructions} steps")
+             Log.d("NavigationVM", "Path calculated with ${currentPath?.size ?: 0} points")
+             Log.d("NavigationVM", "Path calculated with ${currentPath}")
+         } catch (e: PathfindingException) {
+             errorMessage = "Navigation error: ${e.message}"
+             Log.e("NavigationVM", "Pathfinding failed", e)
+         } catch (e: Exception) {
+             errorMessage = "Unexpected error: ${e.localizedMessage ?: "Please try again"}"
+             Log.e("NavigationVM", "Path calculation failed", e)
+         } finally {
+             isLoading = false
+         }
+     }
+ }
+
+    private fun generateNavigationInstructions(path: List<Point>?) {
+        if (path == null || path.size < 2) return
+
+        val newInstructions = mutableListOf<StaticInstruction>()
+
+        for (i in 0 until path.size - 1) {
+            val current = path[i]
+            val next = path[i + 1]
+
+            // Calculate distance to next point
+            val distance = calculateDistance(current, next) / 100 // convert to meters
+
+            // Add straight movement instruction
+            newInstructions.add(StaticInstruction(
+                instruction = "Go straight",
+                distance = distance,
+                type = "Walking"
+            ))
+
+            // Check if there's a turn after this segment
+            if (i < path.size - 2) {
+                val nextNext = path[i + 2]
+                val turnDirection = calculateTurnDirection(current, next, nextNext)
+
+                if (turnDirection != null) {
+                    newInstructions.add(StaticInstruction(
+                        instruction = "Turn $turnDirection",
+                        distance = null,
+                        type = "Turning"
+                    ))
+                }
+            }
+        }
+
+        instructions = newInstructions
+    }
+
+    private fun calculateTurnDirection(prev: Point, current: Point, next: Point): String? {
+        // Calculate vectors for the two segments
+        val vec1 = Point(current.x - prev.x, current.y - prev.y)
+        val vec2 = Point(next.x - current.x, next.y - current.y)
+
+        // Calculate the angle between the two vectors
+        val angle = Math.toDegrees(
+            atan2(vec2.y.toDouble(), vec2.x.toDouble()) -
+                    atan2(vec1.y.toDouble(), vec1.x.toDouble())
+        ).toFloat()
+
+        // Normalize angle to -180..180 range
+        val normalizedAngle = when {
+            angle > 180 -> angle - 360
+            angle < -180 -> angle + 360
+            else -> angle
+        }
+
+        return when {
+            normalizedAngle > 30 && normalizedAngle <= 180 -> "right"
+            normalizedAngle < -30 && normalizedAngle >= -180 -> "left"
+            normalizedAngle > 160 -> "around right" // U-turn
+            normalizedAngle < -160 -> "around left" // U-turn
+            else -> null // No significant turn
+        }
+    }
     fun checkForDeviation(currentPosition: Point) {
         viewModelScope.launch(Dispatchers.Default) {
             val path = currentPath ?: return@launch
@@ -341,7 +452,7 @@ class NavigationViewModel(
             y = lineStart.y + clampedT * dy
         )
     }
-
+/*
     // Update the generateGuidanceInstructions function
     private fun generateGuidanceInstructions(currentPosition: Point, nearestPathPoint: Point) {
         viewModelScope.launch(Dispatchers.Default) {
@@ -367,6 +478,33 @@ class NavigationViewModel(
         }
     }
 
+ */
+
+    private fun generateGuidanceInstructions(currentPosition: Point, nearestPathPoint: Point) {
+        viewModelScope.launch(Dispatchers.Default) {
+            // Get current heading from StepCounterViewModel
+            val currentHeading = stepCounterViewModel.currentHeadingLive.value ?: 0f
+
+            // Calculate direction to path point relative to current heading
+            val dx = nearestPathPoint.x - currentPosition.x
+            val dy = nearestPathPoint.y - currentPosition.y
+            val targetAngle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
+            val relativeAngle = (targetAngle - currentHeading + 360) % 360
+
+            val instruction = when {
+                relativeAngle > 315 || relativeAngle <= 45 -> "Move forward to return to path"
+                relativeAngle > 45 && relativeAngle <= 135 -> "Move right to return to path"
+                relativeAngle > 135 && relativeAngle <= 225 -> "Turn around to return to path"
+                else -> "Move left to return to path"
+            }
+
+            withContext(Dispatchers.Main) {
+                if (instructions.none { it.type == "Guidance" }) {
+                    instructions = listOf(StaticInstruction(instruction, null, "Guidance")) + instructions
+                }
+            }
+        }
+    }
     // Update the recalculatePath function
     private fun recalculatePath(currentPosition: Point) {
         val destination = currentPath?.lastOrNull() ?: return

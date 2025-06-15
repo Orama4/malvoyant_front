@@ -38,6 +38,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.malvoayant.NavigationLogic.Models.StaticInstruction
@@ -63,8 +65,16 @@ fun SearchScreen(
     navController: NavHostController,
     floorPlanViewModel: FloorPlanViewModel,
     stepCounterViewModel: StepCounterViewModel = viewModel(),
-    navigationViewModel: NavigationViewModel,
+    navigationViewModel: NavigationViewModel
 ) {
+    val navigationViewModel: NavigationViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return NavigationViewModel(floorPlanViewModel, stepCounterViewModel) as T
+            }
+        }
+    )
     //navigation variables
     var isNavigationActive by remember { mutableStateOf(false) }
     var currentInstructionIndex by remember { mutableStateOf(0) }

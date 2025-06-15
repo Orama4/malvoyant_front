@@ -166,7 +166,7 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
                 SensorManager.getOrientation(rotationMatrix, orientationAngles)
 
                 // Convert to degrees and normalize to 0-360
-                currentHeading = Math.toDegrees(orientationAngles[0].toDouble()).toFloat() + 160
+                currentHeading = Math.toDegrees(orientationAngles[0].toDouble()).toFloat() + 120
                 if (currentHeading < 0) {
                     currentHeading += 360f
                 }
