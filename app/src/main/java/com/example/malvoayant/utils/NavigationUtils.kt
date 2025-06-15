@@ -8,6 +8,8 @@ import com.example.malvoayant.data.viewmodels.NavigationViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -18,7 +20,7 @@ object NavigationUtils {
     private const val DEVIATION_THRESHOLD = 2.0 // meters
     private const val OBSTACLE_DETECTION_RANGE = 3.0 // meters
     private const val RECALCULATION_DELAY = 5000L // ms
-    private const val STRAIGHT_DISTANCE_THRESHOLD = 0.3 // meters
+    private const val STRAIGHT_DISTANCE_THRESHOLD = 0.5 // meters
     private const val TURNING_DISTANCE_THRESHOLD = 0.2 // meters
 
     // Navigation state
@@ -134,6 +136,10 @@ object NavigationUtils {
         }
         return "Obstacle déjà détecté dans cette zone."
     }
+    private fun goToNextInstruction() {
+        currentInstructionIndex++
+        onInstructionChangedCallback?.invoke(currentInstructionIndex)
+    }
 
     private fun isSpecificObstacleOnCalculatedPath(
         obstacle: Point,
@@ -169,6 +175,8 @@ object NavigationUtils {
 
     // Method to update position from step detection
     fun updatePosition(position: Point) {
+        //logger ma postion actuelle:
+        Log.d("AblaDebug","ma position actuelle: $position")
         if (!isNavigating) return
 
         val path = navigationViewModel?.currentPath ?: return
@@ -188,19 +196,23 @@ object NavigationUtils {
                 instructionGiven = true
             }
         }
+        val prev_pos = lastPosition ?: position
         lastPosition = position
         lastMovementTime = currentTime
 
         // 1) avancer currentPointIndex si on passe un point
         if (currentPointIndex < path.size - 1) {
             val next = path[currentPointIndex + 1]
+            Log.d("AblaDebug","le next point: $next")
             if (calculateDistance(position, next) / 100 < STRAIGHT_DISTANCE_THRESHOLD) {
+                Log.d("AblaDebug","j'ai avancé vers le prochain point next ")
                 currentPointIndex++
+                currentInstructionIndex++
             }
         }
 
 // 2) recalculer l’instruction en “intelligent”
-        updateInstructionIndex(position, path)
+        updateInstructionIndex(prev_pos,position, path)
 
         // 3) détection d’arrivée
         if (currentPointIndex >= path.size - 1 ||
@@ -294,7 +306,7 @@ object NavigationUtils {
     fun getCurrentInstructionIndex(): Int = currentInstructionIndex
     fun isNavigationActive(): Boolean = isNavigating
 
-    private fun updateInstructionIndex(position: Point, path: List<Point>) {
+    private fun updateInstructionIndex(prev_pos:Point,position: Point, path: List<Point>) {
         val eps = TURNING_DISTANCE_THRESHOLD
         var bestInstr = currentInstructionIndex
         var minDist = Double.MAX_VALUE
@@ -322,8 +334,23 @@ object NavigationUtils {
                 minDist = dist
                 // calcul de l’instruction
                 val alpha = (eps / segLen).toDouble()
+                //on calcule la différence d'angle entre le segment que l'utilisateur a traversé et le prochain segment
+                val userHeadingAngle = atan2(
+                    (position.y - prev_pos.y).toDouble(),
+                    (position.x - prev_pos.x).toDouble()
+                )
+                val segmentAngle = atan2(vy.toDouble(), vx.toDouble())
+                // Différence d'angle
+                val angleDiff = Math.toDegrees(abs(userHeadingAngle - segmentAngle)).let {
+                    if (it > 180) 360 - it else it
+                }
+                val ANGLE_THRESHOLD = 10
+
+
+
+
                 bestInstr = when {
-                    t < alpha -> if (i > 0) 2*i - 1 else 2*i         // turning début
+                    (t < alpha || angleDiff.toInt() > ANGLE_THRESHOLD) -> if (i > 0) 2*i - 1 else 2*i         // turning début
                     t > 1 - alpha -> 2*(i + 1) - 1                     // turning fin
                     else -> 2*i                                       // straight
                 }
