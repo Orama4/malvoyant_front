@@ -106,6 +106,7 @@ data class FloorPlanState(
     val maxPoint: Point = Point(0f, 0f), // Add maxPoint here
     val minPoint: Point = Point(0f, 0f) // Add minPoint here
 
+
 )
 
 

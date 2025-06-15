@@ -66,6 +66,7 @@ fun SearchScreen(
     navigationViewModel: NavigationViewModel,
 ) {
     //navigation variables
+    val heading by stepCounterViewModel.currentHeadingLive.observeAsState()
     var isNavigationActive by remember { mutableStateOf(false) }
     var currentInstructionIndex by remember { mutableStateOf(0) }
 
@@ -105,7 +106,7 @@ fun SearchScreen(
                 y = currentPosition.y
             )
 
-            NavigationUtils.updatePosition(point)
+            NavigationUtils.updatePosition(point,stepCounterViewModel)
             navigationViewModel.checkForDeviation(point)
 
         }
@@ -178,6 +179,11 @@ fun SearchScreen(
                     isNavigationActive = false
                     currentInstructionIndex = 0
                     speechHelper.speak("You have reached your destination, would you like to activate OD2 to get more information about the current position?")
+                },
+                onDynamicInstruction = { instruction ->
+                    // Parler l'instruction dynamique
+                    Log.d("SearchScreenD", "Dynamic instruction: ${instruction}")
+                    speechHelper.speak(instruction)
                 }
             )
             isNavigationActive = true

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.malvoayant.data.models.POI
 import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.data.viewmodels.NavigationViewModel
+import com.example.malvoayant.data.viewmodels.StepCounterViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -17,8 +18,8 @@ object NavigationUtils {
     private const val DEVIATION_THRESHOLD = 2.0 // meters
     private const val OBSTACLE_DETECTION_RANGE = 3.0 // meters
     private const val RECALCULATION_DELAY = 5000L // ms
-    private const val STRAIGHT_DISTANCE_THRESHOLD = 0.3 // meters
-    private const val TURNING_DISTANCE_THRESHOLD = 0.2 // meters
+    private const val STRAIGHT_DISTANCE_THRESHOLD = 0.5 // meters
+    private const val TURNING_DISTANCE_THRESHOLD = 0.5 // meters
 
     // Navigation state
     private var isNavigating = false
@@ -30,7 +31,9 @@ object NavigationUtils {
     private var lastPositionUpdateTime = 0L
     private var onPositionUpdatedCallback: ((Point) -> Unit)? = null
     private var onInstructionChangedCallback: ((Int) -> Unit)? = null
+    private var onDynamicInstructionCallback: ((String) -> Unit)? = null
     private var onStopNavigationCallback: (() -> Unit)? = null
+    private var onDynamicInstruction: ((String) -> Unit)? = null
     private var navigationViewModel: NavigationViewModel? = null
     private var instructionGiven = false // Track if first instruction has been given
     private var lastMovementTime = 0L
@@ -43,6 +46,7 @@ object NavigationUtils {
         navigationViewModel: NavigationViewModel,
         onPositionUpdated: (Point) -> Unit,
         onInstructionChanged: (Int) -> Unit,
+        onDynamicInstruction: (String) -> Unit = {},
         onStopNavigation: () -> Unit
     ) {
         if (isNavigating) return
@@ -67,6 +71,7 @@ object NavigationUtils {
         this.onPositionUpdatedCallback = onPositionUpdated
         this.onInstructionChangedCallback = onInstructionChanged
         this.onStopNavigationCallback = onStopNavigation
+        this.onDynamicInstructionCallback = onDynamicInstruction
         this.navigationViewModel = navigationViewModel
 
         // Start with the first instruction
@@ -95,11 +100,19 @@ object NavigationUtils {
     }
 
     // Method to update position from step detection
-    fun updatePosition(position: Point) {
+    fun updatePosition(position: Point,stepCounterViewModel: StepCounterViewModel?) {
         if (!isNavigating) return
-
         val path = navigationViewModel?.currentPath ?: return
         if (path.isEmpty()) return
+        // Dans ton ViewModel ou ton observateur de navigation
+        val userHeading = stepCounterViewModel?.currentHeadingLive?.value ?: return
+        val segmentAngle = calculateAngle(path[currentPointIndex], path[currentPointIndex + 1])
+        val diff = angleDifference(userHeading.toDouble(), segmentAngle)
+        if (diff in 15.0..345.0){
+            val dynamicInstruction = getTurnInstruction(diff)
+            onDynamicInstructionCallback?.invoke(dynamicInstruction)
+            return
+        }
 
         currentPosition = position
         traversedPath.add(position)
@@ -110,6 +123,7 @@ object NavigationUtils {
         val currentTime = System.currentTimeMillis()
         if (!instructionGiven && lastPosition != null) {
             val movedDistance = calculateDistance(lastPosition!!, position)
+            Log.d("NavigationUtils", "la distance parcourue par l'utilisateur: $movedDistance")
             if (movedDistance > MOVEMENT_THRESHOLD) {
                 onInstructionChangedCallback?.invoke(currentInstructionIndex) // OK
                 instructionGiven = true
@@ -126,7 +140,8 @@ object NavigationUtils {
         // 1) avancer currentPointIndex si on passe un point
         if (currentPointIndex < path.size - 1) {
             val next = path[currentPointIndex + 1]
-            if (calculateDistance(position, next) / 100 < STRAIGHT_DISTANCE_THRESHOLD) {
+            if (calculateDistance(position, next)/100  <= STRAIGHT_DISTANCE_THRESHOLD) {
+                Log.d("NavigationUtils", "Advancing to next point: ${calculateDistance(position, next)/100} ")
                 currentPointIndex++
             }
         }
@@ -136,7 +151,7 @@ object NavigationUtils {
 
         // 3) détection d’arrivée
         if (currentPointIndex >= path.size - 1 ||
-            calculateDistance(position, path.last()) / 100 < STRAIGHT_DISTANCE_THRESHOLD) {
+            calculateDistance(position, path.last())/100  <= STRAIGHT_DISTANCE_THRESHOLD) {
             stopNavigation(path)
             Log.d("NavigationUtils", "Reached destination")
             return
@@ -159,7 +174,8 @@ object NavigationUtils {
 
         return if (isStraightInstruction) {
             // For straight instructions (even index), advance when close to next point
-            calculateDistance(currentPosition!!, nextPoint)/100 < STRAIGHT_DISTANCE_THRESHOLD
+            calculateDistance(currentPosition!!, nextPoint) <= STRAIGHT_DISTANCE_THRESHOLD
+
         } else {
             // For turning instructions (odd index), advance when leaving current point
             calculateDistance(currentPosition!!, currentPoint)/100 > TURNING_DISTANCE_THRESHOLD
@@ -292,6 +308,34 @@ object NavigationUtils {
             onInstructionChangedCallback?.invoke(bestInstr)
         }
     }
+
+     fun calculateAngle(from: Point, to: Point): Double {
+        val dx = (to.x - from.x).toDouble()
+        val dy = (to.y - from.y).toDouble()
+        return Math.toDegrees(kotlin.math.atan2(dy, dx))
+    }
+
+     fun angleDifference(a1: Double, a2: Double): Double {
+        val diff = ((a2 - a1 + 180 + 360) % 360) - 180
+        return kotlin.math.abs(diff)
+    }
+    fun getTurnInstruction(diff: Double): String {
+
+
+        return when {
+            diff < 15 || diff > 345 -> "Go straight"
+            diff in 15.0..45.0 -> "Slightly right"
+            diff in 45.0..100.0 -> "Turn right"
+            diff in 100.0..150.0 -> "Sharp right"
+            diff in 150.0..210.0 -> "Make a U-turn"
+            diff in 210.0..260.0 -> "Sharp left"
+            diff in 260.0..315.0 -> "Turn left"
+            diff in 315.0..345.0 -> "Slightly left"
+            else -> "Adjust your orientation"
+        }
+    }
+
+
 
 
 
