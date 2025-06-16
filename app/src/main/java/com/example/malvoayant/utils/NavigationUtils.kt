@@ -20,7 +20,7 @@ object NavigationUtils {
     private const val DEVIATION_THRESHOLD = 2.0 // meters
     private const val OBSTACLE_DETECTION_RANGE = 3.0 // meters
     private const val RECALCULATION_DELAY = 5000L // ms
-    private const val STRAIGHT_DISTANCE_THRESHOLD = 0.5 // meters
+    private const val STRAIGHT_DISTANCE_THRESHOLD = 0.4; // meters
     private const val TURNING_DISTANCE_THRESHOLD = 0.2 // meters
 
     // Navigation state
@@ -199,7 +199,7 @@ object NavigationUtils {
         val prev_pos = lastPosition ?: position
         lastPosition = position
         lastMovementTime = currentTime
-
+        var hasUpdatedPointIndex=false
         // 1) avancer currentPointIndex si on passe un point
         if (currentPointIndex < path.size - 1) {
             val next = path[currentPointIndex + 1]
@@ -207,12 +207,13 @@ object NavigationUtils {
             if (calculateDistance(position, next) / 100 < STRAIGHT_DISTANCE_THRESHOLD) {
                 Log.d("AblaDebug","j'ai avancé vers le prochain point next ")
                 currentPointIndex++
-                currentInstructionIndex++
+                hasUpdatedPointIndex = true
+                //currentInstructionIndex++
             }
         }
 
 // 2) recalculer l’instruction en “intelligent”
-        updateInstructionIndex(prev_pos,position, path)
+        updateInstructionIndex(prev_pos,position, path,hasUpdatedPointIndex)
 
         // 3) détection d’arrivée
         if (currentPointIndex >= path.size - 1 ||
@@ -306,64 +307,74 @@ object NavigationUtils {
     fun getCurrentInstructionIndex(): Int = currentInstructionIndex
     fun isNavigationActive(): Boolean = isNavigating
 
-    private fun updateInstructionIndex(prev_pos:Point,position: Point, path: List<Point>) {
-        val eps = TURNING_DISTANCE_THRESHOLD
-        var bestInstr = currentInstructionIndex
-        var minDist = Double.MAX_VALUE
+    private fun updateInstructionIndex(prev_pos:Point,position: Point, path: List<Point>,hasUpdatedPointIndex:Boolean) {
+        if (hasUpdatedPointIndex) {
+            currentInstructionIndex++
+            val instructions= navigationViewModel?.instructions ?: return
+            if (instructions[currentInstructionIndex].type=="Straight") {
+                // Si on est sur une instruction de type "Straight", on avance l'instruction
+                currentInstructionIndex++
+            }
+            onInstructionChangedCallback?.invoke(currentInstructionIndex)
+        } else {
+            val eps = TURNING_DISTANCE_THRESHOLD
+            var bestInstr = currentInstructionIndex
+            var minDist = Double.MAX_VALUE
 
-        // Pour chaque segment [path[i], path[i+1]] on calcule
-        //   - t_i (paramètre de projection)
-        //   - distance perpendiculaire dist_i
-        // puis on garde l’indice i du segment qui minimise dist_i
-        for (i in 0 until path.size - 1) {
-            val A = path[i]
-            val B = path[i + 1]
-            val vx = B.x - A.x
-            val vy = B.y - A.y
-            val segLen = calculateDistance(A, B)
-            if (segLen == 0.0) continue
+            // Pour chaque segment [path[i], path[i+1]] on calcule
+            //   - t_i (paramètre de projection)
+            //   - distance perpendiculaire dist_i
+            // puis on garde l’indice i du segment qui minimise dist_i
+            for (i in 0 until path.size - 1) {
+                val A = path[i]
+                val B = path[i + 1]
+                val vx = B.x - A.x
+                val vy = B.y - A.y
+                val segLen = calculateDistance(A, B)
+                if (segLen == 0.0) continue
 
-            // projection scalaire t_i
-            val t = ((position.x - A.x) * vx + (position.y - A.y) * vy) / (segLen * segLen)
-            // point projeté
-            val projX = A.x + (t * vx).toFloat()
-            val projY = A.y + (t * vy).toFloat()
-            val dist = calculateDistance(position, Point(projX, projY))
+                // projection scalaire t_i
+                val t = ((position.x - A.x) * vx + (position.y - A.y) * vy) / (segLen * segLen)
+                // point projeté
+                val projX = A.x + (t * vx).toFloat()
+                val projY = A.y + (t * vy).toFloat()
+                val dist = calculateDistance(position, Point(projX, projY))
 
-            if (dist < minDist) {
-                minDist = dist
-                // calcul de l’instruction
-                val alpha = (eps / segLen).toDouble()
-                //on calcule la différence d'angle entre le segment que l'utilisateur a traversé et le prochain segment
-                val userHeadingAngle = atan2(
-                    (position.y - prev_pos.y).toDouble(),
-                    (position.x - prev_pos.x).toDouble()
-                )
-                val segmentAngle = atan2(vy.toDouble(), vx.toDouble())
-                // Différence d'angle
-                val angleDiff = Math.toDegrees(abs(userHeadingAngle - segmentAngle)).let {
-                    if (it > 180) 360 - it else it
-                }
-                val ANGLE_THRESHOLD = 10
-
-
+                if (dist < minDist) {
+                    minDist = dist
+                    // calcul de l’instruction
+                    val alpha = (eps / segLen).toDouble()
+                    //on calcule la différence d'angle entre le segment que l'utilisateur a traversé et le prochain segment
+                    val userHeadingAngle = atan2(
+                        (position.y - prev_pos.y).toDouble(),
+                        (position.x - prev_pos.x).toDouble()
+                    )
+                    val segmentAngle = atan2(vy.toDouble(), vx.toDouble())
+                    // Différence d'angle
+                    val angleDiff = Math.toDegrees(abs(userHeadingAngle - segmentAngle)).let {
+                        if (it > 180) 360 - it else it
+                    }
+                    val ANGLE_THRESHOLD = 10
 
 
-                bestInstr = when {
-                    (t < alpha || angleDiff.toInt() > ANGLE_THRESHOLD) -> if (i > 0) 2*i - 1 else 2*i         // turning début
-                    t > 1 - alpha -> 2*(i + 1) - 1                     // turning fin
-                    else -> 2*i                                       // straight
+
+
+                    bestInstr = when {
+                        (t < alpha || angleDiff.toInt() > ANGLE_THRESHOLD) -> if (i > 0) 2 * i - 1 else 2 * i         // turning début
+                        t > 1 - alpha -> 2 * (i + 1) - 1                     // turning fin
+                        else -> 2 * i                                       // straight
+                    }
                 }
             }
-        }
 
-        // bornes
-        if (bestInstr < 0) bestInstr = 0
+            // bornes
+            if (bestInstr < 0) bestInstr = 0
 
-        // on débloque seulement si changement
-        if (bestInstr != currentInstructionIndex) {
-            currentInstructionIndex = bestInstr
-            onInstructionChangedCallback?.invoke(bestInstr)
+            // on débloque seulement si changement
+            if (bestInstr != currentInstructionIndex) {
+                currentInstructionIndex = bestInstr
+                onInstructionChangedCallback?.invoke(bestInstr)
+            }
         }
     }
 
