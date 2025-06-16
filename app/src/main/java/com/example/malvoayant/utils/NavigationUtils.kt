@@ -2,9 +2,12 @@ package com.example.malvoayant.utils
 
 import android.util.Log
 import androidx.lifecycle.viewModelScope
+import com.example.malvoayant.NavigationLogic.Models.StaticInstruction
 import com.example.malvoayant.data.models.POI
 import com.example.malvoayant.data.models.Point
 import com.example.malvoayant.data.viewmodels.NavigationViewModel
+import com.example.malvoayant.data.viewmodels.StepCounterViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -32,21 +35,26 @@ object NavigationUtils {
     private var obstacleDetected = false
     private var lastPositionUpdateTime = 0L
     private var onPositionUpdatedCallback: ((Point) -> Unit)? = null
+    private var onDynamicInstructionCallback: ((String) -> Unit)? = null
     private var onInstructionChangedCallback: ((Int) -> Unit)? = null
     private var onStopNavigationCallback: (() -> Unit)? = null
     private var navigationViewModel: NavigationViewModel? = null
     private var instructionGiven = false // Track if first instruction has been given
     private var lastMovementTime = 0L
     private var lastPosition: Point? = null
+
     private const val MOVEMENT_THRESHOLD = 0.3 // meters - minimum movement to detect walking
 
     fun startNavigation(
+        scope: CoroutineScope, // 👈 Ajouté ici
         start: Any,
         destination: Point,
+        stepCounterViewModel: StepCounterViewModel,
         navigationViewModel: NavigationViewModel,
         onPositionUpdated: (Point) -> Unit,
         onInstructionChanged: (Int) -> Unit,
-        onStopNavigation: () -> Unit
+        onStopNavigation: () -> Unit,
+        onDynamicInstruction: (String) -> Unit
     ) {
         if (isNavigating) return
         val startPoint = when (start) {
@@ -71,9 +79,57 @@ object NavigationUtils {
         this.onInstructionChangedCallback = onInstructionChanged
         this.onStopNavigationCallback = onStopNavigation
         this.navigationViewModel = navigationViewModel
+        this.onDynamicInstructionCallback = onDynamicInstruction
+        scope.launch {
+            val path = navigationViewModel.currentPath
+            if (path != null && path.size > 1) {
+                val firstSegmentAngle = calculateAngleBetweenPoints(path[0], path[1])
+                var continueLoop = true
 
-        // Start with the first instruction
+                while (continueLoop) {
+                    val userHeading = stepCounterViewModel.currentHeadingLive.value ?: 0f
+                    val rawDiff = (firstSegmentAngle - userHeading + 360) % 360
+                    val signedDiff = if (rawDiff > 180) rawDiff - 360 else rawDiff
+
+                    val startInstruction = when {
+                        signedDiff in -10.0..10.0 -> {
+                            continueLoop = false
+                            "Go straight to start navigation"
+                        }
+                        signedDiff in 10.0..30.0 -> "Turn slightly right to start navigation"
+                        signedDiff in 30.0..60.0 -> "Turn right to start navigation"
+                        signedDiff in 60.0..150.0 -> "Turn sharp right to start navigation"
+                        signedDiff > 150.0 -> "Make a U-turn to start navigation"
+                        signedDiff in -30.0..-10.0 -> "Turn slightly left to start navigation"
+                        signedDiff in -60.0..-30.0 -> "Turn left to start navigation"
+                        signedDiff in -150.0..-60.0 -> "Turn sharp left to start navigation"
+                        signedDiff < -150.0 -> "Make a U-turn to start navigation"
+                        else -> "Adjust your heading to start navigation"
+                    }
+
+                    onDynamicInstructionCallback?.invoke(startInstruction)
+
+                    if (!continueLoop) break
+
+                    delay(5000) // Attendre un peu avant de recalculer (évite le spam & ANR)
+                }
+
+                onInstructionChanged(currentInstructionIndex)
+            }
+        }
+
+
+
+        // Start with th first instruction
         onInstructionChanged(currentInstructionIndex)
+    }
+
+    fun calculateAngleBetweenPoints(p1: Point, p2: Point): Double {
+        val dx = (p2.x - p1.x).toDouble()
+        val dy = (p2.y - p1.y).toDouble()
+        var angle = Math.toDegrees(atan2(dy, dx))
+        if (angle < 0) angle += 360.0
+        return angle
     }
 
     fun stopNavigation(path: List<Point>?) {
@@ -376,6 +432,9 @@ object NavigationUtils {
                 onInstructionChangedCallback?.invoke(bestInstr)
             }
         }
+    }
+    fun handleDynamicInstruction(instruction: String){
+        onDynamicInstructionCallback?.invoke(instruction)
     }
 
 

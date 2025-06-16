@@ -66,6 +66,7 @@ fun SearchScreen(
     navigationViewModel: NavigationViewModel,
 ) {
     //navigation variables
+    val coroutineScope = rememberCoroutineScope()
     var isNavigationActive by remember { mutableStateOf(false) }
     var currentInstructionIndex by remember { mutableStateOf(0) }
 
@@ -286,7 +287,9 @@ fun SearchScreen(
                             startPoint!!
                         }
 
+
                         NavigationUtils.startNavigation(
+                            scope = coroutineScope,
                             start = start,
                             destination = Point(endPoint!!.x,endPoint!!.y),
                             navigationViewModel = navigationViewModel,
@@ -305,6 +308,10 @@ fun SearchScreen(
                                 currentInstructionIndex = 0
                                 speechHelper.speak("You have reached your destination, would you like to activate OD2 to get more information about the current position")
                             },
+                            stepCounterViewModel = stepCounterViewModel,
+                            onDynamicInstruction = { dynamicInstruction ->
+                                speechHelper.speak(dynamicInstruction)
+                            }
 
                         )
                         isNavigationActive = true
@@ -1130,7 +1137,7 @@ private fun NavigationInstructionsContent(
             shape = RoundedCornerShape(16.dp)
         ) {
             Text(
-                text = "Start Navigation",
+                text = "Close",
                 fontSize = 18.sp,
                 fontFamily = PlusJakartaSans,
                 fontWeight = FontWeight.Bold,
