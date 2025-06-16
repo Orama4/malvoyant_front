@@ -389,8 +389,9 @@ fun SearchScreen(
                 onClick = {
                     val currentPos = NavigationUtils.getTraversedPath().lastOrNull()
                         ?: Point(currentPosition.x, currentPosition.y)
+                    val currentHeading = stepCounterViewModel.currentHeadingLive.value ?: 90f
 
-                    val obstacleMessage = NavigationUtils.handleObstacle(currentPos)
+                    val obstacleMessage = NavigationUtils.handleObstacle(currentPos,currentHeading)
                     speechHelper.speak(obstacleMessage)
                 },
                 modifier = Modifier

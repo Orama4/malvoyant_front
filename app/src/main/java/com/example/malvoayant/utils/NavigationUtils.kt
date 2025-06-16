@@ -151,10 +151,11 @@ object NavigationUtils {
 
 
 
-    fun handleObstacle(position: Point) : String{
+    fun handleObstacle(position: Point,heading: Float) : String{
+        val headingRadians = Math.toRadians(heading.toDouble())
         val obstaclePosition = Point(
-            x = position.x + 200f,
-            y = position.y
+            x = position.x + (200f * Math.cos(headingRadians)).toFloat(),
+            y = position.y + (200f * Math.sin(headingRadians)).toFloat()
         )
         if (!detectedObstacles.any { calculateDistance(it, obstaclePosition) < 50f }) {
             detectedObstacles.add(obstaclePosition)
