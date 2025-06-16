@@ -508,8 +508,8 @@ private fun DrawScope.drawElegantPath(
     headingColor: Color
 ) {
     // Always draw the current position and heading indicator, even if no steps taken yet
-    val posX = currentPosition.first * 50 + minPoint.x
-    val posY = currentPosition.second * 50 + minPoint.y
+    val posX = currentPosition.first * 100 + minPoint.x
+    val posY = currentPosition.second * 100 + minPoint.y
 
     // Draw current position with elegant styling
     // Pulsating outer glow effect
@@ -594,7 +594,7 @@ private fun DrawScope.drawElegantPath(
     // Only draw path if we have movement
     if (pathPoints.size > 1) {
         val path = Path()
-        path.moveTo(pathPoints[0].first * 50 + minPoint.x, pathPoints[0].second * 50 + minPoint.y)
+        path.moveTo(pathPoints[0].first * 100 + minPoint.x, pathPoints[0].second * 100 + minPoint.y)
 
         // Create smooth path with bezier curves
         for (i in 1 until pathPoints.size) {
@@ -604,8 +604,8 @@ private fun DrawScope.drawElegantPath(
             val controlY = (start.second + end.second) / 2
 
             path.quadraticBezierTo(
-                controlX * 50 + minPoint.x, controlY * 50 + minPoint.y,
-                end.first * 50 + minPoint.x, end.second * 50 + minPoint.y
+                controlX * 100 + minPoint.x, controlY * 100 + minPoint.y,
+                end.first * 100 + minPoint.x, end.second * 100 + minPoint.y
             )
         }
 
@@ -614,8 +614,8 @@ private fun DrawScope.drawElegantPath(
             drawPath(
                 path = path,
                 brush = Brush.linearGradient(
-                    start = Offset(pathPoints.first().first * 50 + minPoint.x, pathPoints.first().second * 50 + minPoint.y),
-                    end = Offset(pathPoints.last().first * 50 + minPoint.x, pathPoints.last().second * 50 + minPoint.y),
+                    start = Offset(pathPoints.first().first * 100 + minPoint.x, pathPoints.first().second * 100 + minPoint.y),
+                    end = Offset(pathPoints.last().first * 100 + minPoint.x, pathPoints.last().second * 100 + minPoint.y),
                     colors = gradientColors
                 ),
                 style = Stroke(width = 4f + i * 1.2f, pathEffect = PathEffect.cornerPathEffect(12f)),
@@ -627,8 +627,8 @@ private fun DrawScope.drawElegantPath(
         drawPath(
             path = path,
             brush = Brush.linearGradient(
-                start = Offset(pathPoints.first().first * 50 + minPoint.x, pathPoints.first().second * 50 + minPoint.y),
-                end = Offset(pathPoints.last().first * 50 + minPoint.x, pathPoints.last().second * 50 + minPoint.y),
+                start = Offset(pathPoints.first().first * 100 + minPoint.x, pathPoints.first().second * 100 + minPoint.y),
+                end = Offset(pathPoints.last().first * 100 + minPoint.x, pathPoints.last().second * 100 + minPoint.y),
                 colors = gradientColors
             ),
             style = Stroke(width = 4f, pathEffect = PathEffect.cornerPathEffect(12f))
@@ -636,8 +636,8 @@ private fun DrawScope.drawElegantPath(
 
         // Draw elegant waypoints
         pathPoints.forEachIndexed { index, point ->
-            val centerX = point.first * 50 + minPoint.x
-            val centerY = point.second * 50 + minPoint.y
+            val centerX = point.first * 100 + minPoint.x
+            val centerY = point.second * 100 + minPoint.y
             val isEndPoint = index == 0 || index == pathPoints.size - 1
 
             // Outer glow

@@ -1,4 +1,147 @@
 package com.example.malvoayant.data.viewmodels
+
+import android.app.Application
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.util.Log
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.example.malvoayant.data.models.FloorPlanState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.*
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+import okio.ByteString
+
+class StepCounterViewModel(application: Application, var floorPlanState: FloorPlanState) : AndroidViewModel(application) {
+
+    private val _currentPositionLive = MutableLiveData(Pair(0f, 0f))
+    val currentPositionLive: LiveData<Pair<Float, Float>> = _currentPositionLive
+
+    private val _pathPoints = MutableLiveData(listOf(Pair(0f, 0f)))
+    val pathPoints: LiveData<List<Pair<Float, Float>>> = _pathPoints
+
+    private val _currentHeadingLive = MutableLiveData(0f)
+    val currentHeadingLive: LiveData<Float> = _currentHeadingLive
+
+    // WebSocket variables
+    private val client = OkHttpClient()
+    private var webSocket: WebSocket? = null
+    private val webSocketScope = CoroutineScope(Dispatchers.IO + Job())
+    private val websocketUrl = "ws://192.168.112.138:8000/ws/position"
+
+    private val webSocketListener = object : WebSocketListener() {
+        override fun onMessage(webSocket: WebSocket, text: String) {
+            super.onMessage(webSocket, text)
+            try {
+                val jsonObj = Json.parseToJsonElement(text).jsonObject
+                val pos = jsonObj["position"]?.jsonObject
+                val x = pos?.get("x")?.jsonPrimitive?.floatOrNull
+                val y = pos?.get("y")?.jsonPrimitive?.floatOrNull
+
+                if (x != null && y != null) {
+                    Log.d("WebSocket", "Received position: x=$x, y=$y")
+                    // Convert coordinates to match your floor plan scale if needed
+                    val scaledX = x
+                    val scaledY = y + 1
+
+                    val newPosition = Pair(scaledX, scaledY)
+
+                    // Update position and path
+                    _currentPositionLive.postValue(newPosition)
+                    _pathPoints.postValue(_pathPoints.value.orEmpty() + newPosition)
+                }
+            } catch (e: Exception) {
+                Log.e("WebSocket", "Error parsing position message", e)
+            }
+        }
+
+        override fun onFailure(webSocket: WebSocket, t: Throwable, response: okhttp3.Response?) {
+            super.onFailure(webSocket, t, response)
+            Log.e("WebSocket", "WebSocket connection failed", t)
+            // Implement reconnection logic here if needed
+        }
+    }
+
+    fun startListening() {
+        webSocketScope.launch {
+            try {
+                val request = Request.Builder()
+                    .url(websocketUrl)
+                    .build()
+
+                webSocket = client.newWebSocket(request, webSocketListener)
+                webSocket?.send("""{"type":"start_position_updates"}""")
+                Log.d("WebSocket", "WebSocket connection established")
+            } catch (e: Exception) {
+                Log.e("WebSocket", "Failed to connect to WebSocket", e)
+            }
+        }
+    }
+
+    fun stopListening() {
+        webSocket?.close(1000, "User requested close")
+        webSocket = null
+        Log.d("WebSocket", "WebSocket connection closed")
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopListening()
+    }
+
+    // Keep these methods if you still need polygon checks
+    fun getOuterWallPolygon(floorPlanState: FloorPlanState): List<Pair<Float, Float>> {
+        val allPoints = mutableSetOf<Pair<Float, Float>>()
+        for (wall in floorPlanState.walls) {
+            allPoints.add(Pair(wall.start.x, wall.start.y))
+            allPoints.add(Pair(wall.end.x, wall.end.y))
+        }
+
+        if (allPoints.size < 3) return allPoints.toList()
+
+        val centerX = allPoints.map { it.first }.average().toFloat()
+        val centerY = allPoints.map { it.second }.average().toFloat()
+
+        val orderedPoints = allPoints.sortedBy { point ->
+            kotlin.math.atan2((point.second - centerY).toDouble(), (point.first - centerX).toDouble())
+        }
+
+        return orderedPoints
+    }
+
+    fun isPointInPolygon(point: Pair<Float, Float>, polygon: List<Pair<Float, Float>>): Boolean {
+        var (x, y) = point
+        var inside = false
+        val n = polygon.size
+        var j = n - 1
+
+        for (i in 0 until n) {
+            val xi = polygon[i].first
+            val yi = polygon[i].second
+            val xj = polygon[j].first
+            val yj = polygon[j].second
+
+            if (((yi > y) != (yj > y)) &&
+                (x < (xj - xi) * (y - yi) / (yj - yi + 0.0000001f) + xi)) {
+                inside = !inside
+            }
+            j = i
+        }
+        return inside
+    }
+}
+
+/*package com.example.malvoayant.data.viewmodels
 import android.app.Application
 import android.content.Context
 import android.hardware.Sensor
@@ -166,7 +309,7 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
                 SensorManager.getOrientation(rotationMatrix, orientationAngles)
 
                 // Convert to degrees and normalize to 0-360
-                currentHeading = Math.toDegrees(orientationAngles[0].toDouble()).toFloat() + 160
+                currentHeading = Math.toDegrees(orientationAngles[0].toDouble()).toFloat() - 15
                 if (currentHeading < 0) {
                     currentHeading += 360f
                 }
@@ -326,3 +469,5 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
     }
 
 }
+
+ */

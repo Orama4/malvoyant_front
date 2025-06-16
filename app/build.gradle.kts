@@ -49,6 +49,8 @@ dependencies {
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     implementation("androidx.compose.material:material-icons-extended:1.5.1")
+    implementation ("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation ("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
