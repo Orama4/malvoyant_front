@@ -36,10 +36,10 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
     val currentHeadingLive: LiveData<Float> = _currentHeadingLive
 
     private var currentHeading = 0f
-    private var currentPosition = Pair(0f, 4f)
+    private var currentPosition = Pair(0f, 0f)
     private val stepLength = 1f
 
-    private val _currentPositionLive = MutableLiveData(Pair(0f, 4f))
+    private val _currentPositionLive = MutableLiveData(Pair(0f, 0f))
     val currentPositionLive: LiveData<Pair<Float, Float>> = _currentPositionLive
 
     private val _pathPoints = MutableLiveData(listOf(Pair(0f, 0f)))
@@ -47,7 +47,6 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
 
     private var environmentNorth = 0f
     private var isCalibrated = false
-
     // Step detection parameters
     private var lastAcceleration = 0f
     private var previousAcceleration = 0f

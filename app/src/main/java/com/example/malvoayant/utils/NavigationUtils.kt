@@ -154,8 +154,8 @@ object NavigationUtils {
     fun handleObstacle(position: Point,heading: Float) : String{
         val headingRadians = Math.toRadians(heading.toDouble())
         val obstaclePosition = Point(
-            x = position.x + (200f * Math.cos(headingRadians)).toFloat(),
-            y = position.y + (200f * Math.sin(headingRadians)).toFloat()
+            x = position.x + (50f * Math.cos(headingRadians)).toFloat(),
+            y = position.y + (50f * Math.sin(headingRadians)).toFloat()
         )
         if (!detectedObstacles.any { calculateDistance(it, obstaclePosition) < 50f }) {
             detectedObstacles.add(obstaclePosition)
@@ -172,7 +172,7 @@ object NavigationUtils {
                 )
 
                 if (!isNewObstacleOnPath) {
-                    return "Obstacle détecté à 2 mètres sur le côté. Continuez votre chemin."
+                    return "Obstacle detected at 0.5 meters on the side. Continue on your path."
                 } else {
                     Log.d("OBSTACLE", "Nouvel obstacle sur le chemin - recalcul nécessaire")
 
@@ -187,7 +187,7 @@ object NavigationUtils {
                     currentPointIndex = 0
                     instructionGiven = false
 
-                    return "Obstacle détecté sur votre chemin à 2 mètres. Recalcul de l'itinéraire en cours."
+                    return "Obstacle detected on your path at 0.5 meters. Route recalculation in progress."
                 }
             }
         }
@@ -202,7 +202,7 @@ object NavigationUtils {
         obstacle: Point,
         path: List<Point>
     ): Boolean {
-        val maxDistanceToPath = 10f // 1 mètre en unités du système
+        val maxDistanceToPath = 20f // 1 mètre en unités du système
 
         for (i in 0 until path.size - 1) {
             val segmentStart = path[i]
