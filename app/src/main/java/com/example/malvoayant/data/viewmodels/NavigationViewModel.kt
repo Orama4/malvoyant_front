@@ -221,7 +221,6 @@ class NavigationViewModel(
             }
         }
     }
-
   */
  fun calculatePath(start: Any, destination: Any) {
      NavigationUtils.stopNavigation(null)
