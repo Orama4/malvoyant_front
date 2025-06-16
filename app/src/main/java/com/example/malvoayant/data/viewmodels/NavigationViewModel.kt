@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import com.example.malvoayant.utils.NavigationUtils
+import kotlin.math.abs
+import kotlin.math.atan2
 
 class NavigationViewModel(
     private val floorPlanViewModel: FloorPlanViewModel,
@@ -90,113 +92,59 @@ class NavigationViewModel(
                 gr.buildGrid()
                 val patt= gr.findPath(start, destination )
                 Log.d("NavigationVMG", "Path found: $patt")
-                val patt_simp= gr.simplifyPath(patt)
-                Log.d("NavigationVMG", "Simplified path: $patt_simp")
-                //currentPath = pathFinder.findPath(start, destination, floorPlan)
-                currentPath = patt_simp
-                instructions = emptyList()
-                //crate instructions based on the path
+                val path = gr.simplifyPath(patt)
+                currentPath = path
+                instructions = mutableListOf()
 
-                for (i in 0 until currentPath!!.size - 1) {
-                    instructions=instructions+ StaticInstruction(
-                        instruction = "Go straight",
-                        distance = sqrt((currentPath!![i+1].x - currentPath!![i].x).pow(2) +
-                                (currentPath!![i+1].y - currentPath!![i].y).pow(2) )/100,
-                    )
-                    // checking if i+1 is on the right or left of i to add turning instruction
+                for (i in 0 until path.size - 1) {
+                    val p1 = path[i]
+                    val p2 = path[i + 1]
 
-                    if (i < currentPath!!.size - 2) {
-                        val nextPoint = currentPath!![i + 2]
-                        val currentPoint = currentPath!![i + 1]
-                        val startPoint = currentPath!![i]
+                    // Ajouter une instruction de distance
+                    /**TO DO: ici on ajoute une instruction en calcule la diff entre lorientation lancienne et lengle de cette instruction pour le demander dajuster son angle avant de commencer**/
+                    val distance = sqrt((p2.x - p1.x).pow(2) + (p2.y - p1.y).pow(2)) / 100
+                    instructions += StaticInstruction("Go straight", distance)
 
-                        // Calculate the direction of the turn
-                        val dx1 = currentPoint.x - startPoint.x
-                        val dy1 = currentPoint.y - startPoint.y
-                        val dx2 = nextPoint.x - currentPoint.x
-                        val dy2 = nextPoint.y - currentPoint.y
+                    // S’il y a un prochain segment, calculer l’angle du virage
+                    if (i < path.size - 2) {
+                        val p3 = path[i + 2]
 
-                        // Calculate the angle between the two segments
-                        val angle = Math.toDegrees(
-                            Math.atan2(dy2.toDouble(), dx2.toDouble()) - Math.atan2(dy1.toDouble(),
-                                dx1.toDouble()
-                            )
-                        ).toFloat()
-                        if(startPoint.x==currentPoint.x || startPoint.y==currentPoint.y) {
+                        // Vecteurs : direction1 = p2 - p1 ; direction2 = p3 - p2
+                        val dx1 = p2.x - p1.x
+                        val dy1 = p2.y - p1.y
+                        val dx2 = p3.x - p2.x
+                        val dy2 = p3.y - p2.y
 
-                            if (startPoint.x > currentPoint.x) {
-                                if (currentPoint.y > nextPoint.y) {
-                                    instructions += StaticInstruction(
-                                        instruction = "Turn right",
-                                        distance = null,
-                                        type = "Turning"
-                                    )
-                                } else {
-                                    instructions += StaticInstruction(
-                                        instruction = "Turn left",
-                                        distance = null,
-                                        type = "Turning"
-                                    )
-                                }
-                            } else if (startPoint.x < currentPoint.x) {
-                                if (currentPoint.y > nextPoint.y) {
-                                    instructions += StaticInstruction(
-                                        instruction = "Turn left",
-                                        distance = null,
-                                        type = "Turning"
-                                    )
-                                } else {
-                                    instructions += StaticInstruction(
-                                        instruction = "Turn right",
-                                        distance = null,
-                                        type = "Turning"
-                                    )
-                                }
-                            } else if (startPoint.y < currentPoint.y) {
-                                if (currentPoint.x > nextPoint.x) {
-                                    instructions += StaticInstruction(
-                                        instruction = "Turn right",
-                                        distance = null,
-                                        type = "Turning"
-                                    )
-                                } else {
-                                    instructions += StaticInstruction(
-                                        instruction = "Turn left",
-                                        distance = null,
-                                        type = "Turning"
-                                    )
-                                }
-                            } else if (startPoint.y > currentPoint.y) {
-                                if (currentPoint.x < nextPoint.x) {
-                                    instructions += StaticInstruction(
-                                        instruction = "Turn right",
-                                        distance = null,
-                                        type = "Turning"
-                                    )
-                                } else {
-                                    instructions += StaticInstruction(
-                                        instruction = "Turn left",
-                                        distance = null,
-                                        type = "Turning"
-                                    )
-                                }
-                            }
+                        val angle1 = atan2(dy1.toDouble(), dx1.toDouble())
+                        val angle2 = atan2(dy2.toDouble(), dx2.toDouble())
+
+                        // Calculer l'angle relatif entre les deux directions
+                        var angleDiff = angle2 - angle1
+
+                        // Normaliser entre -PI et PI
+                        angleDiff = (angleDiff + Math.PI) % (2 * Math.PI) - Math.PI
+
+                        val instruction = when {
+                            abs(angleDiff) < Math.PI / 8 -> null // Trop petit → continuer
+                            angleDiff in (Math.PI / 8)..(3 * Math.PI / 8) -> "Turn slightly right"
+                            angleDiff in (3 * Math.PI / 8)..(5 * Math.PI / 8) -> "Turn right"
+                            angleDiff > (5 * Math.PI / 8) -> "Sharp right"
+                            angleDiff in (-3 * Math.PI / 8)..(-Math.PI / 8) -> "Turn slightly left"
+                            angleDiff in (-5 * Math.PI / 8)..(-3 * Math.PI / 8) -> "Turn left"
+                            angleDiff < (-5 * Math.PI / 8) -> "Sharp left"
+                            else -> null
                         }
-                        else if (angle > 0) {
+
+                        if (instruction != null) {
                             instructions += StaticInstruction(
-                                instruction = "Turn right",
-                                distance = null,
-                                type = "Turning"
-                            )
-                        } else if (angle < 0) {
-                            instructions += StaticInstruction(
-                                instruction = "Turn left",
+                                instruction = instruction,
                                 distance = null,
                                 type = "Turning"
                             )
                         }
                     }
                 }
+
                 Log.d("NavigationVM","Instructions created with ${instructions} steps")
                 Log.d("NavigationVM", "Path calculated with ${currentPath?.size ?: 0} points")
                 Log.d("NavigationVM", "Path calculated with ${currentPath}")
@@ -210,5 +158,6 @@ class NavigationViewModel(
                 isLoading = false
             }
         }
+
     }
 }

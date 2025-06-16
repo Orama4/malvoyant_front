@@ -32,14 +32,14 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
     private val _steps = MutableLiveData(0)
     val steps: LiveData<Int> = _steps
 
-    private val _currentHeadingLive = MutableLiveData(0f)
+    private val _currentHeadingLive = MutableLiveData(90f)
     val currentHeadingLive: LiveData<Float> = _currentHeadingLive
 
-    private var currentHeading = 0f
-    private var currentPosition = Pair(0f, 4f)
+    private var currentHeading = 90f
+    private var currentPosition = Pair(0f, 0f)
     private val stepLength = 1f
 
-    private val _currentPositionLive = MutableLiveData(Pair(0f, 4f))
+    private val _currentPositionLive = MutableLiveData(Pair(0f, 0f))
     val currentPositionLive: LiveData<Pair<Float, Float>> = _currentPositionLive
 
     private val _pathPoints = MutableLiveData(listOf(Pair(0f, 0f)))

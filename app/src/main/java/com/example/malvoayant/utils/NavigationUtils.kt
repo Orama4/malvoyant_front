@@ -93,11 +93,14 @@ object NavigationUtils {
 
 
 
-    fun handleObstacle(position: Point) : String{
+    fun handleObstacle(position: Point,heading: Float) : String{
+        val headingRadians = Math.toRadians(heading.toDouble())
+
         val obstaclePosition = Point(
-            x = position.x + 200f,
-            y = position.y
+            x = position.x + (200f * Math.cos(headingRadians)).toFloat(),
+            y = position.y + (200f * Math.sin(headingRadians)).toFloat()
         )
+
         if (!detectedObstacles.any { calculateDistance(it, obstaclePosition) < 50f }) {
             detectedObstacles.add(obstaclePosition)
 
@@ -188,6 +191,7 @@ object NavigationUtils {
                 instructionGiven = true
             }
         }
+        val prev_pos= lastPosition
         lastPosition = position
         lastMovementTime = currentTime
 
@@ -200,7 +204,7 @@ object NavigationUtils {
         }
 
 // 2) recalculer l’instruction en “intelligent”
-        updateInstructionIndex(position, path)
+        updateInstructionIndex(prev_pos,position, path)
 
         // 3) détection d’arrivée
         if (currentPointIndex >= path.size - 1 ||
@@ -294,7 +298,7 @@ object NavigationUtils {
     fun getCurrentInstructionIndex(): Int = currentInstructionIndex
     fun isNavigationActive(): Boolean = isNavigating
 
-    private fun updateInstructionIndex(position: Point, path: List<Point>) {
+    private fun updateInstructionIndex(prevPos: Point?,position: Point, path: List<Point>) {
         val eps = TURNING_DISTANCE_THRESHOLD
         var bestInstr = currentInstructionIndex
         var minDist = Double.MAX_VALUE
