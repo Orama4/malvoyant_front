@@ -111,7 +111,7 @@ object NavigationUtils {
 
                     if (!continueLoop) break
 
-                    delay(5000) // Attendre un peu avant de recalculer (évite le spam & ANR)
+                    delay(3000) // Attendre un peu avant de recalculer (évite le spam & ANR)
                 }
 
                 onInstructionChanged(currentInstructionIndex)
@@ -281,9 +281,7 @@ object NavigationUtils {
 
 
         // Check for deviation
-        if (isDeviatingFromPath()) {
-            handleDeviation()
-        }
+        handleDeviation(position)
 
     }
 
@@ -320,7 +318,7 @@ object NavigationUtils {
         return sqrt((a.x - b.x).pow(2) + (a.y - b.y).pow(2).toDouble())
     }
 
-    private fun calculateDistanceToSegment(point: Point, segmentStart: Point, segmentEnd: Point): Double {
+    fun calculateDistanceToSegment(point: Point, segmentStart: Point, segmentEnd: Point): Double {
         val segmentLength = calculateDistance(segmentStart, segmentEnd)
         if (segmentLength == 0.0) return calculateDistance(point, segmentStart)
 
@@ -337,24 +335,9 @@ object NavigationUtils {
         return calculateDistance(point, projection)
     }
 
-    private fun handleDeviation() {
-        val currentTime = System.currentTimeMillis()
-        if (currentTime - lastPositionUpdateTime < RECALCULATION_DELAY) return
-
-        lastPositionUpdateTime = currentTime
-        currentPosition?.let { currentPos ->
-            // Recalculate path from current position
-            navigationViewModel?.calculatePath(
-                start = currentPos,
-                destination = navigationViewModel?.currentPath?.last() ?: return@let
-            )
-
-            // Reset navigation state
-            traversedPath.clear()
-            traversedPath.add(currentPos)
-            currentInstructionIndex = 0
-            currentPointIndex = 0
-            instructionGiven = false
+    private fun handleDeviation(point: Point) {
+        navigationViewModel?.checkForDeviation(point, onDynamicInstructionCallback)?.let { instruction ->
+            onDynamicInstructionCallback?.invoke(instruction.toString())
         }
     }
 

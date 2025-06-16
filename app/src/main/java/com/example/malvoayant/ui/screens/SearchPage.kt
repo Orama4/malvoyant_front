@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerIcon
@@ -107,6 +108,7 @@ fun SearchScreen(
             )
 
             NavigationUtils.updatePosition(point)
+
         }
     }
     val launcher = rememberLauncherForActivityResult(
@@ -154,6 +156,40 @@ fun SearchScreen(
 // Observer les changements de chemin
     LaunchedEffect(navigationViewModel.currentPath) {
         Log.d("SearchScreen", "Chemin actuel: $currentPath")
+        if (navigationViewModel.currentPath != null && (isNavigationActive || navigationViewModel.isOffPath)) {
+            // Restart navigation with new path
+            val start = if (startPoint?.name == "current") {
+                Point(x = startPoint!!.x, y = startPoint!!.y)
+            } else {
+                startPoint!!
+            }
+
+            NavigationUtils.startNavigation(
+                start = start,
+                destination = Point(endPoint!!.x, endPoint!!.y),
+                navigationViewModel = navigationViewModel,
+                onPositionUpdated = { /* ... */ },
+                onInstructionChanged = { newIndex ->
+                    currentInstructionIndex = newIndex
+                    navigationViewModel.instructions.getOrNull(newIndex)?.let { instruction ->
+                        speechHelper.speak(instruction.instruction)
+                    }
+                },
+                onStopNavigation = {
+                    isNavigationActive = false
+                    currentInstructionIndex = 0
+                    speechHelper.speak("You have reached your destination, would you like to activate OD2 to get more information about the current position?")
+                },
+                stepCounterViewModel = stepCounterViewModel,
+                onDynamicInstruction = { dynamicInstruction ->
+                    speechHelper.speak(dynamicInstruction)
+                },
+                scope = scope
+            )
+            isNavigationActive = true
+            navigationViewModel.isOffPath = false
+        }
+
     }
     LaunchedEffect(Unit) {
         speechHelper.initializeSpeech {
@@ -564,8 +600,8 @@ private fun SearchBox(
                         AppColors.darkBlue.copy(alpha = 0.95f),
                         AppColors.darkBlue.copy(alpha = 0.9f)
                     ),
-                    start = androidx. compose. ui. geometry. Offset(0f, 0f),
-                    end = androidx. compose. ui. geometry. Offset(1000f, 0f)
+                    start = Offset(0f, 0f),
+                    end = Offset(1000f, 0f)
                 )
             )
             .clickable {
@@ -769,8 +805,8 @@ private fun AnimatedActionButton(
                         if (isEmergency) backgroundColor.value else AppColors.primary,
                         if (isEmergency) backgroundColor.value.copy(alpha = 0.8f) else AppColors.primary.copy(alpha = 0.8f)
                     ),
-                    start = androidx. compose. ui. geometry. Offset(0f, 0f),
-                    end = androidx. compose. ui. geometry. Offset(0f, 1000f)
+                    start = Offset(0f, 0f),
+                    end = Offset(0f, 1000f)
                 )
             )
             .clickable { onClick() }
