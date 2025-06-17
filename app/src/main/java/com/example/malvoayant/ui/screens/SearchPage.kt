@@ -295,10 +295,73 @@ fun SearchScreen(
                 .padding(bottom = 8.dp)
         ) {
             // Top app bar with back button and mic
-            TopAppBar(
-                navController = navController,
-                speechHelper = speechHelper
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                IconButton(
+                    onClick = {  val currentPos = NavigationUtils.getTraversedPath().lastOrNull()
+                        ?: Point(currentPosition.x, currentPosition.y)
+                        val currentHeading = stepCounterViewModel.currentHeadingLive.value ?: 90f
+
+                        val obstacleMessage = NavigationUtils.handleObstacle(currentPos,currentHeading)
+                        speechHelper.speak(obstacleMessage)},
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    AppColors.darkBlue,
+                                    AppColors.darkBlue.copy(alpha = 0.8f)
+                                )
+                            )
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.KeyboardArrowLeft,
+                        contentDescription = "Back",
+                        modifier = Modifier.size(28.dp),
+                        tint = Color.White
+                    )
+                }
+
+                Text(
+                    text = "Floor Map Explorer",
+                    color = AppColors.darkBlue,
+                    fontSize = 20.sp,
+                    fontFamily = PlusJakartaSans,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+
+                IconButton(
+                    onClick = {
+                        speechHelper.speak("This is the search page. You can search for points of interest. Use the search bar to find locations. The buttons at the bottom provide different services.")
+                    },
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    AppColors.primary,
+                                    AppColors.primary.copy(alpha = 0.8f)
+                                )
+                            )
+                        )
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.mic),
+                        contentDescription = "Voice Assistant",
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
+                    )
+                }
+            }
 
             // Nouveau: Sélecteurs de points
             PointSelectors(
@@ -460,25 +523,6 @@ fun SearchScreen(
             currentInstructionIndex = currentInstructionIndex
         )
         // Dans le Box principal de SearchScreen
-        if (isNavigationActive) {
-            Button(
-                onClick = {
-                    val currentPos = NavigationUtils.getTraversedPath().lastOrNull()
-                        ?: Point(currentPosition.x, currentPosition.y)
-
-                    val obstacleMessage = NavigationUtils.handleObstacle(currentPos)
-                    speechHelper.speak(obstacleMessage)
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Red
-                )
-            ) {
-                Text("Simuler un obstacle")
-            }
-        }
 
     }
 }
@@ -755,7 +799,7 @@ private fun BottomNavigationButtons(
 
                 if (currentTime - lastClickTime.value < doubleClickTimeWindow) {
                     pendingSpeechJob.value?.cancel()
-                    navController.navigate(Screen.Helper.route)
+                    navController.navigate(Screen.PhoneNumbers.route)
                 } else {
                     pendingSpeechJob.value = scope.launch {
                         delay(doubleClickTimeWindow)

@@ -15,20 +15,26 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
 import com.example.malvoayant.R
 import com.example.malvoayant.ui.theme.PlusJakartaSans
+import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.utils.SpeechHelper
 import com.example.malvoayant.data.viewmodels.ContactViewModel
 import kotlinx.coroutines.delay
@@ -61,7 +67,7 @@ fun PhoneNumbersScreen(
     // Initialize speech when the screen is launched
     LaunchedEffect(Unit) {
         speechHelper.initializeSpeech {
-            speechHelper.speak("Phone numbers page. This page shows emergency contacts. To call a number, double tap on the contact.")
+            speechHelper.speak("Page des contacts d'urgence. Cette page affiche vos contacts d'urgence. Pour appeler un contact, appuyez deux fois dessus.")
             // Fetch contacts when screen loads
             viewModel.fetchEmergencyContacts()
         }
@@ -86,158 +92,225 @@ fun PhoneNumbersScreen(
                 newContactName = ""
                 newContactPhone = ""
                 showAddContactDialog = false
+                speechHelper.speak("Contact ajouté avec succès")
             },
             onDismiss = {
                 showAddContactDialog = false
                 newContactName = ""
                 newContactPhone = ""
+                speechHelper.speak("Ajout de contact annulé")
             }
         )
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .clickable {
-                speechHelper.speak("If you encounter difficulties, press anywhere to activate TalkBack. " +
-                        "Press the top left corner to hear the page description.")
-            },
+            .background(AppColors.darkBlue)
     ) {
-        // Top navigation bar
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Back button
-            IconButton(
-                onClick = { navController.navigateUp() },
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .size(50.dp)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.back_icon),
-                    contentDescription = "Back",
-                    modifier = Modifier.size(35.dp)
-                )
-            }
-
-            // Title
-            Text(
-                text = "Emergency Contacts",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = PlusJakartaSans,
-                modifier = Modifier.align(Alignment.Center)
+            // Header avec le même style que la page de connexion
+            HeaderSection(
+                navController = navController,
+                speechHelper = speechHelper
             )
 
-            // Microphone icon
-            IconButton(
-                onClick = {
-                    speechHelper.speak(
-                        "You are on the Emergency Contacts page. \n" +
-                                "Tap on the top left corner to exit this page.\n" +
-                                "Tap on any contact to activate talkback and hear the contact name.\n" +
-                                "Tap twice on any contact to call them. \n" +
-                                "Use the plus button at the bottom to add a new contact."
-                    )
-                },
+            // Contenu principal avec fond blanc arrondi
+            Column(
                 modifier = Modifier
-                    .align(Alignment.CenterEnd)
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                     .background(Color.White)
-                    .size(40.dp)
+                    .padding(top = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.mic),
-                    contentDescription = "Voice Guide",
+                // Titre de la section
+                Text(
+                    text = "Mes Contacts d'Urgence",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = PlusJakartaSans,
+                    color = AppColors.darkBlue,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .clickable {
+                            speechHelper.speak("Section des contacts d'urgence")
+                        }
                 )
-            }
-        }
 
-        // Error message
-        if (error != null) {
-            Text(
-                text = error ?: "",
-                color = Color.Red,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            )
-        }
+                // Error message
+                if (error != null) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Text(
+                            text = error ?: "",
+                            color = Color(0xFFD32F2F),
+                            modifier = Modifier.padding(16.dp),
+                            fontFamily = PlusJakartaSans
+                        )
+                    }
+                }
 
-        // Loading indicator
-        if (loading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-
-        // List of contacts
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            if (contacts.isEmpty() && !loading) {
-                item {
+                // Loading indicator
+                if (loading) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "No emergency contacts yet. Add your first contact.",
-                            fontSize = 16.sp,
-                            color = Color.Gray
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator(
+                                color = AppColors.darkBlue,
+                                strokeWidth = 3.dp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Chargement des contacts...",
+                                color = AppColors.darkBlue,
+                                fontFamily = PlusJakartaSans
+                            )
+                        }
                     }
                 }
-            } else {
-                items(contacts) { contact ->
-                    ContactItem(
-                        contact = contact,
-                        context = context,
-                        speechHelper = speechHelper
-                    )
-                }
-            }
 
-            // Extra space at bottom
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
+                // List of contacts
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (contacts.isEmpty() && !loading) {
+                        item {
+                            EmptyStateCard(speechHelper = speechHelper)
+                        }
+                    } else {
+                        items(contacts) { contact ->
+                            ContactItem(
+                                contact = contact,
+                                context = context,
+                                speechHelper = speechHelper
+                            )
+                        }
+                    }
+
+                    // Extra space at bottom for FAB
+                    item {
+                        Spacer(modifier = Modifier.height(100.dp))
+                    }
+                }
             }
         }
 
-        // Floating action button for adding new contacts
+        // Floating action button avec style amélioré
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+                .fillMaxSize()
+                .padding(24.dp),
             contentAlignment = Alignment.BottomEnd
         ) {
             FloatingActionButton(
                 onClick = {
                     showAddContactDialog = true
-                    speechHelper.speak("Add a new emergency contact")
+                    speechHelper.speak("Ouvrir le formulaire d'ajout de contact")
                 },
-                containerColor = Color(0xFF1A1A2E),
-                contentColor = Color.White
+                containerColor = AppColors.darkBlue,
+                contentColor = Color.White,
+                modifier = Modifier
+                    .size(64.dp)
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(32.dp)
+                    )
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Add Contact"
+                    contentDescription = "Ajouter un contact",
+                    modifier = Modifier.size(28.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun HeaderSection(
+    navController: NavHostController,
+    speechHelper: SpeechHelper
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+    ) {
+        // Back button
+        IconButton(
+            onClick = {
+                navController.navigateUp()
+                speechHelper.speak("Retour à la page précédente")
+            },
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .size(48.dp)
+                .background(
+                    Color.White.copy(alpha = 0.2f),
+                    RoundedCornerShape(12.dp)
+                )
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.back_icon),
+                contentDescription = "Retour",
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        // Title
+        Text(
+            text = "Contacts d'Urgence",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = PlusJakartaSans,
+            color = Color.White,
+            modifier = Modifier.align(Alignment.Center)
+        )
+
+        // Help/Voice guide button
+        IconButton(
+            onClick = {
+                speechHelper.speak(
+                    "Vous êtes sur la page des contacts d'urgence. " +
+                            "Appuyez sur le coin supérieur gauche pour revenir en arrière. " +
+                            "Appuyez sur un contact pour entendre ses informations. " +
+                            "Appuyez deux fois sur un contact pour l'appeler. " +
+                            "Utilisez le bouton plus en bas à droite pour ajouter un nouveau contact."
+                )
+            },
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .size(48.dp)
+                .background(
+                    Color.White.copy(alpha = 0.2f),
+                    RoundedCornerShape(12.dp)
+                )
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.mic),
+                contentDescription = "Guide vocal",
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
@@ -251,7 +324,7 @@ fun ContactItem(
     // Track click count and timing
     var clickCount by remember { mutableStateOf(0) }
     var lastClickTime by remember { mutableStateOf(0L) }
-    val clickTimeout = 3000L // 3 seconds timeout to reset click count
+    val clickTimeout = 3000L
 
     // Timer to reset clicks
     LaunchedEffect(clickCount) {
@@ -261,19 +334,13 @@ fun ContactItem(
         }
     }
 
-    Box(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(
-                width = 2.dp,
-                color = Color(0xFF1A1A2E),
+            .shadow(
+                elevation = 6.dp,
                 shape = RoundedCornerShape(16.dp)
             )
-            .background(
-                color = Color(0xFFF0F4F8),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .height(90.dp)
             .clickable {
                 val currentTime = System.currentTimeMillis()
 
@@ -288,12 +355,12 @@ fun ContactItem(
                 if (clickCount == 1) {
                     // First click: read the contact information
                     speechHelper.speak(
-                        "Contact ${contact.name}, Phone number ${contact.phoneNumber.replace("", " ")}. " +
-                                "Press again to call this number."
+                        "Contact ${contact.name}, numéro de téléphone ${contact.phoneNumber.replace("", " ")}. " +
+                                "Appuyez à nouveau pour appeler ce numéro."
                     )
                 } else if (clickCount >= 2) {
                     // Second click: initiate phone call
-                    speechHelper.speak("Calling ${contact.name}")
+                    speechHelper.speak("Appel de ${contact.name}")
 
                     val intent = Intent(Intent.ACTION_DIAL).apply {
                         data = Uri.parse("tel:${contact.phoneNumber}")
@@ -303,30 +370,135 @@ fun ContactItem(
                     // Reset click count after initiating call
                     clickCount = 0
                 }
-            }
-            .padding(16.dp),
-        contentAlignment = Alignment.CenterStart
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            AppColors.darkBlue.copy(alpha = 0.05f),
+                            Color.Transparent
+                        )
+                    )
+                )
+                .padding(20.dp)
         ) {
-            // Phone icon
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Icon container
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(
+                            AppColors.darkBlue.copy(alpha = 0.1f),
+                            RoundedCornerShape(28.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Contact",
+                        modifier = Modifier.size(28.dp),
+                        tint = AppColors.darkBlue
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Contact information
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = contact.name,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = PlusJakartaSans,
+                        color = AppColors.darkBlue
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = contact.phoneNumber,
+                        fontSize = 16.sp,
+                        fontFamily = PlusJakartaSans,
+                        color = AppColors.writingBlue
+                    )
+                }
+
+                // Call button icon
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            AppColors.darkBlue.copy(alpha = 0.1f),
+                            RoundedCornerShape(24.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = "Appeler",
+                        modifier = Modifier.size(24.dp),
+                        tint = AppColors.darkBlue
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyStateCard(speechHelper: SpeechHelper) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .clickable {
+                speechHelper.speak("Aucun contact d'urgence enregistré. Utilisez le bouton plus pour ajouter votre premier contact.")
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFF8F9FA)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Icon(
-                imageVector = Icons.Default.Phone,
-                contentDescription = "Phone",
-                modifier = Modifier.size(28.dp),
-                tint = Color(0xFF1A1A2E)
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = AppColors.darkBlue.copy(alpha = 0.3f)
             )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Contact information
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "${contact.name}: ${contact.phoneNumber}",
-                fontSize = 24.sp,
+                text = "Aucun contact d'urgence",
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = PlusJakartaSans,
-                color = Color(0xFF1A1A2E)
+                color = AppColors.darkBlue,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Ajoutez vos premiers contacts d'urgence pour les avoir rapidement à portée de main",
+                fontSize = 14.sp,
+                fontFamily = PlusJakartaSans,
+                color = AppColors.writingBlue,
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -345,61 +517,140 @@ fun AddContactDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp)
+                .padding(16.dp)
+                .shadow(
+                    elevation = 8.dp,
+                    shape = RoundedCornerShape(20.dp)
+                ),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Add Emergency Contact",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = onNameChange,
-                    label = { Text("Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                // Header
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .background(
+                            AppColors.darkBlue.copy(alpha = 0.1f),
+                            RoundedCornerShape(36.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = AppColors.darkBlue
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = onPhoneChange,
-                    label = { Text("Phone Number") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                Text(
+                    text = "Nouveau Contact d'Urgence",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    fontFamily = PlusJakartaSans,
+                    color = AppColors.darkBlue,
+                    textAlign = TextAlign.Center
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Name field
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = onNameChange,
+                    label = {
+                        Text(
+                            "Nom du contact",
+                            fontFamily = PlusJakartaSans
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppColors.darkBlue,
+                        focusedLabelColor = AppColors.darkBlue,
+                        cursorColor = AppColors.darkBlue
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Phone field
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = onPhoneChange,
+                    label = {
+                        Text(
+                            "Numéro de téléphone",
+                            fontFamily = PlusJakartaSans
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppColors.darkBlue,
+                        focusedLabelColor = AppColors.darkBlue,
+                        cursorColor = AppColors.darkBlue
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = AppColors.darkBlue
+                        ),
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            width = 1.dp,
+                            brush = Brush.linearGradient(listOf(AppColors.darkBlue, AppColors.darkBlue))
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            "Annuler",
+                            fontFamily = PlusJakartaSans,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
-
-                    Spacer(modifier = Modifier.width(8.dp))
 
                     Button(
                         onClick = onConfirm,
-                        enabled = name.isNotBlank() && phone.isNotBlank() && phone.length >= 2,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A2E))
+                        enabled = name.isNotBlank() && phone.isNotBlank() && phone.length >= 6,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AppColors.darkBlue,
+                            disabledContainerColor = AppColors.darkBlue.copy(alpha = 0.3f)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Save")
+                        Text(
+                            "Enregistrer",
+                            fontFamily = PlusJakartaSans,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White
+                        )
                     }
                 }
             }

@@ -153,7 +153,7 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
     private fun handleStepDetected(source: String) {
         _steps.postValue((_steps.value ?: 0) + 1)
         updatePosition()
-//        Log.d("StepCounter", "Step detected from $source sensor. Total steps: ${_steps.value}")
+        //Log.d("StepCounter", "Step detected from $source sensor. Total steps: ${_steps.value}")
     }
 
     private val rotationListener = object : SensorEventListener {

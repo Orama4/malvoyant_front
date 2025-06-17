@@ -75,14 +75,16 @@ class ContactViewModel (
             _error.value = null
 
             try {
-                val token = authRepository.getToken()
+                val token = authViewModel.getToken()
                 if (token == null) {
                     _error.value = "Authentication required"
                     return@launch
                 }
 
 
-                val endUserId = authRepository.getUserId()
+                val user : User? = authViewModel.getUserInfo()
+                Log.d("USER_USER",user.toString())
+                val endUserId = user?.endUserId
                 if (endUserId == null) {
                     _error.value = "User ID not available"
                     return@launch

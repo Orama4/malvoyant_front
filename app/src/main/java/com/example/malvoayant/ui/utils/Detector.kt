@@ -287,7 +287,7 @@ class Detector(
                 recentDetections[label] = DetectionMeta(distance, now)
                 lastSpoken = Pair(label, now)
 
-                val spokenText = "$label detected at ${"%.1f".format(distance)} meters"
+                val spokenText = "$label detected"
                 speechHelper.speak(spokenText)
             }
         }
