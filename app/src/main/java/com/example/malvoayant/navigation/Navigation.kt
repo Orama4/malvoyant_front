@@ -103,7 +103,10 @@ fun NavigationController(stepCounterViewModel: StepCounterViewModel = viewModel(
         composable(Screen.Helper.route) {
             HelperScreen(
                 context = context,
-                navController = navController
+                navController = navController,
+                contactViewModel = contactViewModel,
+                authViewModel = authViewModel,
+                stepCounterViewModel = stepCounterViewModel
             )
         }
 

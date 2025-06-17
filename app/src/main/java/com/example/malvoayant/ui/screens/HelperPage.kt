@@ -5,7 +5,6 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,37 +12,36 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone // Corrected Icon name
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.rounded.KeyboardArrowLeft
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext // Keep this import if needed elsewhere
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle // Import TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.example.malvoayant.R
+import com.example.malvoayant.data.viewmodels.AuthViewModel
+import com.example.malvoayant.data.viewmodels.ContactViewModel
+import com.example.malvoayant.data.viewmodels.StepCounterViewModel
 // Import YOUR AppColors and Font
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
 import com.example.voicerecorder.VoiceRecorderButton
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -99,10 +97,307 @@ fun WowHelperButton(
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HelperScreen(
     context: Context,
-    navController: NavHostController
+    navController: NavHostController,
+    authViewModel: AuthViewModel,
+    contactViewModel: ContactViewModel,
+    stepCounterViewModel: StepCounterViewModel
+) {
+
+
+
+
+    val scope = rememberCoroutineScope()
+    val speechHelper = remember { SpeechHelper(context) }
+    val doubleTapDelay = 500L
+    var shareButtonClickJob by remember { mutableStateOf<Job?>(null) }
+
+    var helperStatus by remember { mutableStateOf(HelperStatus.NOT_SET) }
+    var helperEmail by remember { mutableStateOf("") }
+
+    val helperID = contactViewModel.helperId.collectAsState()
+
+    val hasHelper by contactViewModel.hasHelper.collectAsState()
+
+    LaunchedEffect(Unit) {
+        val user = authViewModel.getUserInfo()
+        val userID = user?.id
+        contactViewModel.checkIfUserHasHelper(userID)
+    }
+
+    LaunchedEffect(hasHelper) {
+        helperStatus = when (hasHelper) {
+            true -> HelperStatus.CONFIRMED
+            false -> HelperStatus.NOT_SET
+            else -> HelperStatus.NOT_SET
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            speechHelper.shutdown()
+            shareButtonClickJob?.cancel()
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Helper",
+                        color = AppColors.darkBlue,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = { navController.navigateUp() },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        AppColors.darkBlue,
+                                        AppColors.darkBlue.copy(alpha = 0.8f)
+                                    )
+                                )
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.KeyboardArrowLeft,
+                            contentDescription = "Back",
+                            modifier = Modifier.size(28.dp),
+                            tint = Color.White
+                        )
+                    }
+                },
+
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White)
+                .padding(paddingValues)
+                .padding(16.dp)
+                .clickable {
+                    speechHelper.speak(
+                        "Helper page. Double tap on buttons to activate them."
+                    )
+                },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // UI Header - unchanged
+
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                when (helperStatus) {
+                    HelperStatus.CONFIRMED -> {
+                        ConfirmedHelperContent(
+                            isPositionShared = stepCounterViewModel.isTracking,
+                            onSharePositionClick = {
+                                if (shareButtonClickJob?.isActive == true) {
+                                    shareButtonClickJob?.cancel()
+                                    shareButtonClickJob = null
+                                     if(stepCounterViewModel.isTracking == true ){
+                                         stepCounterViewModel.disconnect()
+                                     }else {
+                                         val user = authViewModel.getUserInfo()
+                                         val userID = user?.id;
+                                         if (userID != null) {
+                                             helperID.value?.let {
+                                                 stepCounterViewModel.connectToWebSocket(userID,
+                                                     it
+                                                 )
+                                             }
+                                         }
+                                         stepCounterViewModel.startLocationTracking()
+
+
+                                     }
+                                    speechHelper.speak(
+                                        if (stepCounterViewModel.isTracking) "Position sharing activated." else "Position sharing stopped."
+                                    )
+                                } else {
+                                    speechHelper.speak(
+                                        if (stepCounterViewModel.isTracking) "Stop sharing position button. Double tap to activate."
+                                        else "Share position button. Double tap to activate."
+                                    )
+                                    shareButtonClickJob = scope.launch {
+                                        delay(doubleTapDelay)
+                                        shareButtonClickJob = null
+                                    }
+                                }
+                            },
+                            onCallHelperClick = {
+                                speechHelper.speak("Calling your helper.")
+                                val intent = Intent(Intent.ACTION_DIAL).apply {
+                                    data = Uri.parse("tel:777777777777")
+                                }
+                                context.startActivity(intent)
+                            },
+                            onRequestHelpClick = {
+                                speechHelper.speak("Sending help request message.")
+                                // Your message logic
+                            }
+                        )
+                    }
+                    HelperStatus.PENDING -> {
+                        PendingHelperContent()
+                    }
+                    HelperStatus.NOT_SET -> {
+                        NotSetHelperContent(
+                            helperEmail = helperEmail,
+                            onEmailChange = { helperEmail = it },
+                            onRequestClick = {
+                                if (helperEmail.isNotBlank() && helperEmail.contains("@")) {
+                                    contactViewModel.assignHelperToEndUser(helperEmail)
+                                    helperStatus = HelperStatus.PENDING
+                                    speechHelper.speak("Request sent to $helperEmail.")
+                                } else {
+                                    speechHelper.speak("Please enter a valid email address first.")
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/*
+@Composable
+fun HelperScreen(
+    context: Context,
+    navController: NavHostController,
+    authViewModel: AuthViewModel,
+    contactViewModel: ContactViewModel
+) {
+    val scope = rememberCoroutineScope()
+    val speechHelper = remember { SpeechHelper(context) }
+    val doubleTapDelay = 500L
+    var shareButtonClickJob by remember { mutableStateOf<Job?>(null) }
+
+    var helperStatus by remember { mutableStateOf(HelperStatus.NOT_SET) }
+    var helperEmail by remember { mutableStateOf("") }
+    var isPositionShared by remember { mutableStateOf(false) }
+
+    val hasHelper by contactViewModel.hasHelper.collectAsState()
+
+    LaunchedEffect(Unit) {
+        val user = authViewModel.getUserInfo()
+
+        val userID = user?.id
+
+            contactViewModel.checkIfUserHasHelper(userID)
+    }
+
+    LaunchedEffect(hasHelper) {
+        helperStatus = when (hasHelper) {
+            true -> HelperStatus.CONFIRMED
+            false -> HelperStatus.NOT_SET
+            else -> HelperStatus.NOT_SET
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            speechHelper.shutdown()
+            shareButtonClickJob?.cancel()
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(16.dp)
+            .clickable {
+                speechHelper.speak(
+                    "Helper page. Double tap on buttons to activate them."
+                )
+            },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        // UI Header - unchanged
+
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            when (helperStatus) {
+                HelperStatus.CONFIRMED -> {
+                    ConfirmedHelperContent(
+                        isPositionShared = isPositionShared,
+                        onSharePositionClick = {
+                            if (shareButtonClickJob?.isActive == true) {
+                                shareButtonClickJob?.cancel()
+                                shareButtonClickJob = null
+                                isPositionShared = !isPositionShared
+                                speechHelper.speak(
+                                    if (isPositionShared) "Position sharing activated." else "Position sharing stopped."
+                                )
+                            } else {
+                                speechHelper.speak(
+                                    if (isPositionShared) "Stop sharing position button. Double tap to activate."
+                                    else "Share position button. Double tap to activate."
+                                )
+                                shareButtonClickJob = scope.launch {
+                                    delay(doubleTapDelay)
+                                    shareButtonClickJob = null
+                                }
+                            }
+                        },
+                        onCallHelperClick = {
+                            speechHelper.speak("Calling your helper.")
+                            val intent = Intent(Intent.ACTION_DIAL).apply {
+                                data = Uri.parse("tel:777777777777")
+                            }
+                            context.startActivity(intent)
+                        },
+                        onRequestHelpClick = {
+                            speechHelper.speak("Sending help request message.")
+                            // Your message logic
+                        }
+                    )
+                }
+                HelperStatus.PENDING -> {
+                    PendingHelperContent()
+                }
+                HelperStatus.NOT_SET -> {
+                    NotSetHelperContent(
+                        helperEmail = helperEmail,
+                        onEmailChange = { helperEmail = it },
+                        onRequestClick = {
+                            if (helperEmail.isNotBlank() && helperEmail.contains("@")) {
+
+                                    contactViewModel.assignHelperToEndUser( helperEmail)
+                                    helperStatus = HelperStatus.PENDING
+                                    speechHelper.speak("Request sent to $helperEmail.")
+                            } else {
+                                speechHelper.speak("Please enter a valid email address first.")
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+
+@Composable
+fun HelperScreen(
+    context: Context,
+    navController: NavHostController,
+    contactViewModel: ContactViewModel
 ) {
     // State remains mostly the same
     var helperStatus by remember { mutableStateOf(HelperStatus.NOT_SET) } // Start as confirmed for demo
@@ -287,7 +582,7 @@ fun HelperScreen(
         }
     }
 }
-
+*/
 @Composable
 fun ConfirmedHelperContent(
     isPositionShared: Boolean,

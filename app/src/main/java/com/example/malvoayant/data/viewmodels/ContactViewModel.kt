@@ -105,4 +105,87 @@ class ContactViewModel (
             }
         }
     }
+
+
+    fun assignHelperToEndUser(email: String) {
+        viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
+
+            try {
+                val token = authRepository.getToken() ?: return@launch
+                val endUserId = authRepository.getUserId() ?: return@launch
+
+                contactRepository.assignHelper(token, email, endUserId.toInt())
+                    .onSuccess {
+                        Log.d("ContactVM", "Helper assigned successfully")
+                    }
+                    .onFailure { e ->
+                        _error.value = "Failed to assign helper: ${e.message}"
+                    }
+            } catch (e: Exception) {
+                _error.value = "Unexpected error: ${e.message}"
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
+
+
+
+
+
+
+    private val _hasHelper = MutableStateFlow<Boolean?>(null)
+    val hasHelper: StateFlow<Boolean?> get() = _hasHelper
+
+    private val _helperId = MutableStateFlow<Int?>(null)
+    val helperId: StateFlow<Int?> get() = _helperId
+
+    fun checkIfUserHasHelper(userID: Int?) {
+        viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
+
+            try {
+                Log.d("USERID IN HELPER",userID.toString())
+                val token = authViewModel.getToken()
+                Log.d("TOKEN IN HELPER",token.toString())
+
+
+                val userId = userID
+
+                if (token == null || userId == null) {
+                    _error.value = "Token or user ID is missing"
+                    _loading.value = false
+                    return@launch
+                }
+
+                contactRepository.hasHelper(token, userId.toInt())
+                    .onSuccess { (hasHelperResult, helperIdResult) ->
+                        _hasHelper.value = hasHelperResult
+                        _helperId.value = helperIdResult
+                        Log.d("ContactVM", "User has helper: $hasHelperResult, helperId: $helperIdResult")
+                    }
+                    .onFailure { e ->
+                        _error.value = "Failed to check helper: ${e.message}"
+                        Log.e("ContactVM", "Check helper error", e)
+                    }
+            } catch (e: Exception) {
+                _error.value = "Unexpected error: ${e.message}"
+                Log.e("ContactVM", "Unexpected error", e)
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
+
+
+
+
+
+
+
 }

@@ -62,7 +62,7 @@ import com.example.malvoayant.NavigationLogic.utils.calculateDistance
 import com.example.malvoayant.utils.NavigationUtils
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun FloorPlanCanvasView(
+fun  FloorPlanCanvasView(
     floorPlanState: FloorPlanState,
     modifier: Modifier = Modifier,
     stepCounterViewModel: StepCounterViewModel = viewModel(),

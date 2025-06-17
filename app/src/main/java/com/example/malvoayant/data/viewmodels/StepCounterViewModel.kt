@@ -13,10 +13,15 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
+import androidx.lifecycle.viewModelScope
 import com.example.malvoayant.data.models.ConnectionState
 import com.example.malvoayant.data.models.FloorPlanState
 import com.example.malvoayant.network.LocationWebSocketService
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -326,6 +331,7 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
 
     override fun onCleared() {
         super.onCleared()
+        cleanup()
         stopListening()
     }
 
@@ -337,7 +343,7 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
 
 
 
-
+ /*
 
     private val locationService = LocationWebSocketService()
 
@@ -382,6 +388,108 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
     fun cleanup() {
         locationService.cleanup()
     }
+    */
+
+        private val locationService = LocationWebSocketService()
+        val connectionState: StateFlow<ConnectionState> = locationService.connectionState
+
+        private var positionObserver: Observer<Pair<Float, Float>>? = null
+       var isTracking = false
+
+        // Job pour surveiller la santé de la connexion
+        private var connectionHealthCheckJob: Job? = null
+
+        fun connectToWebSocket(userId: Int, helperId: Int) {
+            locationService.connect(userId, helperId)
+            startConnectionHealthCheck()
+        }
+
+        private fun startConnectionHealthCheck() {
+            connectionHealthCheckJob?.cancel()
+            connectionHealthCheckJob = viewModelScope.launch {
+                while (isActive) {
+                    delay(30000) // Vérifier toutes les 30 secondes
+
+                    if (isTracking && !locationService.isConnectionHealthy()) {
+                        Log.w("ViewModel", "Connexion malsaine détectée, tentative de reconnexion")
+                        locationService.forceReconnect()
+                    }
+                }
+            }
+        }
+
+        fun startLocationTracking() {
+            if (isTracking) return
+
+            isTracking = true
+
+            // Observer pour surveiller les changements de position
+            positionObserver = Observer { position ->
+                if (isTracking) {
+                    // Vérifier si la connexion est saine avant d'envoyer
+                    if (locationService.connectionState.value.isConnected) {
+                        locationService.sendLocationUpdate(position)
+                    } else {
+                        Log.w("ViewModel", "Position non envoyée - connexion fermée")
+                    }
+                }
+            }
+
+            // S'abonner aux changements de position
+            this.currentPositionLive.observeForever(positionObserver!!)
+        }
+
+        fun stopLocationTracking() {
+            isTracking = false
+            positionObserver?.let { observer ->
+                this.currentPositionLive.removeObserver(observer)
+            }
+            positionObserver = null
+        }
+
+        // Nouvelle méthode pour forcer une reconnexion
+        fun forceReconnect() {
+            locationService.forceReconnect()
+        }
+
+        // Méthode pour obtenir des statistiques de connexion
+        fun getConnectionStats(): String {
+            val state = connectionState.value
+            val currentTime = System.currentTimeMillis()
+
+            return buildString {
+                appendLine("État: ${if (state.isConnected) "Connecté" else "Déconnecté"}")
+                if (state.lastConnectionTime > 0) {
+                    val connectionDuration = currentTime - state.lastConnectionTime
+                    appendLine("Durée connexion: ${connectionDuration / 1000}s")
+                }
+                if (state.lastHeartbeatTime > 0) {
+                    val lastHeartbeat = currentTime - state.lastHeartbeatTime
+                    appendLine("Dernier heartbeat: ${lastHeartbeat / 1000}s")
+                }
+                if (state.lastLocationTime > 0) {
+                    val lastLocation = currentTime - state.lastLocationTime
+                    appendLine("Dernière position: ${lastLocation / 1000}s")
+                }
+                state.error?.let { appendLine("Erreur: $it") }
+            }
+        }
+
+        fun disconnect() {
+            stopLocationTracking()
+            connectionHealthCheckJob?.cancel()
+            locationService.disconnect()
+        }
+
+        fun cleanup() {
+            disconnect()
+            locationService.cleanup()
+        }
+
+    //    override fun onCleared() {
+     //       super.onCleared()
+      //      cleanup()
+       // }
 
 
 

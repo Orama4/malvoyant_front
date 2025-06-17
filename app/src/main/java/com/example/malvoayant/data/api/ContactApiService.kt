@@ -17,7 +17,35 @@ interface ContactApiService {
         @Body request: AddContactRequest,
         @Header("Authorization") token: String
     ): Response<Unit>
+
+    @POST("/api/emergency/assign-helper")
+    suspend fun assignHelperToEndUser(
+        @Body request: AssignHelperRequest,
+        @Header("Authorization") token: String
+    ): Response<Unit>
+
+    @GET("/api/emergency/has-helper/{userId}")
+    suspend fun hasHelper(
+        @Path("userId") userId: Int,
+        @Header("Authorization") token: String
+    ): Response<HasHelperResponse>
+
+
+
 }
+
+
+
+data class HasHelperResponse(
+    val hasHelper: Boolean,
+    val helperId: Int?
+)
+
+
+data class AssignHelperRequest(
+    val email: String,
+    val endUserId: Int
+)
 
 // Modèles de données
 data class ApiContact(
