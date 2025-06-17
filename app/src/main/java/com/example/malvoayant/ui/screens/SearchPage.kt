@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.malvoayant.NavigationLogic.Models.StaticInstruction
@@ -53,6 +54,7 @@ import com.example.malvoayant.navigation.Screen
 import com.example.malvoayant.ui.theme.AppColors
 import com.example.malvoayant.ui.theme.PlusJakartaSans
 import com.example.malvoayant.ui.utils.SpeechHelper
+import com.example.malvoayant.ui.utils.startListening
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -68,6 +70,8 @@ fun SearchScreen(
 ) {
     //navigation variables
     val coroutineScope = rememberCoroutineScope()
+    var showNavigationCompleteDialog by remember { mutableStateOf(false) }
+
     var isNavigationActive by remember { mutableStateOf(false) }
     var currentInstructionIndex by remember { mutableStateOf(0) }
 
@@ -107,7 +111,7 @@ fun SearchScreen(
                 y = currentPosition.y
             )
 
-            NavigationUtils.updatePosition(point)
+            NavigationUtils.updatePosition(point,stepCounterViewModel)
 
         }
     }
@@ -178,8 +182,12 @@ fun SearchScreen(
                 onStopNavigation = {
                     isNavigationActive = false
                     currentInstructionIndex = 0
-                    speechHelper.speak("You have reached your destination, would you like to activate OD2 to get more information about the current position?")
-                },
+                    speechHelper.speak(
+                        "You have reached your destination. Would you like more information or assistance about it? If you want to know what is around the destination, press the top button in the center of the page. If you want to read detailed content for further assistance, press the middle button. Otherwise, press the cancel button at the bottom center of the page."
+                    )
+                    showNavigationCompleteDialog = true // Show the
+
+                    },
                 stepCounterViewModel = stepCounterViewModel,
                 onDynamicInstruction = { dynamicInstruction ->
                     speechHelper.speak(dynamicInstruction)
@@ -256,6 +264,24 @@ fun SearchScreen(
                 )
             )
     ) {
+        NavigationCompleteDialog(
+            isVisible = showNavigationCompleteDialog,
+            onDismiss = { showNavigationCompleteDialog = false },
+            onAroundDestination = {
+                showNavigationCompleteDialog = false
+                // Add your specific logic here
+                speechHelper.speak("Exploring around destination")
+                // Example: navController.navigate("around_destination")
+            },
+            onReadContent = {
+                showNavigationCompleteDialog = false
+                // Add your specific logic here
+                speechHelper.speak("Reading content activated")
+                // Example: navController.navigate("content_reader")
+            },
+            speechHelper = speechHelper,
+            destinationName = endPoint?.name ?: "your destination"
+        )
         // Main content
         Column(
             modifier = Modifier
@@ -342,7 +368,10 @@ fun SearchScreen(
                             onStopNavigation = {
                                 isNavigationActive = false
                                 currentInstructionIndex = 0
-                                speechHelper.speak("You have reached your destination, would you like to activate OD2 to get more information about the current position")
+                                speechHelper.speak(
+                                    "You have reached your destination. Would you like more information or assistance about it? If you want to know what is around the destination, press the top button in the center of the page. If you want to read detailed content for further assistance, press the middle button. Otherwise, press the cancel button at the bottom center of the page."
+                                )
+                                showNavigationCompleteDialog = true // Show the
                             },
                             stepCounterViewModel = stepCounterViewModel,
                             onDynamicInstruction = { dynamicInstruction ->
@@ -1326,4 +1355,222 @@ private fun DirectionIcon(
         )
     }
 }
+@Composable
+fun NavigationCompleteDialog(
+    isVisible: Boolean,
+    onDismiss: () -> Unit,
+    onAroundDestination: () -> Unit,
+    onReadContent: () -> Unit,
+    speechHelper: SpeechHelper,
+    destinationName: String = "destination"
+) {
+    if (isVisible) {
 
+
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(
+                dismissOnBackPress = true,
+                dismissOnClickOutside = false
+            )
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
+                shape = RoundedCornerShape(24.dp),
+                color = Color.White,
+                shadowElevation = 16.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Header with destination reached message
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_flag2),
+                        contentDescription = "Destination reached",
+                        tint = AppColors.primary,
+                        modifier = Modifier.size(64.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Destination Reached!",
+                        fontSize = 24.sp,
+                        fontFamily = PlusJakartaSans,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.darkBlue,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Text(
+                        text = "You have arrived at $destinationName",
+                        fontSize = 16.sp,
+                        fontFamily = PlusJakartaSans,
+                        color = AppColors.darkBlue.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
+                    )
+
+                    // Three main action buttons
+                    NavigationActionButton(
+                        text = "What's Around",
+                        description = "Discover what's around the destination",
+                        icon = R.drawable.ic_location, // You might want to use a different icon
+                        color = Color(0xFF4CAF50),
+                        onClick = {
+                            speechHelper.speak("Exploring what's around the destination")
+                            onAroundDestination()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    NavigationActionButton(
+                        text = "Read Content",
+                        description = "Get more information and assistance",
+                        icon = R.drawable.mic, // You might want to use a reading/book icon
+                        color = Color(0xFF2196F3),
+                        onClick = {
+                            speechHelper.speak("Reading content for more assistance")
+                            onReadContent()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Cancel button
+                    NavigationActionButton(
+                        text = "Cancel",
+                        description = "Close this dialog",
+                        icon = R.drawable.ic_close,
+                        color = Color(0xFF757575),
+                        onClick = {
+                            speechHelper.speak("Dialog closed")
+                            onDismiss()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        isOutlined = true
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NavigationActionButton(
+    text: String,
+    description: String,
+    icon: Int,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isOutlined: Boolean = false
+) {
+    if (isOutlined) {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier.height(72.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = color
+            ),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(2.dp, color)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Icon(
+                    painter = painterResource(id = icon),
+                    contentDescription = description,
+                    modifier = Modifier.size(32.dp),
+                    tint = color
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        text = text,
+                        fontSize = 18.sp,
+                        fontFamily = PlusJakartaSans,
+                        fontWeight = FontWeight.Bold,
+                        color = color
+                    )
+
+                    Text(
+                        text = description,
+                        fontSize = 14.sp,
+                        fontFamily = PlusJakartaSans,
+                        color = color.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        }
+    } else {
+        Button(
+            onClick = onClick,
+            modifier = modifier.height(72.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = color,
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(16.dp),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 8.dp,
+                pressedElevation = 12.dp
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Icon(
+                    painter = painterResource(id = icon),
+                    contentDescription = description,
+                    modifier = Modifier.size(32.dp),
+                    tint = Color.White
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        text = text,
+                        fontSize = 18.sp,
+                        fontFamily = PlusJakartaSans,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+
+                    Text(
+                        text = description,
+                        fontSize = 14.sp,
+                        fontFamily = PlusJakartaSans,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        }
+    }
+}

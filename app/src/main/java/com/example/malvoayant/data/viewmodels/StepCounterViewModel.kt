@@ -36,10 +36,10 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
     val currentHeadingLive: LiveData<Float> = _currentHeadingLive
 
     private var currentHeading = 0f
-    private var currentPosition = Pair(0f, 4f)
+    private var currentPosition = Pair(0f, 0f)
     private val stepLength = 1f
 
-    private val _currentPositionLive = MutableLiveData(Pair(0f, 4f))
+    private val _currentPositionLive = MutableLiveData(Pair(0f, 0f))
     val currentPositionLive: LiveData<Pair<Float, Float>> = _currentPositionLive
 
     private val _pathPoints = MutableLiveData(listOf(Pair(0f, 0f)))
@@ -166,7 +166,7 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
                 SensorManager.getOrientation(rotationMatrix, orientationAngles)
 
                 // Convert to degrees and normalize to 0-360
-                currentHeading = Math.toDegrees(orientationAngles[0].toDouble()).toFloat() + 160
+                currentHeading = Math.toDegrees(orientationAngles[0].toDouble()).toFloat() -15
                 if (currentHeading < 0) {
                     currentHeading += 360f
                 }

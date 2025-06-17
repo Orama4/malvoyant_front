@@ -23,7 +23,7 @@ object NavigationUtils {
     private const val DEVIATION_THRESHOLD = 2.0 // meters
     private const val OBSTACLE_DETECTION_RANGE = 3.0 // meters
     private const val RECALCULATION_DELAY = 5000L // ms
-    private const val STRAIGHT_DISTANCE_THRESHOLD = 0.4; // meters
+    private const val STRAIGHT_DISTANCE_THRESHOLD = 0.35; // meters
     private const val TURNING_DISTANCE_THRESHOLD = 0.2 // meters
 
     // Navigation state
@@ -230,7 +230,7 @@ object NavigationUtils {
 
 
     // Method to update position from step detection
-    fun updatePosition(position: Point) {
+    fun updatePosition(position: Point,stepCounterViewModel: StepCounterViewModel) {
         //logger ma postion actuelle:
         Log.d("AblaDebug","ma position actuelle: $position")
         if (!isNavigating) return
@@ -245,13 +245,13 @@ object NavigationUtils {
 
         // Check if user started walking (for first instruction)
         val currentTime = System.currentTimeMillis()
-        if (!instructionGiven && lastPosition != null) {
-            val movedDistance = calculateDistance(lastPosition!!, position)
-            if (movedDistance > MOVEMENT_THRESHOLD) {
-                onInstructionChangedCallback?.invoke(currentInstructionIndex) // OK
-                instructionGiven = true
-            }
-        }
+//        if (!instructionGiven && lastPosition != null) {
+//            val movedDistance = calculateDistance(lastPosition!!, position)
+//            if (movedDistance > MOVEMENT_THRESHOLD) {
+//                //onInstructionChangedCallback?.invoke(currentInstructionIndex) // OK
+//                instructionGiven = true
+//            }
+//        }
         val prev_pos = lastPosition ?: position
         lastPosition = position
         lastMovementTime = currentTime
@@ -268,7 +268,7 @@ object NavigationUtils {
             }
         }
 
-// 2) recalculer l’instruction en “intelligent”
+        // 2) recalculer l’instruction en “intelligent”
         updateInstructionIndex(prev_pos,position, path,hasUpdatedPointIndex)
 
         // 3) détection d’arrivée
@@ -278,10 +278,8 @@ object NavigationUtils {
             Log.d("NavigationUtils", "Reached destination")
             return
         }
-
-
         // Check for deviation
-        handleDeviation(position)
+        handleDeviation(position, stepCounterViewModel = stepCounterViewModel)
 
     }
 
@@ -335,10 +333,8 @@ object NavigationUtils {
         return calculateDistance(point, projection)
     }
 
-    private fun handleDeviation(point: Point) {
-        navigationViewModel?.checkForDeviation(point, onDynamicInstructionCallback)?.let { instruction ->
-            onDynamicInstructionCallback?.invoke(instruction.toString())
-        }
+    private fun handleDeviation(point: Point,stepCounterViewModel: StepCounterViewModel) {
+        navigationViewModel?.checkForDeviation(point, stepCounterViewModel , onDynamicInstructionCallback)
     }
 
 
@@ -348,13 +344,15 @@ object NavigationUtils {
 
     private fun updateInstructionIndex(prev_pos:Point,position: Point, path: List<Point>,hasUpdatedPointIndex:Boolean) {
         if (hasUpdatedPointIndex) {
-            currentInstructionIndex++
-            val instructions= navigationViewModel?.instructions ?: return
-            if (instructions[currentInstructionIndex].type=="Straight") {
-                // Si on est sur une instruction de type "Straight", on avance l'instruction
+            if (currentInstructionIndex<path.size-1) {
                 currentInstructionIndex++
+                val instructions = navigationViewModel?.instructions ?: return
+                if (instructions[currentInstructionIndex].type == "Straight") {
+                    // Si on est sur une instruction de type "Straight", on avance l'instruction
+                    currentInstructionIndex++
+                }
+                onInstructionChangedCallback?.invoke(currentInstructionIndex)
             }
-            onInstructionChangedCallback?.invoke(currentInstructionIndex)
         } else {
             val eps = TURNING_DISTANCE_THRESHOLD
             var bestInstr = currentInstructionIndex

@@ -31,7 +31,7 @@ class NavigationViewModel(
     private val pathFinder = PathFinder()
     private var deviationThreshold = 1.0f
     private val minorDeviationThreshold = 25.0f // 50cm
-    private val majorDeviationThreshold = 100.0f // 2m
+    private val majorDeviationThreshold = 75.0f // 2m
     private val segmentCompletionThreshold = 40.0f
     var isOffPath by mutableStateOf(false)
     var currentPath by mutableStateOf<List<Point>?>(null)
@@ -227,7 +227,7 @@ class NavigationViewModel(
         return merged
     }
 
-    fun checkForDeviation(currentPosition: Point,onDynamicInstructionCallback: ((String) -> Unit)?) {
+    fun checkForDeviation(currentPosition: Point,stepCounterViewModel: StepCounterViewModel,onDynamicInstructionCallback: ((String) -> Unit)?) {
         viewModelScope.launch(Dispatchers.Default) {
             val path = currentPath ?: return@launch
             if (path.isEmpty()) return@launch
@@ -245,6 +245,9 @@ class NavigationViewModel(
                 "Deviation",
                 "Current segment: $currentSegmentIndex, Distance to path: $distanceToPath"
             )
+            val dx = nearestPoint.x - currentPosition.x
+            val dy = nearestPoint.y - currentPosition.y
+            val pathAngle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
             when {
                 // Minor deviation - no action needed
                 distanceToPath <= minorDeviationThreshold -> {
@@ -257,22 +260,14 @@ class NavigationViewModel(
                 }
 
                 // Moderate deviation - guide back to path
-                distanceToPath <= majorDeviationThreshold && distanceToPath > minorDeviationThreshold -> {
+                distanceToPath > majorDeviationThreshold -> {
                     withContext(Dispatchers.Main) {
-                        isOffPath = true
-                        // errorMessage = "You've slightly deviated from the path"
-                        // Generate guidance instructions
-                        val instruction=generateGuidanceInstructions(currentPosition, nearestPoint)
-                        onDynamicInstructionCallback?.invoke(instruction)
-                    }
-                }
+                        withContext(Dispatchers.Main) {
+                            isOffPath = true
+                            // errorMessage = "Recalculating path due to large deviation"
+                            recalculatePath(currentPosition)
+                        }
 
-                // Major deviation - recalculate path
-                else -> {
-                    withContext(Dispatchers.Main) {
-                        isOffPath = true
-                        // errorMessage = "Recalculating path due to large deviation"
-                        recalculatePath(currentPosition)
                     }
                 }
             }
@@ -324,6 +319,7 @@ class NavigationViewModel(
                 nearestPoint = getClosestPointOnLineSegment(currentPosition, segmentStart, segmentEnd)
             }
         }
+        Log.d("Deviation", "Nearest point: $nearestPoint, Distance: $minDistance")
 
         return Pair(nearestPoint, minDistance)
     }
@@ -350,33 +346,46 @@ class NavigationViewModel(
         )
     }
 
-    // Update the generateGuidanceInstructions function
-    private fun generateGuidanceInstructions(currentPosition: Point, nearestPathPoint: Point):String {
-        var instruction: String=""
+    fun generateGuidanceInstructions(
+        currentPosition: Point,
+        nearestPathPoint: Point,
+        currentHeading: Float,
+        onInstructionReady: (String) -> Unit
+    ) {
         viewModelScope.launch(Dispatchers.Default) {
-            // Calculate direction to guide user back to path
+
             val dx = nearestPathPoint.x - currentPosition.x
             val dy = nearestPathPoint.y - currentPosition.y
+            val pathAngle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
 
-            val angle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
+            // 👉 Différence entre la direction où il regarde et le chemin
+            val diff = angleDifference(currentHeading, pathAngle)
 
-            instruction = when {
-                angle > -45 && angle <= 45 -> "Turn slightly right to return to path"
-                angle > 45 && angle <= 135 -> "Turn around to return to path"
-                angle > 135 || angle <= -135 -> "Turn around to return to path"
-                else -> "Turn slightly left to return to path"
+            val instruction = when {
+                pathAngle in -15.0..15.0 -> "Go straight to return to path"
+                pathAngle in 15.0..45.0 -> "Turn slightly right to return to path"
+                pathAngle in 45.0..100.0 -> "Turn right to return to path"
+                pathAngle in 100.0..135.0 -> "Turn sharp right to return to path"
+                pathAngle in -45.0..-15.0 -> "Turn slightly left to return to path"
+                pathAngle in -100.0..-45.0 -> "Turn left to return to path"
+                pathAngle in -135.0..-100.0 -> "Turn sharp left to return to path"
+                else -> "Make a U-turn to return to path"
             }
 
-//i'm commenting here because i dont want to add the to list of instructions, but only spelling the dynamic instruction.
-//            withContext(Dispatchers.Main) {
-//                // Only add guidance instruction if there isn't already one
-//                if (instructions.none { it.type == "Guidance" }) {
-//                    instructions = listOf(StaticInstruction(instruction, null, "Guidance")) + instructions
-//                }
-//            }
+
+            withContext(Dispatchers.Main) {
+                if (!(pathAngle in -15.0..15.0 ))
+                    onInstructionReady(instruction)
+                else
+                    isOffPath = false
+            }
         }
-        return instruction
     }
+    private fun angleDifference(from: Float, to: Float): Float {
+        return ((to - from + 540) % 360 - 180)
+    }
+
+
     // Update the recalculatePath function
     private fun recalculatePath(currentPosition: Point) {
         val destination = currentPath?.lastOrNull() ?: return
@@ -386,7 +395,7 @@ class NavigationViewModel(
             showInstructions = false
             resetPathTracking()
 
-            Log.d("Deviation","Recalculating path. Please wait.")
+            Log.d("Deviation2","Recalculating path. Please wait.")
 
             // Calculate new path
             calculatePath(currentPosition, destination)
