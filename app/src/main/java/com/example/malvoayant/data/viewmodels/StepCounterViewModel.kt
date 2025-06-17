@@ -339,62 +339,16 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
 
 
 
-
-
-
-
- /*
-
-    private val locationService = LocationWebSocketService()
-
-    val connectionState: StateFlow<ConnectionState> = locationService.connectionState
-
-    private var positionObserver: Observer<Pair<Float, Float>>? = null
-    private var isTracking = false
-
-    fun connectToWebSocket(userId: Int, helperId: Int) {
-        locationService.connect(userId, helperId)
-    }
-
-    fun startLocationTracking() {
-        if (isTracking) return
-
-        isTracking = true
-
-        // Observer pour surveiller les changements de position
-        positionObserver = Observer { position ->
-            if (isTracking && locationService.connectionState.value.isConnected) {
-                locationService.sendLocationUpdate(position)
-            }
-        }
-
-        // S'abonner aux changements de position
-        this.currentPositionLive.observeForever(positionObserver!!)
-    }
-
-    fun stopLocationTracking() {
-        isTracking = false
-        positionObserver?.let { observer ->
-            this.currentPositionLive.removeObserver(observer)
-        }
-        positionObserver = null
-    }
-
-    fun disconnect() {
-        stopLocationTracking()
-        locationService.disconnect()
-    }
-
-    fun cleanup() {
-        locationService.cleanup()
-    }
-    */
-
         private val locationService = LocationWebSocketService()
         val connectionState: StateFlow<ConnectionState> = locationService.connectionState
 
         private var positionObserver: Observer<Pair<Float, Float>>? = null
-       var isTracking = false
+    private var headingObserver: Observer<Float>? = null // Nouvel observer pour le heading
+
+    private var lastSentHeadingInt: Int? = null
+    private val headingThreshold = 10 // Seuil de changement en degrés (optionnel)
+
+    var isTracking = false
 
         // Job pour surveiller la santé de la connexion
         private var connectionHealthCheckJob: Job? = null
@@ -418,35 +372,65 @@ class StepCounterViewModel(application: Application, var floorPlanState: FloorPl
             }
         }
 
-        fun startLocationTracking() {
-            if (isTracking) return
 
-            isTracking = true
+    fun startLocationTracking() {
+        if (isTracking) return
 
-            // Observer pour surveiller les changements de position
-            positionObserver = Observer { position ->
-                if (isTracking) {
-                    // Vérifier si la connexion est saine avant d'envoyer
+        isTracking = true
+
+        // Observer pour la position (inchangé)
+        positionObserver = Observer { position ->
+            if (isTracking && locationService.connectionState.value.isConnected) {
+                val currentHeading = currentHeadingLive.value ?: 0f
+                locationService.sendLocationUpdate(position, currentHeading)
+            }
+        }
+
+        // Observer pour le heading avec seuil
+        headingObserver = Observer { heading ->
+            if (isTracking) {
+                val headingInt = heading.toInt()
+
+                // Option 1: Changement de degré entier
+                val shouldSendBasic = lastSentHeadingInt != headingInt
+
+                // Option 2: Changement avec seuil (exemple: minimum 5 degrés)
+                val shouldSendWithThreshold = lastSentHeadingInt?.let { lastSent ->
+                    kotlin.math.abs(headingInt - lastSent) >= headingThreshold
+                } ?: true
+
+                // Choisir la condition (basic ou avec seuil)
+                if (shouldSendBasic) { // ou shouldSendWithThreshold
+                    lastSentHeadingInt = headingInt
+
                     if (locationService.connectionState.value.isConnected) {
-                        locationService.sendLocationUpdate(position)
-                    } else {
-                        Log.w("ViewModel", "Position non envoyée - connexion fermée")
+                        val currentPosition = currentPositionLive.value ?: Pair(0f, 0f)
+                        locationService.sendLocationUpdate(currentPosition, heading)
+                        Log.d("ViewModel", "Heading significatif envoyé: $headingInt°")
                     }
                 }
             }
-
-            // S'abonner aux changements de position
-            this.currentPositionLive.observeForever(positionObserver!!)
         }
 
-        fun stopLocationTracking() {
-            isTracking = false
-            positionObserver?.let { observer ->
-                this.currentPositionLive.removeObserver(observer)
-            }
-            positionObserver = null
-        }
+        // S'abonner aux changements
+        this.currentPositionLive.observeForever(positionObserver!!)
+        this.currentHeadingLive.observeForever(headingObserver!!)
+    }
 
+    fun stopLocationTracking() {
+        isTracking = false
+
+        // Désabonner les observers
+        positionObserver?.let { observer ->
+            this.currentPositionLive.removeObserver(observer)
+        }
+        positionObserver = null
+
+        headingObserver?.let { observer ->
+            this.currentHeadingLive.removeObserver(observer)
+        }
+        headingObserver = null
+    }
         // Nouvelle méthode pour forcer une reconnexion
         fun forceReconnect() {
             locationService.forceReconnect()

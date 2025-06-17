@@ -328,13 +328,14 @@ class LocationWebSocketService {
         }
     }
 
-    fun sendLocationUpdate(position: Pair<Float, Float>) {
+    fun sendLocationUpdate(position: Pair<Float, Float>,heading: Float = 0f) {
         webSocket?.let { ws ->
             if (_connectionState.value.isConnected) {
                 val locationData = JSONObject().apply {
                     put("type", "location_update")
                     put("lat", position.first.toDouble())
                     put("lng", position.second.toDouble())
+                    put("heading", heading) // Ajouter le heading
                     put("timestamp", System.currentTimeMillis())
                 }
 
