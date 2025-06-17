@@ -298,30 +298,35 @@ class NavigationViewModel(
         val segmentsToCheck = 2
         val startIndex = currentSegmentIndex
         val endIndex = minOf(currentSegmentIndex + segmentsToCheck, path.size - 2)
+        if( currentSegmentIndex<path.size-1) {
+            var nearestPoint = path[currentSegmentIndex]
+            var minDistance = calculateDistance(currentPosition, nearestPoint).toFloat()
 
-        var nearestPoint = path[currentSegmentIndex]
-        var minDistance = calculateDistance(currentPosition, nearestPoint).toFloat()
+            // Check all relevant segments
+            for (i in startIndex..endIndex) {
+                val segmentStart = path[i]
+                val segmentEnd = path[i + 1]
 
-        // Check all relevant segments
-        for (i in startIndex..endIndex) {
-            val segmentStart = path[i]
-            val segmentEnd = path[i + 1]
+                val distance = NavigationUtils.calculateDistanceToSegment(
+                    currentPosition,
+                    segmentStart,
+                    segmentEnd
+                ).toFloat()
 
-            val distance = NavigationUtils.calculateDistanceToSegment(
-                currentPosition,
-                segmentStart,
-                segmentEnd
-            ).toFloat()
-
-            if (distance < minDistance) {
-                minDistance = distance
-                // Calculate the actual nearest point if needed (optional)
-                nearestPoint = getClosestPointOnLineSegment(currentPosition, segmentStart, segmentEnd)
+                if (distance < minDistance) {
+                    minDistance = distance
+                    // Calculate the actual nearest point if needed (optional)
+                    nearestPoint =
+                        getClosestPointOnLineSegment(currentPosition, segmentStart, segmentEnd)
+                }
             }
+            Log.d("Deviation", "Nearest point: $nearestPoint, Distance: $minDistance")
+            return Pair(nearestPoint, minDistance)
         }
-        Log.d("Deviation", "Nearest point: $nearestPoint, Distance: $minDistance")
+        else
+            return Pair(path.last(), 0f)
 
-        return Pair(nearestPoint, minDistance)
+
     }
 
     // You can keep the getClosestPointOnLineSegment function as is since it's still used above

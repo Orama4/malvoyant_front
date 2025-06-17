@@ -160,7 +160,7 @@ fun SearchScreen(
 // Observer les changements de chemin
     LaunchedEffect(navigationViewModel.currentPath) {
         Log.d("SearchScreen", "Chemin actuel: $currentPath")
-        if (navigationViewModel.currentPath != null && (isNavigationActive || navigationViewModel.isOffPath)) {
+        if (navigationViewModel.currentPath != null && ( navigationViewModel.isOffPath)) {
             // Restart navigation with new path
             val start = if (startPoint?.name == "current") {
                 Point(x = startPoint!!.x, y = startPoint!!.y)
@@ -188,6 +188,10 @@ fun SearchScreen(
                     showNavigationCompleteDialog = true // Show the
 
                     },
+                onDropNavigation = {
+                    isNavigationActive = false
+                    currentInstructionIndex = 0
+                },
                 stepCounterViewModel = stepCounterViewModel,
                 onDynamicInstruction = { dynamicInstruction ->
                     speechHelper.speak(dynamicInstruction)
@@ -271,12 +275,14 @@ fun SearchScreen(
                 showNavigationCompleteDialog = false
                 // Add your specific logic here
                 speechHelper.speak("Exploring around destination")
+                navController.navigate(Screen.OD1.route)
                 // Example: navController.navigate("around_destination")
             },
             onReadContent = {
                 showNavigationCompleteDialog = false
                 // Add your specific logic here
                 speechHelper.speak("Reading content activated")
+                navController.navigate(Screen.OD2.route)
                 // Example: navController.navigate("content_reader")
             },
             speechHelper = speechHelper,
@@ -372,6 +378,11 @@ fun SearchScreen(
                                     "You have reached your destination. Would you like more information or assistance about it? If you want to know what is around the destination, press the top button in the center of the page. If you want to read detailed content for further assistance, press the middle button. Otherwise, press the cancel button at the bottom center of the page."
                                 )
                                 showNavigationCompleteDialog = true // Show the
+                            },
+                            onDropNavigation = {
+                                isNavigationActive = false
+                                currentInstructionIndex = 0
+
                             },
                             stepCounterViewModel = stepCounterViewModel,
                             onDynamicInstruction = { dynamicInstruction ->

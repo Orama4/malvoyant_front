@@ -23,7 +23,7 @@ object NavigationUtils {
     private const val DEVIATION_THRESHOLD = 2.0 // meters
     private const val OBSTACLE_DETECTION_RANGE = 3.0 // meters
     private const val RECALCULATION_DELAY = 5000L // ms
-    private const val STRAIGHT_DISTANCE_THRESHOLD = 0.35; // meters
+    private const val STRAIGHT_DISTANCE_THRESHOLD = 0.4; // meters
     private const val TURNING_DISTANCE_THRESHOLD = 0.2 // meters
 
     // Navigation state
@@ -38,6 +38,7 @@ object NavigationUtils {
     private var onDynamicInstructionCallback: ((String) -> Unit)? = null
     private var onInstructionChangedCallback: ((Int) -> Unit)? = null
     private var onStopNavigationCallback: (() -> Unit)? = null
+    private var onDropNavigationCallback: (() -> Unit)? = null
     private var navigationViewModel: NavigationViewModel? = null
     private var instructionGiven = false // Track if first instruction has been given
     private var lastMovementTime = 0L
@@ -54,6 +55,7 @@ object NavigationUtils {
         onPositionUpdated: (Point) -> Unit,
         onInstructionChanged: (Int) -> Unit,
         onStopNavigation: () -> Unit,
+        onDropNavigation: () -> Unit,
         onDynamicInstruction: (String) -> Unit
     ) {
         if (isNavigating) return
@@ -78,13 +80,15 @@ object NavigationUtils {
         this.onPositionUpdatedCallback = onPositionUpdated
         this.onInstructionChangedCallback = onInstructionChanged
         this.onStopNavigationCallback = onStopNavigation
+        this.onDropNavigationCallback = onDropNavigation
         this.navigationViewModel = navigationViewModel
         this.onDynamicInstructionCallback = onDynamicInstruction
         scope.launch {
             val path = navigationViewModel.currentPath
+            Log.d("NavigationUtils2", "Path: $path")
             if (path != null && path.size > 1) {
                 val firstSegmentAngle = calculateAngleBetweenPoints(path[0], path[1])
-                var continueLoop = true
+                   var continueLoop = true
 
                 while (continueLoop) {
                     val userHeading = stepCounterViewModel.currentHeadingLive.value ?: 0f
@@ -114,7 +118,7 @@ object NavigationUtils {
                     delay(3000) // Attendre un peu avant de recalculer (évite le spam & ANR)
                 }
 
-                onInstructionChanged(currentInstructionIndex)
+                //onInstructionChanged(currentInstructionIndex)
             }
         }
 
@@ -132,14 +136,17 @@ object NavigationUtils {
         return angle
     }
 
-    fun stopNavigation(path: List<Point>?) {
+    fun stopNavigation(path: List<Point>?, finish:Boolean=false) {
         isNavigating = false
         if (path != null) {
             currentInstructionIndex = path.size - 1
         }
 
         // ✅ Appeler le callback AVANT de le mettre à null
-        onStopNavigationCallback?.invoke()
+        if(finish)
+            onStopNavigationCallback?.invoke()
+        else
+            onDropNavigationCallback?.invoke()
 
         onPositionUpdatedCallback = null
         onInstructionChangedCallback = null
@@ -274,7 +281,7 @@ object NavigationUtils {
         // 3) détection d’arrivée
         if (currentPointIndex >= path.size - 1 ||
             calculateDistance(position, path.last()) / 100 < STRAIGHT_DISTANCE_THRESHOLD) {
-            stopNavigation(path)
+            stopNavigation(path,true)
             Log.d("NavigationUtils", "Reached destination")
             return
         }

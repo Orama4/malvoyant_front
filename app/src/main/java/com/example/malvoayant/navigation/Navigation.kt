@@ -24,6 +24,8 @@ sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Registration : Screen("registration")
     object Login : Screen("login")
+    object OD1 : Screen("od1")
+    object OD2 : Screen("od2")
 
 }
 
@@ -93,6 +95,12 @@ fun NavigationController(    stepCounterViewModel: StepCounterViewModel = viewMo
                 deviceStatus = deviceStatus,
                 meeting = meeting
             )
+        }
+        composable(Screen.OD2.route) {
+            OD2Screen(navController)
+        }
+        composable(Screen.OD1.route) {
+            OD1Screen(navController)
         }
 
         // Search Screen
