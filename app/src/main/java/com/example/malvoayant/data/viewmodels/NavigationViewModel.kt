@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import com.example.malvoayant.utils.NavigationUtils
+import com.example.malvoayant.utils.NavigationUtils.calculateAngleBetweenPoints
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -83,11 +84,11 @@ class NavigationViewModel(
     }
 
     // Fonction spéciale pour recalcul d'obstacle
-    fun recalculatePathForObstacle(start: Any, destination: Any) {
-        calculatePathInternal(start, destination, stopNavigationFirst = false)
+    fun recalculatePathForObstacle(start: Any, destination: Any,stepCounterViewModel: StepCounterViewModel? = null) {
+        calculatePathInternal(start, destination, stopNavigationFirst = false, stepCounterViewModel )
     }
 
-    private fun calculatePathInternal(start: Any, destination: Any, stopNavigationFirst: Boolean) {
+    private fun calculatePathInternal(start: Any, destination: Any, stopNavigationFirst: Boolean,stepCounterViewModel: StepCounterViewModel? = null) {
 
         if (stopNavigationFirst) {
             NavigationUtils.stopNavigation(null)
@@ -119,7 +120,34 @@ class NavigationViewModel(
                 //currentPath = pathFinder.findPath(start, destination, floorPlan)
                 currentPath = path
                 instructions = mutableListOf()
+                //first instruction to fit the turing instruction in the path
+                if (!stopNavigationFirst){
+                val firstSegmentAngle = calculateAngleBetweenPoints(path[0], path[1])
+                val userHeading = stepCounterViewModel?.currentHeadingLive?.value ?: 0f
+                val rawDiff = (firstSegmentAngle - userHeading + 360) % 360
+                val signedDiff = if (rawDiff > 180) rawDiff - 360 else rawDiff
 
+                val startInstruction = when {
+                    signedDiff in -10.0..10.0 -> {
+                        "Obstacle detected on your path at 0.5 meters. Route recalculation in progress .Go straight to start navigation"
+                    }
+                    signedDiff in 10.0..30.0 -> "Turn slightly right "
+                    signedDiff in 30.0..60.0 -> "Turn right "
+                    signedDiff in 60.0..150.0 -> "Turn sharp right"
+                    signedDiff > 150.0 -> "Make a U-turn to start "
+                    signedDiff in -30.0..-10.0 -> "Turn slightly left "
+                    signedDiff in -60.0..-30.0 -> "Turn left"
+                    signedDiff in -150.0..-60.0 -> "Turn sharp left"
+                    signedDiff < -150.0 -> "Make a U-turn "
+                    else -> "Adjust your heading"
+                }
+                if (startInstruction.isNotEmpty()) {
+                    instructions += StaticInstruction(
+                        instruction = startInstruction,
+                        distance = null,
+                        type = "Turning"
+                    )
+                }}
                 for (i in 0 until path.size - 1) {
                     val p1 = path[i]
                     val p2 = path[i + 1]

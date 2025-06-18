@@ -157,7 +157,7 @@ object NavigationUtils {
 
 
 
-    fun handleObstacle(position: Point,heading: Float) : String{
+    fun handleObstacle(position: Point,heading: Float,stepCounterViewModel: StepCounterViewModel) : String{
         val headingRadians = Math.toRadians(heading.toDouble())
         val obstaclePosition = Point(
             x = position.x + (50f * Math.cos(headingRadians)).toFloat(),
@@ -184,7 +184,8 @@ object NavigationUtils {
 
                     navigationViewModel?.recalculatePathForObstacle(
                         start = currentPos,
-                        destination = currentPath.last()
+                        destination = currentPath.last(),
+                        stepCounterViewModel = stepCounterViewModel
                     )
 
                     traversedPath.clear()
@@ -192,6 +193,7 @@ object NavigationUtils {
                     currentInstructionIndex = 0
                     currentPointIndex = 0
                     instructionGiven = false
+                    onInstructionChangedCallback?.invoke(currentInstructionIndex)
 
                     return "Obstacle detected on your path at 0.5 meters. Route recalculation in progress."
                 }

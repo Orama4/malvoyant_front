@@ -72,8 +72,8 @@ fun NavigationController(    stepCounterViewModel: StepCounterViewModel = viewMo
             authViewModel.getToken() != null
         }
     }
-    //val startDestination = if (isLoggedIn.value) Screen.Search.route else Screen.Home.route
-    val startDestination =  Screen.Search.route
+    val startDestination = if (isLoggedIn.value) Screen.Search.route else Screen.Home.route
+    //val startDestination =  Screen.Search.route
     NavHost(
         navController = navController,
         startDestination = startDestination
